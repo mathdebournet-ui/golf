@@ -6,17 +6,17 @@
         - Golf : 3 putting, 1 chipping (ou bunker), 2 practice
           (fers / drive / wedging, de catégories différentes)
         - Sport : une séance de 5 exercices selon le jour de la semaine
-      Le tirage est « aléatoire » mais calculé à partir de la date :
-      il est identique toute la journée, sur tous tes appareils.
-   3. Gérer « Fait ✓ » et « Autre exo », mémorisés dans le navigateur.
+      Un NOUVEAU programme est tiré à chaque ouverture de la page. Il évite
+      les exercices des 3 jours précédents et ceux de la dernière ouverture.
+   3. Gérer « Fait ✓ » et « Autre exo », mémorisés dans le navigateur
+      (jusqu'à la prochaine ouverture, qui tire un nouveau programme).
    ========================================================= */
 
 "use strict";
 
 // ---------- Réglages ----------
 const JOURS_A_EVITER = 3;            // ne pas reproposer les exos des 3 derniers jours
-const DATE_DEPART = "2026-01-01";    // point de départ du calcul (voir programmeDuJour)
-const PREFIXE_STOCKAGE = "golf-seance-v2:";
+const PREFIXE_STOCKAGE = "golf-seance-v3:";
 const JOURS_CONSERVES = 30;          // on efface les données de plus de 30 jours
 
 // Programme golf : chaque ligne = 1 exercice (un « créneau »)
@@ -74,7 +74,7 @@ const MESSAGES_ERREUR = {
 // État de la page
 let toutesLesFiches = [];   // toutes les fiches (y compris brouillons)
 let fichesValides = [];     // seulement celles utilisables dans le programme
-let programmeDeBase = [];   // tirage du jour : [{ creneau, fiche }], avant remplacements
+let programmeCourant = [];  // programme affiché : [{ creneau, fiche }]
 let filtreActif = "tous";   // filtre de la bibliothèque
 
 
@@ -119,7 +119,7 @@ function nettoyerVieuxJours() {
     for (let i = localStorage.length - 1; i >= 0; i--) {
       const cle = localStorage.key(i);
       if (!cle) continue;
-      if (cle.startsWith("golf-seance:")) {          // données de la 1re version
+      if (cle.startsWith("golf-seance:") || cle.startsWith("golf-seance-v2:")) {   // anciennes versions
         localStorage.removeItem(cle);
       } else if (cle.startsWith(PREFIXE_STOCKAGE + "jour:")) {
         const jour = cle.slice((PREFIXE_STOCKAGE + "jour:").length);
@@ -131,12 +131,13 @@ function nettoyerVieuxJours() {
   }
 }
 
-// Données mémorisées pour une journée : exercices faits + remplacements
+// Données mémorisées pour une journée : le dernier programme affiché,
+// les exercices faits et les exercices déjà proposés par « Autre exo »
 function lireJournee(jour) {
   const donnees = lireStockage("jour:" + jour, {});
   return {
+    programme: Array.isArray(donnees.programme) ? donnees.programme : [],   // ids, dans l'ordre des créneaux
     faits: Array.isArray(donnees.faits) ? donnees.faits : [],
-    remplacements: donnees.remplacements || {},   // { position: idFiche }
     dejaProposes: donnees.dejaProposes || {},     // { position: [ids] }
   };
 }
@@ -178,33 +179,11 @@ function formaterDuree(minutes) {
 
 
 /* =========================================================
-   3. Hasard « reproductible »
-   Même graine (ex. la date) => même suite de nombres.
+   3. Hasard
    ========================================================= */
 
-// Transforme un texte en nombre (fonction de hachage FNV-1a)
-function hacher(texte) {
-  let h = 2166136261;
-  for (const caractere of texte) {
-    h ^= caractere.codePointAt(0);
-    h = Math.imul(h, 16777619);
-  }
-  return h >>> 0;
-}
-
-// Générateur de nombres entre 0 et 1 à partir d'une graine (mulberry32)
-function generateurAleatoire(graine) {
-  let a = graine;
-  return function () {
-    a = (a + 0x6d2b79f5) | 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-function choisirAuHasard(liste, aleatoire) {
-  return liste[Math.floor(aleatoire() * liste.length)];
+function choisirAuHasard(liste) {
+  return liste[Math.floor(Math.random() * liste.length)];
 }
 
 
@@ -225,11 +204,11 @@ function seanceDuJour(jour) {
 
 // Choisit une fiche pour un créneau.
 //  - autres : les exercices déjà placés aujourd'hui ([{ creneau, fiche }])
-//  - idsRecents : exercices des 3 derniers jours (évités si possible)
+//  - idsRecents : exercices récents (évités si possible)
 //  - exclus : ids à ne pas proposer (pour « Autre exo »)
 // On choisit d'abord une CATÉGORIE au hasard, puis une fiche : ainsi le
-// wedging (2 fiches) a autant de chances que le drive (3 fiches).
-function tirerPourCreneau(creneau, autres, idsRecents, aleatoire, exclus = new Set()) {
+// wedging (3 fiches) a autant de chances que le drive (4 fiches).
+function tirerPourCreneau(creneau, autres, idsRecents, exclus = new Set()) {
   const idsPris = new Set(autres.map((p) => p.fiche && p.fiche.id));
   let candidates = fichesValides.filter(
     (f) => creneau.categories.includes(f.categorie) && !idsPris.has(f.id) && !exclus.has(f.id)
@@ -250,61 +229,36 @@ function tirerPourCreneau(creneau, autres, idsRecents, aleatoire, exclus = new S
   if (candidates.length === 0) return null;
 
   const categories = [...new Set(candidates.map((f) => f.categorie))].sort();
-  const categorie = choisirAuHasard(categories, aleatoire);
-  return choisirAuHasard(candidates.filter((f) => f.categorie === categorie), aleatoire);
+  const categorie = choisirAuHasard(categories);
+  return choisirAuHasard(candidates.filter((f) => f.categorie === categorie));
 }
 
-// Programme d'UN jour (tirage de base, sans remplacement)
-function tirerProgramme(jour, idsRecents) {
-  const aleatoire = generateurAleatoire(hacher("programme-" + jour));
-  const programme = [];
-  for (const creneau of creneauxDuJour(jour)) {
-    programme.push({ creneau, fiche: tirerPourCreneau(creneau, programme, idsRecents, aleatoire) });
-  }
-  return programme;
-}
-
-// Programme du jour demandé.
-// Pour savoir quels exercices sont tombés les 3 jours précédents, on refait
-// le calcul jour après jour depuis DATE_DEPART : le résultat ne dépend que
-// des dates et de la liste des fiches (rien n'est stocké, rien ne se perd).
-function programmeDuJour(jour) {
-  const historique = [];   // ids des exercices des derniers jours
-  let date = texteEnDate(DATE_DEPART);
-  const cible = texteEnDate(jour);
-  if (cible < date) date = cible;   // horloge du téléphone déréglée : on part du jour même
-
-  let programme = [];
-  while (date <= cible) {
-    programme = tirerProgramme(dateEnTexte(date), new Set(historique.flat()));
-    historique.push(programme.filter((p) => p.fiche).map((p) => p.fiche.id));
-    if (historique.length > JOURS_A_EVITER) historique.shift();
-    date = ajouterJours(date, 1);
-  }
-  return programme;
-}
-
-// Ids des exercices des 3 jours précédant « jour »
-function idsDesJoursPrecedents(jour) {
+// Exercices à éviter : ceux des 3 jours précédents ET ceux de la dernière
+// ouverture d'aujourd'hui (pour que chaque ouverture propose autre chose).
+// L'historique est celui mémorisé dans ce navigateur.
+function idsRecents(jour) {
   const ids = new Set();
-  for (let i = 1; i <= JOURS_A_EVITER; i++) {
-    const avant = dateEnTexte(ajouterJours(texteEnDate(jour), -i));
-    programmeDuJour(avant).forEach((p) => p.fiche && ids.add(p.fiche.id));
+  for (let i = 0; i <= JOURS_A_EVITER; i++) {
+    const date = dateEnTexte(ajouterJours(texteEnDate(jour), -i));
+    lireJournee(date).programme.forEach((id) => id && ids.add(id));
   }
   return ids;
 }
 
-// Programme affiché = tirage du jour + remplacements choisis via « Autre exo »
-function programmeAffiche(jour) {
-  const journee = lireJournee(jour);
-  return programmeDeBase.map((place, position) => {
-    const remplacant = fichesValides.find((f) => f.id === journee.remplacements[position]);
-    // Sécurité : le remplaçant doit correspondre au créneau
-    if (remplacant && place.creneau.categories.includes(remplacant.categorie)) {
-      return { creneau: place.creneau, fiche: remplacant };
-    }
-    return place;
-  });
+// Tire un tout nouveau programme pour ce jour
+function nouveauProgramme(jour) {
+  const recents = idsRecents(jour);
+  const programme = [];
+  for (const creneau of creneauxDuJour(jour)) {
+    programme.push({ creneau, fiche: tirerPourCreneau(creneau, programme, recents) });
+  }
+  return programme;
+}
+
+// Mémorise le programme affiché (sert d'historique pour les prochains tirages)
+function enregistrerProgramme(jour, journee) {
+  journee.programme = programmeCourant.map((p) => (p.fiche ? p.fiche.id : null));
+  ecrireJournee(jour, journee);
 }
 
 
@@ -329,25 +283,24 @@ function basculerFait(jour, idFiche) {
 // tant que c'est possible.
 function remplacerExercice(jour, position) {
   const journee = lireJournee(jour);
-  const actuels = programmeAffiche(jour);
-  const place = actuels[position];
-  const autres = actuels.filter((_, i) => i !== position);
-  const recents = idsDesJoursPrecedents(jour);
+  const place = programmeCourant[position];
+  const autres = programmeCourant.filter((_, i) => i !== position);
+  const recents = idsRecents(jour);
 
   const dejaVus = journee.dejaProposes[position] || [place.fiche.id];
-  let nouvelle = tirerPourCreneau(place.creneau, autres, recents, Math.random, new Set(dejaVus));
+  let nouvelle = tirerPourCreneau(place.creneau, autres, recents, new Set(dejaVus));
   let vus = [...dejaVus];
   if (!nouvelle) {
     // On a fait le tour : on repart de zéro (en évitant juste l'exo actuel)
-    nouvelle = tirerPourCreneau(place.creneau, autres, recents, Math.random, new Set([place.fiche.id]));
+    nouvelle = tirerPourCreneau(place.creneau, autres, recents, new Set([place.fiche.id]));
     vus = [place.fiche.id];
   }
   if (!nouvelle) return;   // aucun autre exercice possible pour ce créneau
 
+  programmeCourant[position] = { creneau: place.creneau, fiche: nouvelle };
   journee.dejaProposes[position] = [...vus, nouvelle.id];
-  journee.remplacements[position] = nouvelle.id;
   journee.faits = journee.faits.filter((id) => id !== place.fiche.id);
-  ecrireJournee(jour, journee);
+  enregistrerProgramme(jour, journee);
   afficherProgramme(jour);
 }
 
@@ -452,7 +405,7 @@ function carteFiche(fiche, options) {
 }
 
 function afficherProgramme(jour) {
-  const programme = programmeAffiche(jour).map((place, position) => ({ ...place, position }));
+  const programme = programmeCourant.map((place, position) => ({ ...place, position }));
   const presents = programme.filter((p) => p.fiche);
   const journee = lireJournee(jour);
   const estFait = (p) => journee.faits.includes(p.fiche.id);
@@ -614,7 +567,9 @@ async function demarrer() {
     afficherErreur("manque", manquantes.map((c) => NOMS_CATEGORIES[c] || c).join(", ") + ".");
   }
 
-  programmeDeBase = programmeDuJour(aujourdhui);
+  // Nouveau programme à chaque ouverture (les ✓ repartent de zéro)
+  programmeCourant = nouveauProgramme(aujourdhui);
+  enregistrerProgramme(aujourdhui, { faits: [], dejaProposes: {} });
   afficherProgramme(aujourdhui);
 
   // Un seul écouteur pour tous les boutons des cartes (délégation)

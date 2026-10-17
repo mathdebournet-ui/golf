@@ -13,11 +13,13 @@ Page web statique (GitHub Pages) qui propose chaque jour un programme golf + une
 - ✅ Simulation sur 365 jours : aucune répétition sur 3 jours, les 206 fiches apparaissent, practice toujours de 2 catégories différentes.
 - ✅ Le script gère les photos (nouvelle photo → brouillon « à analyser »).
 - ✅ Testé dans le navigateur (mobile 375 px) : blocs, Fait ✓, Autre exo (respecte le créneau), durées.
-- ⏳ Pas encore publié sur GitHub Pages.
+- ✅ **En ligne** (17/10/2026) : https://mathdebournet-ui.github.io/golf/ — dépôt public `mathdebournet-ui/golf`, publié avec GitHub Desktop (branche `main`, racine). Vérifié : 206 fiches, PDF et .docx accessibles, photos non publiées (404), service worker actif.
+
+- ✅ v3 (17/10/2026) : **nouveau programme à chaque ouverture** (demande utilisateur) au lieu d'un programme fixe par jour. Évite les exos des 3 jours précédents et de la dernière ouverture. Les ✓ repartent de zéro à chaque ouverture.
 
 ## Décisions techniques
 - **Site dans `exercice golf/`** : les PDF sont liés directement. L'Excel est exclu par `.gitignore`.
-- **Tirage déterministe par date** ; exclusion des 3 derniers jours recalculée depuis le 01/01/2026.
+- **Tirage aléatoire à chaque ouverture** (v3), historique mémorisé dans le navigateur (remplace le tirage déterministe par date des v1-v2).
 - **Créneaux** : chaque exercice du jour = un créneau (bloc + catégories autorisées). Même logique pour le tirage et pour « Autre exo ».
 - **Bunker dans le créneau chipping** (jeu court autour du green) : sinon les 3 fiches bunker n'apparaîtraient jamais. À confirmer avec l'utilisateur.
 - **Prépa physique TPI + coach uniquement** (v2) : retrait de 10 fiches d'autres sources (Golf Digest, ACE, NHS, SuperSpeed…). Le Copenhagen est conservé avec TPI comme source.
@@ -27,7 +29,8 @@ Page web statique (GitHub Pages) qui propose chaque jour un programme golf + une
 - **Python embarqué** (`../python-runtime`) avec `pypdf` + `python-docx`.
 
 ## Prochaines étapes
-- [ ] Publier sur GitHub Pages.
+- [x] Publier sur GitHub Pages.
+- Mises à jour : GitHub Desktop → message → **Commit to main** → **Push origin**.
 - [ ] Confirmer : bunker dans le créneau chipping ? Durée de la journée (~2 h) acceptable ?
 - [ ] Ajuster les objectifs chiffrés après quelques séances.
 

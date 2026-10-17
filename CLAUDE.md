@@ -24,15 +24,17 @@ Site statique (GitHub Pages, aucun serveur/BDD) qui affiche chaque jour un « pr
 "../python-runtime/python.exe" -m http.server 8770 --directory .
 ```
 
-Pas de build, pas de tests automatisés, pas de dépendances JS. Python embarqué dans `../python-runtime/` (avec `pypdf` et `python-docx`). Pas de git installé sur la machine : publication prévue via GitHub Desktop ou upload web.
+Pas de build, pas de tests automatisés, pas de dépendances JS. Python embarqué dans `../python-runtime/` (avec `pypdf` et `python-docx`).
+
+**Publication** : site en ligne sur https://mathdebournet-ui.github.io/golf/ (dépôt public `mathdebournet-ui/golf`, GitHub Pages depuis `main` / racine). Pas de git dans le PATH : l'utilisateur publie avec GitHub Desktop (Commit to main → Push origin). Pour inspecter le dépôt en lecture seule : `$env:LOCALAPPDATA\GitHubDesktop\app-*\resources\app\git\cmd\git.exe`. Ne jamais pousser sans accord explicite.
 
 ## Architecture
 
 - `fiches.json` = **source de vérité** des exercices. `fiches-data.js` en est une copie (`window.FICHES_SECOURS`) **générée par le script** — ne jamais l'éditer à la main ; après toute modif de `fiches.json`, relancer `outils/maj_fiches.py` pour la régénérer (le script valide aussi les champs).
 - `app.js` charge `fiches.json` via `fetch`, et retombe sur `FICHES_SECOURS` si fetch échoue (page ouverte en `file://`).
 - **Structure du jour** (constantes en tête de `app.js`) : `CRENEAUX_GOLF` = 3 putting, 1 chipping/bunker, 2 practice (fers/drive/approches, `categoriesDifferentes`) ; `SEANCES_SPORT` par jour de semaine (0 = dimanche) : lun cardio ×5, mar/jeu 2 puissance + 3 force, mer/sam mobilité ×5, ven abdos ×5, dim récupération légère (1 récupération + 2 mobilité). Chaque exercice est un « créneau » `{bloc, categories}` ; `tirerPourCreneau()` sert au tirage ET à « Autre exo ».
-- **Tirage du jour déterministe** : PRNG (FNV-1a + mulberry32) amorcé par la date. Pour exclure les exos des 3 derniers jours sans rien stocker, `programmeDuJour()` rejoue tous les jours depuis `DATE_DEPART` (2026-01-01). Conséquence : modifier la liste des fiches valides change les tirages (y compris celui du jour). Dans un créneau, le tirage choisit d'abord une **catégorie** puis une fiche. L'exclusion est « si possible » : un pool trop petit pour un créneau (il faut ≥ 4 × nb de créneaux de cette catégorie sur 4 jours glissants) provoque des répétitions — à vérifier par simulation sur 365 jours après tout changement de structure.
-- « Fait ✓ » et « Autre exo » sont stockés par jour (`golf-seance-v2:jour:AAAA-MM-JJ`, remplacements indexés par position de créneau — changer la structure des créneaux impose de changer `PREFIXE_STOCKAGE`). Les remplacements n'influencent pas l'exclusion des jours suivants. Données de plus de 30 jours purgées.
+- **Nouveau tirage à chaque ouverture** (choix de l'utilisateur, v3 — l'ancien tirage déterministe par date a été abandonné) : `nouveauProgramme()` utilise `Math.random`, en évitant via `idsRecents()` les exos des 3 jours précédents **et** du dernier programme affiché aujourd'hui. Dans un créneau, le tirage choisit d'abord une **catégorie** puis une fiche. L'exclusion est « si possible » (repli si le pool est trop petit).
+- Stockage par jour `golf-seance-v3:jour:AAAA-MM-JJ` = `{ programme: [ids par position de créneau], faits, dejaProposes }`. Chaque ouverture écrase le programme du jour et remet les ✓ à zéro ; « Autre exo » met à jour `programme`. L'historique (donc l'exclusion) est propre à chaque navigateur. Changer la structure des créneaux impose de changer `PREFIXE_STOCKAGE`. Données de plus de 30 jours purgées.
 - `sw.js` : service worker réseau-d'abord pour l'usage hors-ligne (actif seulement en https/localhost). Incrémenter `NOM_CACHE` si on ajoute des fichiers essentiels.
 
 ## Format d'une fiche (`fiches.json` → `fiches[]`)
