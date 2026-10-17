@@ -1,0 +1,18 @@
+# Fichiers à NE PAS publier sur GitHub
+*.xlsx
+~$*
+fiches.json.bak
+
+# Photos des fiches du préparateur : elles contiennent des prénoms et des
+# documents privés. Elles servent à rédiger les fiches, pas à être publiées.
+/*.jpg
+/*.jpeg
+/*.png
+/*.heic
+/*.webp
+prepa phisique/*.jpg
+prepa phisique/*.jpeg
+prepa phisique/*.png
+prepa phisique/*.heic
+prepa phisique/*.webp
+outils/__pycache__/

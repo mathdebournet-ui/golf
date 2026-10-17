@@ -1,0 +1,199 @@
+/* =========================================================
+   Style de la page – pensé pour le téléphone en premier.
+   Les couleurs sont des « variables » : on les change ici,
+   et toute la page suit. Le mode sombre est automatique.
+   ========================================================= */
+
+:root {
+  /* Mode clair : contraste fort, lisible en plein soleil */
+  --fond: #f4f7f3;
+  --carte: #ffffff;
+  --texte: #0b1a10;
+  --texte-doux: #3a4a3f;
+  --bord: #c9d4cc;
+  --accent: #0b6b3a;        /* vert golf */
+  --accent-texte: #ffffff;
+  --accent-doux: #e1efe6;
+  --alerte-fond: #fff3cd;
+  --alerte-texte: #5c4300;
+  --erreur-fond: #fde2e1;
+  --erreur-texte: #7a1410;
+  --ombre: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fond: #0d130f;
+    --carte: #172019;
+    --texte: #eef4f0;
+    --texte-doux: #b6c4ba;
+    --bord: #2d3b32;
+    --accent: #4cc38a;
+    --accent-texte: #05210f;
+    --accent-doux: #1d3326;
+    --alerte-fond: #3a2f0b;
+    --alerte-texte: #ffe08a;
+    --erreur-fond: #3d1514;
+    --erreur-texte: #ffb4ae;
+    --ombre: none;
+  }
+}
+
+* { box-sizing: border-box; }
+
+html { font-size: 18px; -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--fond);
+  color: var(--texte);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  line-height: 1.5;
+  /* Marges qui respectent l'encoche des iPhone */
+  padding: 0 max(16px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+}
+
+header, nav, main, footer { max-width: 680px; margin: 0 auto; }
+
+/* ---------- En-tête ---------- */
+.entete { padding-top: max(16px, env(safe-area-inset-top)); }
+.entete h1 { margin: 0; font-size: 1.7rem; line-height: 1.2; }
+.date { margin: 2px 0 10px; color: var(--texte-doux); font-weight: 600; }
+.date::first-letter { text-transform: uppercase; }   /* « Samedi 17 octobre » */
+
+.badges { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.badge {
+  font-size: 0.8rem; font-weight: 600;
+  padding: 4px 10px; border-radius: 999px;
+  background: var(--accent-doux); color: var(--texte);
+  border: 1px solid var(--bord);
+}
+.badge.attention { background: var(--alerte-fond); color: var(--alerte-texte); }
+
+/* ---------- Onglets ---------- */
+.onglets { display: flex; gap: 8px; margin-bottom: 16px; }
+.onglet {
+  flex: 1; min-height: 52px;
+  font: inherit; font-weight: 700;
+  border: 2px solid var(--accent); border-radius: 12px;
+  background: transparent; color: var(--texte);
+  cursor: pointer;
+}
+.onglet.actif { background: var(--accent); color: var(--accent-texte); }
+
+/* ---------- Résumé de la séance ---------- */
+.resume {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px;
+  padding: 14px 16px; margin-bottom: 16px;
+  background: var(--carte); border: 1px solid var(--bord); border-radius: 14px;
+  box-shadow: var(--ombre);
+}
+.resume-total { font-size: 1.35rem; font-weight: 800; }
+.resume-avancement { color: var(--texte-doux); font-weight: 600; }
+.resume-detail { width: 100%; margin: 0; color: var(--texte-doux); font-weight: 600; }
+.resume-bravo { width: 100%; margin: 0; font-weight: 700; color: var(--accent); }
+
+/* ---------- Blocs (putting, chipping, practice, sport) ---------- */
+.bloc { margin-bottom: 24px; }
+.bloc-titre { margin: 0; font-size: 1.35rem; line-height: 1.25; }
+.bloc-titre::first-letter { text-transform: uppercase; }
+.bloc-info { margin: 2px 0 10px; color: var(--texte-doux); font-weight: 600; }
+
+/* ---------- Cartes d'exercice ---------- */
+.carte {
+  background: var(--carte);
+  border: 1px solid var(--bord);
+  border-left: 6px solid var(--couleur-cat, var(--accent));
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 16px;
+  box-shadow: var(--ombre);
+}
+.carte.faite { border-color: var(--accent); border-left-color: var(--accent); }
+.carte.faite .carte-titre::after { content: " ✓"; color: var(--accent); }
+
+.carte-haut { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.pastille {
+  font-size: 0.85rem; font-weight: 700; color: #fff;
+  background: var(--couleur-cat, var(--accent));
+  padding: 3px 10px; border-radius: 999px;
+}
+.pastille.brouillon { background: var(--alerte-fond); color: var(--alerte-texte); }
+.duree { font-weight: 700; color: var(--texte-doux); }
+.numero { margin-left: auto; font-weight: 700; color: var(--texte-doux); }
+
+.carte-titre { margin: 8px 0 4px; font-size: 1.3rem; line-height: 1.25; }
+.objectif { margin: 0 0 8px; }
+
+/* Bloc dépliable « Comment faire » */
+details { margin-top: 8px; }
+summary {
+  min-height: 48px; display: flex; align-items: center;
+  font-weight: 700; color: var(--accent); cursor: pointer;
+  list-style: none;
+}
+summary::-webkit-details-marker { display: none; }
+summary::before { content: "▸"; margin-right: 8px; transition: transform 0.15s; }
+details[open] > summary::before { transform: rotate(90deg); }
+
+.carte h4 { margin: 14px 0 4px; font-size: 1rem; text-transform: uppercase; letter-spacing: 0.03em; color: var(--texte-doux); }
+.carte ul, .carte ol { margin: 0; padding-left: 1.3em; }
+.carte li { margin-bottom: 4px; }
+.carte p { margin: 0 0 6px; }
+
+.variantes { display: grid; gap: 8px; margin-top: 6px; }
+.variante { padding: 10px 12px; border-radius: 10px; background: var(--accent-doux); }
+.variante strong { display: block; }
+
+.note { margin-top: 12px; padding: 10px 12px; border-radius: 10px; background: var(--alerte-fond); color: var(--alerte-texte); font-size: 0.9rem; }
+.source { margin-top: 12px; font-size: 0.9rem; color: var(--texte-doux); word-break: break-word; }
+.source a { color: var(--accent); font-weight: 600; }
+.texte-extrait { white-space: pre-wrap; font-size: 0.85rem; background: var(--fond); padding: 10px; border-radius: 8px; }
+
+/* ---------- Boutons ---------- */
+.actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
+.bouton {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  min-height: 56px; padding: 0 12px;
+  font: inherit; font-weight: 800; text-align: center; text-decoration: none;
+  border-radius: 12px; border: 2px solid var(--accent);
+  background: transparent; color: var(--texte);
+  cursor: pointer;
+}
+.bouton:active { transform: scale(0.98); }
+.bouton.principal { background: var(--accent); color: var(--accent-texte); }
+.bouton.fait { background: var(--accent-doux); color: var(--accent); }
+.bouton.pleine-largeur { grid-column: 1 / -1; }
+.bouton:focus-visible, .onglet:focus-visible, summary:focus-visible, .filtre:focus-visible {
+  outline: 3px solid var(--texte); outline-offset: 2px;
+}
+
+/* ---------- Bibliothèque ---------- */
+.filtres { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.filtre {
+  min-height: 44px; padding: 0 14px;
+  font: inherit; font-size: 0.9rem; font-weight: 700;
+  border: 2px solid var(--bord); border-radius: 999px;
+  background: var(--carte); color: var(--texte); cursor: pointer;
+}
+.filtre.actif { border-color: var(--accent); background: var(--accent); color: var(--accent-texte); }
+.compte { color: var(--texte-doux); margin: 0 0 12px; }
+
+/* ---------- Messages ---------- */
+.erreur { padding: 14px 16px; margin-bottom: 16px; border-radius: 12px; background: var(--erreur-fond); color: var(--erreur-texte); font-weight: 600; }
+.pied { color: var(--texte-doux); font-size: 0.8rem; text-align: center; padding-top: 8px; }
+
+/* ---------- Couleurs des catégories (texte blanc lisible dessus) ---------- */
+.cat-putting   { --couleur-cat: #1d6b3a; }
+.cat-chipping  { --couleur-cat: #8a5300; }
+.cat-approches { --couleur-cat: #a3361a; }
+.cat-fers      { --couleur-cat: #2b4c9b; }
+.cat-drive     { --couleur-cat: #6a2c91; }
+.cat-bunker    { --couleur-cat: #7a6312; }
+.cat-cardio    { --couleur-cat: #b0122f; }
+.cat-force     { --couleur-cat: #8c1d40; }
+.cat-puissance { --couleur-cat: #a33a00; }
+.cat-mobilite  { --couleur-cat: #0e6870; }
+.cat-abdos     { --couleur-cat: #4a5a12; }
+.cat-recuperation { --couleur-cat: #3a4f66; }
+.cat-a-classer { --couleur-cat: #555555; }

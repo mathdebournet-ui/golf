@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Golf – Séance du jour</title>
+  <meta name="description" content="Programme d'entraînement golf et prépa physique du jour.">
+
+  <!-- Couleurs et mode sombre automatique -->
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#0b6b3a" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0d130f" media="(prefers-color-scheme: dark)">
+
+  <!-- Ajout à l'écran d'accueil (Android : manifest ; iPhone : balises apple) -->
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" href="icones/icone-192.png">
+  <link rel="apple-touch-icon" href="icones/icone-180.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Golf">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="entete">
+    <h1>Séance du jour</h1>
+    <p id="date-du-jour" class="date"></p>
+    <!-- Indicateurs d'état (fiches chargées, mémoire du navigateur…) -->
+    <div id="badges" class="badges" aria-live="polite"></div>
+  </header>
+
+  <nav class="onglets" aria-label="Vues">
+    <button type="button" class="onglet actif" data-vue="jour" aria-pressed="true">Aujourd'hui</button>
+    <button type="button" class="onglet" data-vue="biblio" aria-pressed="false">Bibliothèque</button>
+  </nav>
+
+  <main>
+    <!-- Message d'erreur clair (caché tant qu'il n'y a pas d'erreur) -->
+    <div id="erreur" class="erreur" role="alert" hidden></div>
+
+    <!-- Vue 1 : programme du jour -->
+    <section id="vue-jour">
+      <div id="resume" class="resume"></div>
+      <div id="programme"></div>
+    </section>
+
+    <!-- Vue 2 : toutes les fiches -->
+    <section id="vue-biblio" hidden>
+      <div id="filtres" class="filtres"></div>
+      <div id="liste"></div>
+    </section>
+  </main>
+
+  <footer class="pied">
+    <p id="info-maj"></p>
+  </footer>
+
+  <!-- Copie de secours des fiches (pour ouvrir la page sans serveur) -->
+  <script src="fiches-data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
