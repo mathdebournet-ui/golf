@@ -47,8 +47,8 @@ const OBJECTIFS_GOLF = [
   },
   {
     id: "echauffement", nom: "🔥 Échauffement avant une partie",
-    detail: "L'échauffement de compétition de ton préparateur",
-    fiches: ["agilite-ligne", "fente-rotation-jambe-avant", "elastique-diagonale-pied-main",
+    detail: "La phrase + l'échauffement de compétition de ton préparateur",
+    fiches: ["la-phrase", "agilite-ligne", "fente-rotation-jambe-avant", "elastique-diagonale-pied-main",
       "rotations-elastique-mi-hauteur", "squat-jump-leste", "chaise-murale"],
   },
   {

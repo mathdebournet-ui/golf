@@ -2,7 +2,7 @@
 // Copie de fiches.json, utilisée quand la page est ouverte sans serveur (double-clic).
 window.FICHES_SECOURS = {
   "version": 1,
-  "miseAJour": "2026-10-17",
+  "miseAJour": "2026-10-18",
   "fiches": [
     {
       "id": "2-feet-circle",
@@ -303,7 +303,7 @@ window.FICHES_SECOURS = {
         "fichier": "Fiches exercices.pdf",
         "page": 2
       },
-      "note": "Le PDF indique aussi « SG +2.19 » sans explication (sans doute une référence strokes gained) : à vérifier avec ton coach. Disposition lue sur le schéma.",
+      "note": "Disposition lue sur le schéma.",
       "statut": "valide"
     },
     {
@@ -3821,10 +3821,10 @@ window.FICHES_SECOURS = {
         "Un mur"
       ],
       "miseEnPlace": [
-        "Dos contre le mur, descends jusqu'à avoir les cuisses parallèles au sol."
+        "Dos contre le mur, descends jusqu'à avoir les tibias parallèles au sol."
       ],
       "deroule": [
-        "Tiens la position : dos droit, tibias verticaux.",
+        "Tiens la position : dos droit, collé au mur.",
         "30 secondes."
       ],
       "reussite": "30 secondes sans bouger.",
@@ -3837,7 +3837,7 @@ window.FICHES_SECOURS = {
           "prepa phisique/13.jpeg"
         ]
       },
-      "note": "Exercice et dosage : fiche de ton préparateur physique (photo 13). Consignes détaillées complétées par Claude. La fiche indique « tibias parallèles au sol » ; sur le schéma ce sont les cuisses qui sont horizontales.",
+      "note": "Exercice et dosage : fiche de ton préparateur physique (photo 13). Consignes détaillées complétées par Claude. « Tibias parallèles au sol » : consigne du préparateur, confirmée par toi.",
       "statut": "valide"
     },
     {
@@ -4360,7 +4360,7 @@ window.FICHES_SECOURS = {
       ],
       "deroule": [
         "Garde la position en étendant bien les pieds.",
-        "4 séries (durée : environ 40 secondes)."
+        "4 séries de 40 secondes."
       ],
       "reussite": "Corps aligné, sans creuser le dos.",
       "varianteFacile": "Genoux sur le ballon.",
@@ -4372,7 +4372,7 @@ window.FICHES_SECOURS = {
           "prepa phisique/3.jpeg"
         ]
       },
-      "note": "Exercice et dosage : fiche de ton préparateur physique (photo 3). Consignes détaillées complétées par Claude. La durée est illisible sur la photo (« 4 séries de ?0 secondes ») : 40 s proposé, à vérifier.",
+      "note": "Exercice et dosage : fiche de ton préparateur physique (photo 3). Consignes détaillées complétées par Claude. Durée de 40 s confirmée par toi (illisible sur la photo).",
       "statut": "valide"
     },
     {
@@ -6159,6 +6159,34 @@ window.FICHES_SECOURS = {
       "statut": "valide"
     },
     {
+      "id": "la-phrase",
+      "titre": "La phrase (échauffement avant de jouer)",
+      "type": "physique",
+      "categorie": "mobilite",
+      "duree": 10,
+      "objectif": "Préparer le corps avant d'aller jouer : une série d'étirements enchaînés en gardant les abdos engagés.",
+      "materiel": [
+        "Aucun"
+      ],
+      "miseEnPlace": [
+        "Un espace calme près du départ ou du practice."
+      ],
+      "deroule": [
+        "Enchaîne la série d'étirements de « la phrase » telle que ton préparateur te l'a montrée.",
+        "Pendant chaque étirement, garde le ventre engagé (nombril rentré, dos stable).",
+        "Respire calmement, sans forcer sur les étirements."
+      ],
+      "reussite": "Tu te sens délié et gainé, prêt à faire tes premiers swings.",
+      "varianteFacile": "Étirements plus courts, amplitude réduite.",
+      "varianteDifficile": "Tiens chaque position un peu plus longtemps en gardant le gainage.",
+      "source": {
+        "type": "docx",
+        "fichier": "prepa phisique/PROGRAMME DE PRÉPARATION PHYSIQUE.docx"
+      },
+      "note": "« La phrase » est citée par ton préparateur (« Routines TPI et phrase ») : tu l'as décrite comme une série d'étirements avec engagement abdominal pour s'échauffer avant de jouer. Les mouvements exacts ne sont écrits nulle part : à préciser avec ton préparateur pour compléter cette fiche.",
+      "statut": "valide"
+    },
+    {
       "id": "circuit-cardio-altus",
       "titre": "Circuit cardio ALTUS",
       "type": "physique",
@@ -6178,7 +6206,7 @@ window.FICHES_SECOURS = {
       "deroule": [
         "60 jumping jacks",
         "1 min de corde à sauter",
-        "50 rameur",
+        "50 coups de rameur",
         "10 sauts de box",
         "10 sauts arrière TRX",
         "10 tirages TRX",
@@ -6196,7 +6224,7 @@ window.FICHES_SECOURS = {
           "prepa phisique/26.jpeg"
         ]
       },
-      "note": "Exercice et dosage : fiche de ton préparateur physique (photo 8). Consignes détaillées complétées par Claude. « 50 rameur » : la fiche ne dit pas si ce sont 50 m ou 50 coups, à préciser avec ton préparateur.",
+      "note": "Exercice et dosage : fiche de ton préparateur physique (photo 8). Consignes détaillées complétées par Claude. « 50 rameur » = 50 coups de rameur (confirmé par toi).",
       "statut": "valide"
     },
     {

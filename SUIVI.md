@@ -21,7 +21,8 @@ Page web statique (GitHub Pages) qui propose chaque jour un programme golf + une
 
 - ✅ v5 (18/10/2026) : **partage des parties entre joueurs** (demande utilisateur : « voir ce que les gens font sur le parcours »). Choix : tout le monde voit tout, envoi à la fin de la partie, simple message d'information (pas de case à cocher), Firebase. Code prêt (`partage.js`, Historique > « Tous les joueurs », règles dans `outils/regles-firestore.txt`). Projet Firebase `golf-seance` (forfait gratuit Spark, Firestore europe-west9, connexion anonyme, règles publiées). Testé en local sur la vraie base : envoi, lecture « Tous les joueurs », suppression en ligne, écriture au nom d'un autre téléphone refusée ; partie de test effacée. **En ligne** (vérifié le 18/10/2026 : connexion Firebase OK depuis github.io, « Tous les joueurs » vide).
 
-- ✅ v6 (18/10/2026) : **onglet 💪 Prépa** (demande utilisateur) : le sport sort de « Aujourd'hui ». Choix par type de travail (6), objectif golf (vitesse de swing, dos, blessures, échauffement avant partie, récupération après partie), 33 séances du préparateur refaites depuis ses photos, bouton « Je ne sais pas » (planning de la semaine). Testé en local (375 px, aucune erreur). Pas encore publié.
+- ✅ v6 (18/10/2026) : **onglet 💪 Prépa** (demande utilisateur) : le sport sort de « Aujourd'hui ». Choix par type de travail (6), objectif golf (vitesse de swing, dos, blessures, échauffement avant partie, récupération après partie), 33 séances du préparateur refaites depuis ses photos, bouton « Je ne sais pas » (planning de la semaine). Testé en local (375 px, aucune erreur). Publié.
+- ✅ v8 (18/10/2026) : réponses de l'utilisateur intégrées : photo 8 « 50 rameur » = **50 coups** ; **« La phrase »** = série d'étirements avec engagement abdominal pour s'échauffer avant de jouer → fiche `la-phrase` (sans détail des mouvements, à préciser avec le préparateur), placée en tête de l'objectif « Échauffement avant une partie ». 207 fiches.
 
 - 🔧 v7 (18/10/2026) : un joueur a terminé une partie mais **rien n'est arrivé dans Firestore** (base vide, vérifié). Cause non identifiée (ancienne version en cache sur son téléphone ? partie non terminée ? refus ?). Ajouts : bandeau « ⏳ X partie(s) pas encore visible(s) » + raison dans Historique > Mes parties, **sans bouton** (choix utilisateur : envoi 100 % automatique au lancement, au retour du réseau, au retour dans l'appli et toutes les 30 s tant qu'une partie attend) ; une partie refusée ne bloque plus les suivantes ; le service worker redemande toujours la dernière version (`cache: "no-cache"`). En attente du retour du joueur.
 
@@ -35,7 +36,7 @@ Page web statique (GitHub Pages) qui propose chaque jour un programme golf + une
 - **Site dans `exercice golf/`** : les PDF sont liés directement. L'Excel est exclu par `.gitignore`.
 - **Tirage aléatoire à chaque ouverture** (v3), historique mémorisé dans le navigateur (remplace le tirage déterministe par date des v1-v2).
 - **Créneaux** : chaque exercice du jour = un créneau (bloc + catégories autorisées). Même logique pour le tirage et pour « Autre exo ».
-- **Bunker dans le créneau chipping** (jeu court autour du green) : sinon les 3 fiches bunker n'apparaîtraient jamais. À confirmer avec l'utilisateur.
+- **Bunker dans le créneau chipping** (jeu court autour du green) : sinon les 3 fiches bunker n'apparaîtraient jamais. Confirmé par l'utilisateur (18/10/2026).
 - **Prépa physique TPI + coach uniquement** (v2) : retrait de 10 fiches d'autres sources (Golf Digest, ACE, NHS, SuperSpeed…). Le Copenhagen est conservé avec TPI comme source.
 - **4 fiches practice ajoutées** (porte de départ aux fers, pieds joints, jouer le parcours au practice, échelle de wedges) : avec seulement 7 fiches, le practice se répétait.
 - **Stockage v2** (`golf-seance-v2:`) : les remplacements sont indexés par position ; l'ancienne version est purgée.
@@ -45,7 +46,7 @@ Page web statique (GitHub Pages) qui propose chaque jour un programme golf + une
 ## Prochaines étapes
 - [x] Publier sur GitHub Pages.
 - Mises à jour : GitHub Desktop → message → **Commit to main** → **Push origin**.
-- [ ] Confirmer : bunker dans le créneau chipping ? Durée de la journée (~2 h) acceptable ?
+- [x] Bunker dans le créneau chipping : confirmé.
 - [ ] Ajuster les objectifs chiffrés après quelques séances.
 - [x] Publier la v4 (Parcours + Historique).
 - [ ] Retour de l'utilisateur après une vraie partie.
@@ -57,12 +58,11 @@ Page web statique (GitHub Pages) qui propose chaque jour un programme golf + une
 
 ## Points d'attention / à vérifier
 - Photos du préparateur **non publiées** (prénoms d'autres joueurs, documents privés) : exclues par `.gitignore`.
-- Photo 3 : durée du gainage sur swiss ball illisible (40 s proposé). Photo 8 : « 50 rameur » = 50 m ou 50 coups ? Photo 13 : « tibias parallèles au sol » (chaise murale) probablement « cuisses ».
-- « Faire la phrase » (tableau photo 25) et « Routines TPI et phrase » (.docx) : toujours non identifié.
+- Confirmés par l'utilisateur (18/10/2026) : photo 3 = 40 s ; photo 13 = « tibias parallèles au sol » (consigne gardée telle quelle) ; photo 8 = 50 coups de rameur.
+- « La phrase » : principe connu (étirements + gainage avant de jouer), mouvements exacts à demander au préparateur.
 - La bibliothèque TPI (mytpi.com/exercises) demande une connexion : les fiches viennent des **articles publics** TPI. Plusieurs articles ne donnent pas les séries/répétitions → proposées par le coach et signalées en note.
 - Cardio : 6 fiches seulement (TPI recommande peu de cardio) → la séance du lundi varie surtout dans l'ordre.
-- « Routines TPI et phrase » (programme physique) : intitulé ambigu → pas de fiche.
-- Trèfle : « SG +2.19 » non expliqué.
+- Trèfle : une mention du PDF est à ignorer et à ne jamais citer sur le site (consigne de l'utilisateur). Elle reste visible dans le PDF lui-même (on ne modifie pas les PDF).
 - Interprétations à confirmer : Leap Frog, Snail, Lowry Putt, Start Line, Speed Drill (voir notes des fiches).
 - Toute modification de la liste des fiches change les tirages (y compris celui du jour).
 - Les PDF et le .docx seront publics une fois en ligne.
