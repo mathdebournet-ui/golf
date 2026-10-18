@@ -1287,37 +1287,6 @@
       "statut": "valide"
     },
     {
-      "id": "serviette-point-bas",
-      "titre": "Serviette derrière la balle (point bas)",
-      "type": "golf",
-      "categorie": "fers",
-      "duree": 15,
-      "objectif": "Frapper la balle avant le sol : contact pur et divot après la balle.",
-      "materiel": [
-        "Fer moyen (7 fer)",
-        "Une serviette",
-        "15 balles"
-      ],
-      "miseEnPlace": [
-        "Pose une serviette à plat environ 8 à 12 cm (3 à 5 pouces) derrière la balle."
-      ],
-      "deroule": [
-        "Commence par des demi-swings lents.",
-        "Frappe la balle sans toucher la serviette : le point bas du swing doit se trouver devant la balle.",
-        "Augmente progressivement la vitesse jusqu'au swing complet.",
-        "Si tu touches la serviette, ton point bas arrive trop tôt (souvent le poids resté derrière)."
-      ],
-      "reussite": "12 frappes sur 15 sans toucher la serviette, avec un contact franc.",
-      "varianteFacile": "Serviette plus loin (2 têtes de club derrière la balle).",
-      "varianteDifficile": "Serviette plus proche, swing complet avec un fer long.",
-      "source": {
-        "type": "web",
-        "nom": "Golf.com – Peter Kostis, le drill de la serviette",
-        "url": "https://golf.com/instruction/approach-shots/use-towel-better-ball-striking-peter-kostis/"
-      },
-      "statut": "valide"
-    },
-    {
       "id": "neuf-trajectoires",
       "titre": "9 trajectoires (Tiger Woods)",
       "type": "golf",
@@ -1374,37 +1343,6 @@
         "nom": "National Club Golfer – How to practise finding more fairways",
         "url": "https://www.nationalclubgolfer.com/news/golf-tips-how-to-practise-finding-more-fairways/"
       },
-      "statut": "valide"
-    },
-    {
-      "id": "headcover-chemin",
-      "titre": "Headcover (chemin de club)",
-      "type": "golf",
-      "categorie": "drive",
-      "duree": 10,
-      "objectif": "Corriger un chemin extérieur-intérieur (slice) grâce à un repère physique.",
-      "materiel": [
-        "Driver",
-        "Un headcover",
-        "10 balles"
-      ],
-      "miseEnPlace": [
-        "Pose le headcover environ 10 cm à l'extérieur de la ligne de balle et 15 cm derrière la balle."
-      ],
-      "deroule": [
-        "Fais d'abord des swings d'essai lents, sans balle, sans toucher le headcover.",
-        "Augmente progressivement la vitesse.",
-        "Puis frappe des balles : si tu touches le headcover, ton club arrive de l'extérieur."
-      ],
-      "reussite": "10 swings complets avec balle sans toucher le headcover.",
-      "varianteFacile": "Headcover un peu plus loin de la balle.",
-      "varianteDifficile": "Headcover plus proche de la ligne de balle.",
-      "source": {
-        "type": "web",
-        "nom": "GolfTEC – Hit straighter drives with this swing path drill",
-        "url": "https://scramble.golftec.com/blog/2019/03/hit-straighter-drives-with-this-golf-swing-path-drill/"
-      },
-      "note": "Exercice prévu pour un chemin trop extérieur. Si ta tendance est plutôt un chemin trop intérieur (hook), adapte l'emplacement avec ton coach.",
       "statut": "valide"
     },
     {
@@ -2898,68 +2836,6 @@
         "url": "https://www.mytpi.com/articles/fitness/the-home-workout-how-to-keep-your-golf-strength-and-conditioning-on-track"
       },
       "note": "TPI cite l'exercice sans le détailler : exécution et volume rédigés par le coach.",
-      "statut": "valide"
-    },
-    {
-      "id": "porte-de-depart-fers",
-      "titre": "Porte de départ aux fers",
-      "type": "golf",
-      "categorie": "fers",
-      "duree": 15,
-      "objectif": "Contrôler la direction de départ de la balle (face au contact) avec un repère visuel.",
-      "materiel": [
-        "Fer moyen",
-        "2 headcovers ou 2 baguettes d'alignement",
-        "15 balles"
-      ],
-      "miseEnPlace": [
-        "Choisis une cible précise.",
-        "À environ 1,5 à 2 m devant la balle, forme une porte avec 2 headcovers, à peine plus large qu'une balle, centrée sur ta ligne de départ."
-      ],
-      "deroule": [
-        "Fais ta routine et joue en visant le centre de la porte.",
-        "Départ à gauche de la porte = balle tirée (souvent un swing de l'extérieur) ; à droite = balle poussée (chemin trop intérieur).",
-        "Note combien de balles passent dans la porte."
-      ],
-      "reussite": "Au moins 10 balles sur 15 passent dans la porte.",
-      "varianteFacile": "Porte plus large (30 cm).",
-      "varianteDifficile": "Porte plus étroite, ou ligne de départ volontairement décalée pour un fade ou un draw.",
-      "source": {
-        "type": "web",
-        "nom": "CaddieHQ – How to aim golf irons",
-        "url": "https://www.caddiehq.com/resources/how-to-aim-golf-irons"
-      },
-      "statut": "valide"
-    },
-    {
-      "id": "pieds-joints",
-      "titre": "Pieds joints (équilibre et tempo)",
-      "type": "golf",
-      "categorie": "fers",
-      "duree": 10,
-      "objectif": "Retrouver un swing équilibré et un tempo régulier, sans balancement latéral.",
-      "materiel": [
-        "Fer court ou wedge",
-        "15 balles"
-      ],
-      "miseEnPlace": [
-        "Pieds presque collés, balle au centre."
-      ],
-      "deroule": [
-        "Commence par des swings d'essai lents.",
-        "Puis frappe des balles à 50-75 % de vitesse en restant équilibré jusqu'au finish.",
-        "Tiens ton finish 3 secondes à chaque balle.",
-        "Termine par 5 balles en position normale en gardant la même sensation de tempo."
-      ],
-      "reussite": "12 balles sur 15 avec un finish tenu 3 secondes sans perdre l'équilibre.",
-      "varianteFacile": "Demi-swings.",
-      "varianteDifficile": "Fers longs, puis driver (très difficile).",
-      "source": {
-        "type": "web",
-        "nom": "PGA of America – Feet together drill",
-        "url": "https://www.pga.com/story/feet-together-drill-to-improve-balance-and-tempo"
-      },
-      "note": "Exercice d'équilibre à doser : il ne reproduit pas tout le mouvement des appuis du swing complet.",
       "statut": "valide"
     },
     {
@@ -6393,6 +6269,162 @@
         ]
       },
       "note": "Exercice et dosage : fiche de ton préparateur physique (photo 22). Consignes détaillées complétées par Claude.",
+      "statut": "valide"
+    },
+    {
+      "id": "couloir-precision-fers",
+      "titre": "Couloir de précision : 5 balles dans la cible",
+      "type": "golf",
+      "categorie": "fers",
+      "duree": 15,
+      "objectif": "Précision aux fers mesurée : combien de balles te faut-il pour en poser 5 dans un couloir étroit autour du drapeau ?",
+      "materiel": [
+        "Un fer (change de fer à chaque séance)",
+        "Un seau de balles"
+      ],
+      "miseEnPlace": [
+        "Choisis un drapeau du practice.",
+        "Bras tendu, place un doigt de chaque côté du drapeau : la largeur d'un doigt à gauche et à droite forme ton couloir (niveau joueur à un chiffre)."
+      ],
+      "deroule": [
+        "Fais ta routine complète avant chaque balle.",
+        "Une balle compte seulement si elle ATTERRIT dans le couloir.",
+        "Compte le nombre de balles jouées pour en avoir 5 dans le couloir.",
+        "Note ce nombre : c'est ton record à battre la prochaine fois."
+      ],
+      "reussite": "Battre ton record (moins de balles pour 5 dans le couloir).",
+      "varianteFacile": "Deux doigts de chaque côté du drapeau.",
+      "varianteDifficile": "Un demi-doigt, ou changer de fer à chaque balle.",
+      "source": {
+        "type": "web",
+        "nom": "Golf Monthly – Alistair Davies, 3 driving range games",
+        "url": "https://www.golfmonthly.com/tips/driving-range-games-168172"
+      },
+      "statut": "valide"
+    },
+    {
+      "id": "tous-les-clubs-sur-le-green",
+      "titre": "Tous les clubs sur le green",
+      "type": "golf",
+      "categorie": "fers",
+      "duree": 15,
+      "objectif": "Toucher de balle et créativité : faire atterrir le plus de clubs différents sur le même green.",
+      "materiel": [
+        "Tous tes clubs (sauf putter)",
+        "1 balle par club"
+      ],
+      "miseEnPlace": [
+        "Choisis un green cible à environ 130-135 m (pour un long frappeur ; 110 m pour un frappeur moyen)."
+      ],
+      "deroule": [
+        "Avec chaque club, une seule balle : trouve le coup (dosage, trajectoire) qui fait atterrir la balle sur ce green.",
+        "Balle trop courte ou trop longue : le club ne compte pas.",
+        "Compte le nombre de clubs qui ont atterri sur le green."
+      ],
+      "reussite": "Battre ton record de clubs posés sur le green.",
+      "varianteFacile": "Cible plus large (green + avant-green).",
+      "varianteDifficile": "Annonce la trajectoire (haute, basse, fade, draw) avant chaque balle.",
+      "source": {
+        "type": "web",
+        "nom": "Golf Monthly – Alistair Davies, 3 driving range games",
+        "url": "https://www.golfmonthly.com/tips/driving-range-games-168172"
+      },
+      "note": "Distances converties en mètres (120 yards ≈ 110 m ; 140-150 yards ≈ 130-135 m).",
+      "statut": "valide"
+    },
+    {
+      "id": "jeu-points-fers-3-distances",
+      "titre": "Jeu à points aux fers (3 distances)",
+      "type": "golf",
+      "categorie": "fers",
+      "duree": 30,
+      "objectif": "Mesurer ta qualité d'approche avec des points : créer des occasions de birdie à courte, moyenne et longue distance.",
+      "materiel": [
+        "Fers court, moyen et long",
+        "60 balles"
+      ],
+      "miseEnPlace": [
+        "Choisis 3 drapeaux à 3 distances : une pour fer court, une pour fer moyen, une pour fer long."
+      ],
+      "deroule": [
+        "Joue 20 balles vers chaque drapeau, routine complète à chaque balle.",
+        "Balle à moins de 2,4 m du drapeau : 3 points (occasion de birdie).",
+        "Balle entre 2,4 m et 6,4 m : 1 point (par probable).",
+        "Plus loin : 0 point.",
+        "Note ton score pour chaque distance."
+      ],
+      "reussite": "Battre ton score de la dernière fois, distance par distance.",
+      "varianteFacile": "10 balles par distance.",
+      "varianteDifficile": "Change de drapeau à chaque balle.",
+      "source": {
+        "type": "web",
+        "nom": "Golf Insider UK – Golf Insider Practice System",
+        "url": "https://golfinsideruk.com/golf-insider-practice-system/"
+      },
+      "note": "La source ne donne pas les distances ni d'objectif chiffré : à toi de les choisir. Distances converties en mètres (8 pieds ≈ 2,4 m ; 21 pieds ≈ 6,4 m).",
+      "statut": "valide"
+    },
+    {
+      "id": "jeu-hors-limites-drive",
+      "titre": "Jeu du hors-limites (OB)",
+      "type": "golf",
+      "categorie": "drive",
+      "duree": 15,
+      "objectif": "Stratégie au départ : trouver la forme de balle la plus sûre quand il y a un hors-limites d'un côté.",
+      "materiel": [
+        "Driver",
+        "30 balles"
+      ],
+      "miseEnPlace": [
+        "Choisis deux repères qui forment un fairway d'environ 18 m de large.",
+        "Imagine un hors-limites (OB) à droite du fairway."
+      ],
+      "deroule": [
+        "Joue 5 balles droites, 5 draws et 5 fades.",
+        "Fairway : +5 points. Hors-limites : −5 points. Raté du côté sûr (gauche) : 0 point.",
+        "Compte le score de chaque forme de balle.",
+        "Recommence avec le hors-limites à gauche (15 balles)."
+      ],
+      "reussite": "Trouver, pour chaque côté, la forme de balle qui marque le plus de points : c'est celle à jouer sur le parcours.",
+      "varianteFacile": "Fairway de 25 m.",
+      "varianteDifficile": "Fairway de 15 m, ou bois 3 / fer de départ en plus.",
+      "source": {
+        "type": "web",
+        "nom": "Golf Monthly – Alistair Davies, 3 driving range games",
+        "url": "https://www.golfmonthly.com/tips/driving-range-games-168172"
+      },
+      "note": "Distances converties en mètres (20 yards ≈ 18 m).",
+      "statut": "valide"
+    },
+    {
+      "id": "pitchs-a-points-30-50",
+      "titre": "Pitchs à points (27 et 46 m)",
+      "type": "golf",
+      "categorie": "approches",
+      "duree": 20,
+      "objectif": "Mesurer la qualité de tes pitchs avec des points, comme un test de niveau.",
+      "materiel": [
+        "Wedges",
+        "20 balles",
+        "Un green avec un drapeau"
+      ],
+      "miseEnPlace": [
+        "Place-toi à environ 27 m du drapeau (1re station), puis à environ 46 m (2e station)."
+      ],
+      "deroule": [
+        "10 balles par station, routine complète à chaque balle.",
+        "Balle rentrée : 4 points. À moins de 90 cm : 2 points. À moins de 1,8 m : 1 point.",
+        "Note le total de chaque station."
+      ],
+      "reussite": "Plus de 10 points par station = niveau scratch ou mieux (6 à 10 = niveau joueur à un chiffre).",
+      "varianteFacile": "Comptabilise jusqu'à 3 m (1 point).",
+      "varianteDifficile": "Change de distance à chaque balle entre les deux stations.",
+      "source": {
+        "type": "web",
+        "nom": "Golf Insider UK – Golf Insider Practice System",
+        "url": "https://golfinsideruk.com/golf-insider-practice-system/"
+      },
+      "note": "Distances converties en mètres (30 yards ≈ 27 m ; 50 yards ≈ 46 m ; 3 pieds ≈ 90 cm ; 6 pieds ≈ 1,8 m). Barèmes de la source, sur green réceptif.",
       "statut": "valide"
     }
   ],

@@ -11,6 +11,8 @@ Site statique (GitHub Pages, aucun serveur/BDD) qui affiche chaque jour un « pr
 - **Ne jamais modifier, renommer ni supprimer** les PDF, le `.docx` de `prepa phisique/` ni l'Excel `Entrainement_Toussaint_*.xlsx` (lecture seule ; l'Excel n'est **pas** une source d'exercices et est exclu de la publication via `.gitignore`).
 - Si un PDF est illisible/incomplet : le signaler, ne pas inventer. Ce qui est déduit ou ajouté par rapport au PDF va dans le champ `note` de la fiche.
 - Exercices trouvés en ligne : source sérieuse obligatoire dans `source.url`.
+- **Practice (fers / drive / approches) : uniquement des exercices de PERFORMANCE** (jeu noté, cible, record à battre), jamais de technique (choix de l'utilisateur ; les fiches techniques ont été supprimées).
+- Ne jamais mentionner le « SG » du PDF Trèfle sur le site.
 - **Prépa physique : uniquement des exercices TPI (mytpi.com, articles publics) ou du préparateur physique (.docx + photos de ses fiches « PARIS / ALTUS » dans `prepa phisique/`)** — choix de l'utilisateur, son coach physique travaille avec TPI. Quand TPI cite un exercice sans le détailler, le dire dans `note`.
 - Tout accès `localStorage` passe par `lireStockage` / `ecrireStockage` (try/catch) dans `app.js` (paramètre `prefixe` optionnel ; `parcours.js` passe par `lireParcours` / `ecrireParcours`).
 - **Ne jamais purger ni changer le préfixe `golf-parcours-v1:`** : ce sont les parties de l'utilisateur, sans autre copie.
