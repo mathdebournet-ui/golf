@@ -2,10 +2,9 @@
    Séance du jour – logique de la page
    ---------------------------------------------------------
    1. Charger les fiches (fiches.json, ou fiches-data.js en secours)
-   2. Construire le programme du jour :
-        - Golf : 3 putting, 1 chipping (ou bunker), 2 practice
-          (fers / drive / wedging, de catégories différentes)
-        - Sport : une séance de 5 exercices selon le jour de la semaine
+   2. Construire le programme golf du jour : 3 putting, 1 chipping
+      (ou bunker), 2 practice (fers / drive / wedging, de catégories
+      différentes). Le sport est dans l'onglet Prépa physique (prepa.js).
       Un NOUVEAU programme est tiré à chaque ouverture de la page. Il évite
       les exercices des 3 jours précédents et ceux de la dernière ouverture.
    3. Gérer « Fait ✓ » et « Autre exo », mémorisés dans le navigateur
@@ -30,7 +29,8 @@ const CRENEAUX_GOLF = [
   { bloc: "practice", categories: ["fers", "drive", "approches"], categoriesDifferentes: true },
 ];
 
-// Séance de sport selon le jour (0 = dimanche, 1 = lundi … 6 = samedi).
+// Séance de sport selon le jour (0 = dimanche, 1 = lundi … 6 = samedi) :
+// utilisée par le bouton « Je ne sais pas » de l'onglet Prépa physique.
 // « exercices » = la catégorie de chaque exercice de la séance, dans l'ordre.
 const FORCE_PUISSANCE = {
   nom: "Force / vitesse / puissance",
@@ -193,15 +193,9 @@ function choisirAuHasard(liste) {
    4. Construction du programme
    ========================================================= */
 
-// Liste des créneaux du jour : golf + séance de sport du jour de la semaine
-function creneauxDuJour(jour) {
-  const seance = SEANCES_SPORT[texteEnDate(jour).getDay()];
-  const sport = seance.exercices.map((categorie) => ({ bloc: "sport", categories: [categorie] }));
-  return [...CRENEAUX_GOLF, ...sport];
-}
-
-function seanceDuJour(jour) {
-  return SEANCES_SPORT[texteEnDate(jour).getDay()];
+// Liste des créneaux du jour (golf seulement : le sport est dans Prépa physique)
+function creneauxDuJour() {
+  return CRENEAUX_GOLF;
 }
 
 // Choisit une fiche pour un créneau.
@@ -414,26 +408,21 @@ function afficherProgramme(jour) {
   const duree = (liste) => liste.reduce((total, p) => total + (Number(p.fiche.duree) || 0), 0);
 
   const nbFaits = presents.filter(estFait).length;
-  const golf = presents.filter((p) => p.creneau.bloc !== "sport");
-  const sport = presents.filter((p) => p.creneau.bloc === "sport");
 
   document.getElementById("resume").innerHTML = `
     <span class="resume-total">⏱ ${formaterDuree(duree(presents))}</span>
     <span class="resume-avancement">${nbFaits}/${presents.length} fait${nbFaits > 1 ? "s" : ""}</span>
-    <p class="resume-detail">Golf ${formaterDuree(duree(golf))} · Sport ${formaterDuree(duree(sport))}</p>
+    <p class="resume-detail">Golf · le sport est dans l'onglet 💪 Prépa physique</p>
     ${nbFaits === presents.length ? `<p class="resume-bravo">Journée terminée, bravo ! 🎉</p>` : ""}`;
 
-  // Un bloc par groupe (putting, chipping, practice, sport)
-  const blocs = ["putting", "chipping", "practice", "sport"];
-  const nomJour = texteEnDate(jour).toLocaleDateString("fr-FR", { weekday: "long" });
+  // Un bloc par groupe (putting, chipping, practice)
+  const blocs = ["putting", "chipping", "practice"];
   document.getElementById("programme").innerHTML = blocs
     .map((bloc) => {
       const places = presents.filter((p) => p.creneau.bloc === bloc);
       if (places.length === 0) return "";
       const faits = places.filter(estFait).length;
-      const titre = bloc === "sport"
-        ? `${NOMS_BLOCS.sport} – ${nomJour} : ${seanceDuJour(jour).nom}`
-        : NOMS_BLOCS[bloc];
+      const titre = NOMS_BLOCS[bloc];
       const cartes = places
         .map((p, i) => carteFiche(p.fiche, {
           position: p.position,
@@ -508,6 +497,7 @@ function changerVue(vue) {
     bouton.setAttribute("aria-pressed", String(actif));
   });
   if (vue === "biblio") afficherBibliotheque();
+  if (vue === "prepa") afficherPrepa();             // dans prepa.js
   if (vue === "parcours") afficherParcours();       // dans parcours.js
   if (vue === "historique") afficherHistorique();   // dans parcours.js
   window.scrollTo(0, 0);
@@ -584,6 +574,8 @@ async function demarrer() {
   programmeCourant = nouveauProgramme(aujourdhui);
   enregistrerProgramme(aujourdhui, { faits: [], dejaProposes: {} });
   afficherProgramme(aujourdhui);
+  // Onglet Prépa ouvert avant la fin du chargement : on l'affiche maintenant
+  if (!document.getElementById("vue-prepa").hidden) afficherPrepa();
 
   // Un seul écouteur pour tous les boutons des cartes (délégation)
   document.getElementById("programme").addEventListener("click", (evenement) => {

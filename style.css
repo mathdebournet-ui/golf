@@ -71,11 +71,17 @@ header, nav, main, footer { max-width: 680px; margin: 0 auto; }
 .badge.attention { background: var(--alerte-fond); color: var(--alerte-texte); }
 
 /* ---------- Onglets ---------- */
-/* 2 × 2 sur téléphone, 4 sur une ligne si l'écran est assez large */
-.onglets { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
-@media (min-width: 600px) { .onglets { grid-template-columns: repeat(4, 1fr); } }
+/* Téléphone : 3 onglets en haut, 2 plus larges en dessous ;
+   écran large : les 5 sur une ligne */
+.onglets { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-bottom: 16px; }
+.onglet { grid-column: span 2; }
+.onglet:nth-child(n + 4) { grid-column: span 3; }
+@media (min-width: 600px) {
+  .onglets { grid-template-columns: repeat(5, 1fr); }
+  .onglet, .onglet:nth-child(n + 4) { grid-column: auto; }
+}
 .onglet {
-  min-height: 52px;
+  min-height: 52px; padding: 0 2px; font-size: 0.85rem; white-space: nowrap;
   font: inherit; font-weight: 700;
   border: 2px solid var(--accent); border-radius: 12px;
   background: transparent; color: var(--texte);
@@ -180,6 +186,13 @@ details[open] > summary::before { transform: rotate(90deg); }
 }
 .filtre.actif { border-color: var(--accent); background: var(--accent); color: var(--accent-texte); }
 .compte { color: var(--texte-doux); margin: 0 0 12px; }
+
+/* ---------- Prépa physique ---------- */
+.je-sais-pas { flex-direction: column; gap: 2px; min-height: 72px; margin: 10px 0 4px; font-size: 1.15rem; }
+.je-sais-pas small { font-size: 0.8rem; font-weight: 600; }
+.je-sais-pas small::first-letter { text-transform: uppercase; }
+.grille-choix { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.grille-choix .bouton { font-size: 0.95rem; }
 
 /* ---------- Parcours : saisie de la partie ---------- */
 .champ {

@@ -32,9 +32,10 @@
 
   <nav class="onglets" aria-label="Vues">
     <button type="button" class="onglet actif" data-vue="jour" aria-pressed="true">Aujourd'hui</button>
-    <button type="button" class="onglet" data-vue="biblio" aria-pressed="false">Bibliothèque</button>
+    <button type="button" class="onglet" data-vue="prepa" aria-pressed="false">💪 Prépa</button>
     <button type="button" class="onglet" data-vue="parcours" aria-pressed="false">⛳ Parcours</button>
     <button type="button" class="onglet" data-vue="historique" aria-pressed="false">Historique</button>
+    <button type="button" class="onglet" data-vue="biblio" aria-pressed="false">Bibliothèque</button>
   </nav>
 
   <main>
@@ -51,6 +52,11 @@
     <section id="vue-biblio" hidden>
       <div id="filtres" class="filtres"></div>
       <div id="liste"></div>
+    </section>
+
+    <!-- Prépa physique : « Qu'est-ce que tu veux faire ? » (prepa.js) -->
+    <section id="vue-prepa" hidden>
+      <div id="prepa"></div>
     </section>
 
     <!-- Vue 3 : noter une partie sur le parcours (parcours.js) -->
@@ -73,6 +79,7 @@
   <!-- parcours.js (et partage.js) avant app.js : app.js en a besoin dès le démarrage -->
   <script src="partage.js"></script>
   <script src="parcours.js"></script>
+  <script src="prepa.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
