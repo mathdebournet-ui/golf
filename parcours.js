@@ -7,7 +7,9 @@
       18 trous / 9 aller / 9 retour.
    3. Pour chaque trou : par, score, putts, fairway, pénalités.
       Le green en régulation est calculé tout seul.
-   4. « Terminer » range la partie dans l'onglet Historique.
+   4. « Terminer » range la partie dans l'onglet Historique
+      (et l'envoie en ligne pour les autres joueurs : voir partage.js).
+   5. Historique > « Tous les joueurs » : les parties de tout le monde.
 
    Tout est gardé dans le navigateur du téléphone (localStorage),
    sous un préfixe à part : ces données ne sont JAMAIS effacées
@@ -47,7 +49,12 @@ let resultatsEnLigne = [];        // [{ id, nom, lieu }]
 let etatRecherche = "";           // "", "chargement", "ok", ou un code d'erreur
 let numeroRecherche = 0;          // pour ignorer une réponse arrivée trop tard
 let parcoursChoisi = null;        // parcours sélectionné avant de commencer
-let partieOuverte = null;         // id de la partie affichée dans l'historique
+let partieOuverte = null;         // partie affichée dans l'historique (id, ou clé en ligne)
+let vueHistorique = "miens";      // "miens" ou "tous" (parties de tous les joueurs)
+let partiesCommunaute = null;     // null = pas encore chargées
+let chargementCommunaute = false;
+let erreurCommunaute = "";
+let filtreJoueur = "tous";
 
 
 /* =========================================================
@@ -288,9 +295,11 @@ function terminerPartie() {
 
   // On range la partie dans l'historique (à la place de l'ancienne version si on la modifiait)
   const { trouActuel, enModification, ...aGarder } = partie;
+  aGarder.partagee = false;   // à (r)envoyer en ligne (partage.js)
   const parties = partiesTerminees().filter((p) => p.id !== partie.id);
   parties.push(aGarder);
   ecrireParcours("parties", parties);
+  synchroniserPartage();
 
   // Date de la dernière partie : les parcours les plus joués remontent en premier
   const tous = mesParcours();
@@ -301,6 +310,7 @@ function terminerPartie() {
 
   ecrireParcours("partieEnCours", null);
   partieOuverte = partie.id;
+  vueHistorique = "miens";
   changerVue("historique");
 }
 
@@ -329,7 +339,9 @@ function modifierPartie(id) {
 
 function supprimerPartie(id) {
   if (!confirm("Supprimer définitivement cette partie de l'historique ?")) return;
+  const partie = partiesTerminees().find((p) => p.id === id);
   ecrireParcours("parties", partiesTerminees().filter((p) => p.id !== id));
+  if (partie) supprimerEnLigne(partie);   // la retire aussi pour les autres joueurs
   partieOuverte = null;
   afficherHistorique();
 }
@@ -357,6 +369,7 @@ function ecranNom() {
     <article class="carte">
       <h2 class="carte-titre">${actuel ? "Changer de nom" : "👋 Bienvenue !"}</h2>
       <p>${actuel ? "Ce nom sera affiché sur tes prochaines parties." : "Avant ta première partie, comment tu t'appelles ?"}</p>
+      ${partageConfigure() ? `<p class="info-recherche attention">ℹ️ Tes parties terminées sont partagées : tous les joueurs qui utilisent l'appli voient ton nom, tes scores, tes statistiques et tes notes.</p>` : ""}
       <form id="form-nom" class="formulaire">
         <label for="champ-nom">Ton nom</label>
         <input id="champ-nom" name="nom" class="champ" type="text" maxlength="40" autocomplete="name" value="${echapper(actuel)}" required>
@@ -504,6 +517,7 @@ function ecranTrou(partie) {
 
     <article class="carte">
       <h4>📝 Note sur la partie</h4>
+      ${partageConfigure() ? `<p class="petit">Visible par tous les joueurs une fois la partie terminée.</p>` : ""}
       <textarea id="note-partie" class="champ zone-note" rows="3" placeholder="Ex. : bon putting, drive à droite, vent fort… à travailler : wedges 50-80 m">${echapper(partie.note)}</textarea>
       <div class="actions">
         <button type="button" class="bouton principal" data-action="terminer">🏁 Terminer la partie</button>
@@ -556,7 +570,8 @@ function carteDeScore(partie) {
     </div>`;
 }
 
-function detailPartie(partie) {
+// modifiable : true pour mes parties (boutons Modifier / Supprimer)
+function detailPartie(partie, modifiable) {
   const s = calculerStats(partie);
   const chiffres = [
     ["Score", `${s.score} (${texteEcart(s.ecart)})`],
@@ -573,30 +588,58 @@ function detailPartie(partie) {
     <button type="button" class="bouton pleine-largeur retour" data-action="liste">← Toutes les parties</button>
     <article class="carte">
       <h2 class="carte-titre">⛳ ${echapper(partie.parcoursNom)}</h2>
-      <p class="objectif">${echapper(dateLisible(partie.date))} · 🏌️ ${echapper(partie.joueur)} · ${FORMATS[partie.format].nom}</p>
+      <p class="objectif">${echapper(dateLisible(partie.date))} · 🏌️ ${echapper(partie.joueur)} · ${nomFormat(partie.format)}</p>
       <dl class="chiffres">${chiffres.map(([nom, valeur]) => `<div><dt>${nom}</dt><dd>${echapper(valeur)}</dd></div>`).join("")}</dl>
       ${s.trousJoues < partie.trous.length ? `<p class="note">${partie.trous.length - s.trousJoues} trou(s) sans score : non comptés.</p>` : ""}
       <h4>Carte de score</h4>
       ${carteDeScore(partie)}
       <h4>📝 Note</h4>
       <p class="note-partie">${partie.note ? echapper(partie.note) : "Pas de note."}</p>
-      <div class="actions">
+      ${modifiable ? `<div class="actions">
         <button type="button" class="bouton" data-action="modifier" data-id="${echapper(partie.id)}">✏️ Modifier</button>
         <button type="button" class="bouton danger" data-action="supprimer" data-id="${echapper(partie.id)}">🗑 Supprimer</button>
-      </div>
+      </div>` : ""}
     </article>`;
 }
 
+// Nom du format, même si la donnée reçue en ligne est inattendue
+function nomFormat(format) { return FORMATS[format] ? FORMATS[format].nom : ""; }
+
+// Une ligne de la liste des parties (un appui = voir le détail)
+function ligneDePartie(p, cle, etiquette = "") {
+  const s = calculerStats(p);
+  return `
+    <button type="button" class="resultat partie" data-action="ouvrir" data-cle="${echapper(cle)}">
+      <span class="partie-score ${s.ecart < 0 ? "sous-par" : s.ecart === 0 ? "au-par" : ""}">${s.score}<small>${texteEcart(s.ecart)}</small></span>
+      <span class="partie-texte">
+        <strong>${echapper(p.parcoursNom)}</strong>
+        <span>${echapper(dateLisible(p.date))} · ${echapper(p.joueur)} · ${nomFormat(p.format)}${etiquette}</span>
+      </span>
+    </button>`;
+}
+
+// Boutons « Mes parties » / « Tous les joueurs »
+function choixHistorique() {
+  return `<div class="filtres">
+    ${[["miens", "Mes parties"], ["tous", "👥 Tous les joueurs"]].map(([valeur, nom]) =>
+      `<button type="button" class="filtre ${vueHistorique === valeur ? "actif" : ""}" data-action="vue-historique" data-valeur="${valeur}" aria-pressed="${vueHistorique === valeur}">${nom}</button>`).join("")}
+  </div>`;
+}
+
 function afficherHistorique() {
+  if (vueHistorique === "tous") {
+    afficherCommunaute();
+    return;
+  }
   const zone = document.getElementById("historique");
   const parties = partiesTerminees().sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
   const ouverte = parties.find((p) => p.id === partieOuverte);
   if (ouverte) {
-    zone.innerHTML = detailPartie(ouverte);
+    zone.innerHTML = detailPartie(ouverte, true);
     return;
   }
 
-  let html = "";
+  let html = choixHistorique();
   const enCours = partieEnCours();
   if (enCours) {
     html += `<div class="resume en-cours">
@@ -623,18 +666,83 @@ function afficherHistorique() {
     html += `<p class="compte">${parties.length} partie${parties.length > 1 ? "s" : ""}</p>`;
   }
 
-  html += parties.map((p) => {
-    const s = calculerStats(p);
-    return `
-      <button type="button" class="resultat partie" data-action="ouvrir" data-id="${echapper(p.id)}">
-        <span class="partie-score ${s.ecart < 0 ? "sous-par" : s.ecart === 0 ? "au-par" : ""}">${s.score}<small>${texteEcart(s.ecart)}</small></span>
-        <span class="partie-texte">
-          <strong>${echapper(p.parcoursNom)}</strong>
-          <span>${echapper(dateLisible(p.date))} · ${echapper(p.joueur)} · ${FORMATS[p.format].nom}</span>
-        </span>
-      </button>`;
-  }).join("");
+  // Avec le partage : on indique si la partie est déjà en ligne
+  const etiquette = (p) => (partageConfigure() ? (p.partagee ? " · ☁️ partagée" : " · ⏳ en attente d'envoi") : "");
+  html += parties.map((p) => ligneDePartie(p, p.id, etiquette(p))).join("");
   zone.innerHTML = html;
+}
+
+// Onglet Historique > Tous les joueurs : parties envoyées par tout le monde
+function afficherCommunaute() {
+  const zone = document.getElementById("historique");
+
+  if (!partageConfigure()) {
+    zone.innerHTML = choixHistorique() + `<p class="info-recherche attention">${MESSAGES_PARTAGE["non-configure"]}</p>`;
+    return;
+  }
+  if (partiesCommunaute === null) {
+    zone.innerHTML = choixHistorique() + `<p class="info-recherche">Chargement des parties…</p>`;
+    if (!chargementCommunaute) actualiserCommunaute();
+    return;
+  }
+
+  const ouverte = partiesCommunaute.find((p) => p.cle === partieOuverte);
+  if (ouverte) {
+    zone.innerHTML = detailPartie(ouverte, false);
+    return;
+  }
+
+  let html = choixHistorique();
+  if (erreurCommunaute) {
+    html += `<p class="info-recherche attention">${MESSAGES_PARTAGE[erreurCommunaute] || MESSAGES_PARTAGE.erreur}</p>`;
+  }
+
+  // Filtre par joueur
+  const joueurs = [...new Set(partiesCommunaute.map((p) => p.joueur))].sort((a, b) => a.localeCompare(b, "fr"));
+  if (filtreJoueur !== "tous" && !joueurs.includes(filtreJoueur)) filtreJoueur = "tous";
+  if (joueurs.length > 1) {
+    html += `<div class="filtres">${[["tous", "Tous"], ...joueurs.map((j) => [j, j])].map(([valeur, nom]) =>
+      `<button type="button" class="filtre ${filtreJoueur === valeur ? "actif" : ""}" data-action="filtre-joueur" data-valeur="${echapper(valeur)}" aria-pressed="${filtreJoueur === valeur}">${echapper(nom)}</button>`).join("")}</div>`;
+  }
+
+  const visibles = partiesCommunaute
+    .filter((p) => filtreJoueur === "tous" || p.joueur === filtreJoueur)
+    .sort((a, b) => String(b.date).localeCompare(String(a.date)));
+  html += `<p class="compte">${visibles.length} partie${visibles.length > 1 ? "s" : ""}${chargementCommunaute ? " · actualisation…" : ""}</p>`;
+  html += visibles.length
+    ? visibles.map((p) => ligneDePartie(p, p.cle)).join("")
+    : `<p class="info-recherche">Aucune partie partagée pour l'instant.</p>`;
+  html += `<button type="button" class="bouton pleine-largeur retour" data-action="actualiser">↻ Actualiser</button>`;
+  zone.innerHTML = html;
+}
+
+async function actualiserCommunaute() {
+  chargementCommunaute = true;
+  const parties = await chargerCommunaute();   // partage.js
+  chargementCommunaute = false;
+  if (parties) {
+    // Données venues d'internet : on garde seulement les parties bien formées
+    const nombre = (v) => (Number.isInteger(v) && v >= 0 && v < 30 ? v : null);
+    partiesCommunaute = parties
+      .filter((p) => p && Array.isArray(p.trous) && typeof p.joueur === "string" && typeof p.parcoursNom === "string")
+      .map((p) => ({
+        ...p,
+        note: typeof p.note === "string" ? p.note : "",
+        trous: p.trous.map((t) => ({
+          numero: nombre(t.numero) || 0,
+          par: [3, 4, 5].includes(t.par) ? t.par : 4,
+          score: nombre(t.score),
+          putts: nombre(t.putts),
+          fairway: ["gauche", "ok", "droite"].includes(t.fairway) ? t.fairway : null,
+          penalites: nombre(t.penalites) || 0,
+        })),
+      }));
+    erreurCommunaute = "";
+  } else {
+    erreurCommunaute = etatPartage;
+    if (partiesCommunaute === null) partiesCommunaute = [];
+  }
+  if (!document.getElementById("vue-historique").hidden) afficherHistorique();
 }
 
 
@@ -707,8 +815,16 @@ document.addEventListener("DOMContentLoaded", () => {
     const bouton = evenement.target.closest("button[data-action]");
     if (!bouton) return;
     const d = bouton.dataset;
-    if (d.action === "ouvrir") { partieOuverte = d.id; afficherHistorique(); window.scrollTo(0, 0); }
+    if (d.action === "ouvrir") { partieOuverte = d.cle; afficherHistorique(); window.scrollTo(0, 0); }
     if (d.action === "liste") { partieOuverte = null; afficherHistorique(); }
+    if (d.action === "vue-historique") {
+      vueHistorique = d.valeur;
+      partieOuverte = null;
+      if (vueHistorique === "tous" && partiesCommunaute !== null) actualiserCommunaute();   // données fraîches
+      afficherHistorique();
+    }
+    if (d.action === "filtre-joueur") { filtreJoueur = d.valeur; afficherHistorique(); }
+    if (d.action === "actualiser") { actualiserCommunaute(); afficherHistorique(); }
     if (d.action === "reprendre") changerVue("parcours");
     if (d.action === "modifier") modifierPartie(d.id);
     if (d.action === "supprimer") supprimerPartie(d.id);

@@ -17,9 +17,12 @@ Page web statique (GitHub Pages) qui propose chaque jour un programme golf + une
 
 - ✅ v3 (17/10/2026) : **nouveau programme à chaque ouverture** (demande utilisateur) au lieu d'un programme fixe par jour. Évite les exos des 3 jours précédents et de la dernière ouverture. Les ✓ repartent de zéro à chaque ouverture.
 
-- ✅ v4 (18/10/2026) : **onglets ⛳ Parcours + Historique** (demande utilisateur). Nom demandé au départ, recherche du golf (mes parcours + OpenStreetMap via Photon, ou ajout manuel), saisie trou par trou (par, score, putts, fairway, pénalités, GIR auto), note libre, historique avec stats et carte de score, modifier/supprimer. Testé en local (mobile 375 px, clair/sombre) : recherche « saint-cloud » → Golf de Saint-Cloud (Garches), partie 18 trous complète, stats justes, pars retenus, reprise après rechargement, aucune erreur console. **Pas encore publié.**
+- ✅ v4 (18/10/2026) : **onglets ⛳ Parcours + Historique** (demande utilisateur). Nom demandé au départ, recherche du golf (mes parcours + OpenStreetMap via Photon, ou ajout manuel), saisie trou par trou (par, score, putts, fairway, pénalités, GIR auto), note libre, historique avec stats et carte de score, modifier/supprimer. Testé en local (mobile 375 px, clair/sombre) : recherche « saint-cloud » → Golf de Saint-Cloud (Garches), partie 18 trous complète, stats justes, pars retenus, reprise après rechargement, aucune erreur console. **En ligne** (vérifié le 18/10/2026 : 4 onglets, écran du nom, aucune erreur).
+
+- ✅ v5 (18/10/2026) : **partage des parties entre joueurs** (demande utilisateur : « voir ce que les gens font sur le parcours »). Choix : tout le monde voit tout, envoi à la fin de la partie, simple message d'information (pas de case à cocher), Firebase. Code prêt (`partage.js`, Historique > « Tous les joueurs », règles dans `outils/regles-firestore.txt`). Projet Firebase `golf-seance` (forfait gratuit Spark, Firestore europe-west9, connexion anonyme, règles publiées). Testé en local sur la vraie base : envoi, lecture « Tous les joueurs », suppression en ligne, écriture au nom d'un autre téléphone refusée ; partie de test effacée. À publier.
 
 ## Décisions techniques
+- **Partage = Firebase (Firestore + connexion anonyme)** : gratuit, pas de compte pour les joueurs, chaque téléphone ne peut modifier/supprimer que ses parties (règles). SDK compat chargé à la demande depuis gstatic (rien si non configuré ou hors-ligne). Les parties restent d'abord sur le téléphone (`partagee: false` → envoyées dès que possible ; suppressions en file `aSupprimer`).
 - **Recherche des golfs avec Photon** (OpenStreetMap) : gratuit, sans clé, filtre « terrain de golf », rapide (~50-400 ms). Nominatim testé : renvoie surtout des rues « Golf … » ; Overpass : trop lent.
 - **Parties gardées seulement dans le navigateur du téléphone** (préfixe `golf-parcours-v1:`, jamais purgé). Pas de sauvegarde fichier (non demandée) : vider le navigateur ou changer de téléphone = parties perdues.
 - **Par saisi pendant la partie** (pas d'écran de saisie préalable) et mémorisé par parcours.
@@ -38,7 +41,8 @@ Page web statique (GitHub Pages) qui propose chaque jour un programme golf + une
 - Mises à jour : GitHub Desktop → message → **Commit to main** → **Push origin**.
 - [ ] Confirmer : bunker dans le créneau chipping ? Durée de la journée (~2 h) acceptable ?
 - [ ] Ajuster les objectifs chiffrés après quelques séances.
-- [ ] Publier la v4 (Parcours + Historique) et tester sur le téléphone, sur un vrai parcours.
+- [x] Publier la v4 (Parcours + Historique).
+- [ ] Retour de l'utilisateur après une vraie partie.
 - [ ] Idée possible : bouton « Sauvegarder mes parties » (fichier) si l'utilisateur craint de les perdre.
 
 ## Idées repérées dans les photos (non faites)

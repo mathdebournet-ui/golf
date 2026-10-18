@@ -1,0 +1,36 @@
+rules_version = '2';
+
+// Règles de sécurité de la base Firestore (à coller dans la console Firebase :
+// Firestore Database > Règles > remplacer tout le texte > Publier).
+//  - Tout le monde peut LIRE les parties.
+//  - Un téléphone ne peut créer, modifier ou supprimer QUE ses propres parties
+//    (identifiant anonyme donné par Firebase Authentication).
+//  - Les données envoyées sont vérifiées (taille, format) pour éviter les abus.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function partieValide() {
+      let d = request.resource.data;
+      return d.uid == request.auth.uid
+        && d.keys().size() <= 15
+        && d.joueur is string && d.joueur.size() > 0 && d.joueur.size() <= 40
+        && d.parcoursNom is string && d.parcoursNom.size() <= 120
+        && d.note is string && d.note.size() <= 2000
+        && d.date is string && d.date.size() == 10
+        && d.format in ['18', 'aller', 'retour']
+        && d.trous is list && d.trous.size() <= 18;
+    }
+
+    match /parties/{idPartie} {
+      allow read: if true;
+      allow create: if request.auth != null
+        && idPartie.matches(request.auth.uid + '_[0-9]+')
+        && partieValide();
+      allow update: if request.auth != null
+        && resource.data.uid == request.auth.uid
+        && partieValide();
+      allow delete: if request.auth != null
+        && (resource == null || resource.data.uid == request.auth.uid);
+    }
+  }
+}
