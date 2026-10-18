@@ -640,6 +640,17 @@ function afficherHistorique() {
   }
 
   let html = choixHistorique();
+
+  // Parties pas encore envoyées : on dit pourquoi (l'envoi se refait tout seul, voir partage.js)
+  const enAttente = parties.filter((p) => !p.partagee).length;
+  if (partageConfigure() && enAttente > 0) {
+    const raison = MESSAGES_PARTAGE[etatPartage] || "Envoi en cours…";
+    html += `<div class="resume en-attente">
+      <p class="resume-detail">⏳ ${enAttente} partie${enAttente > 1 ? "s" : ""} pas encore visible${enAttente > 1 ? "s" : ""} par les autres joueurs : envoi automatique dès que possible.</p>
+      <p class="resume-detail">${echapper(raison)}</p>
+    </div>`;
+  }
+
   const enCours = partieEnCours();
   if (enCours) {
     html += `<div class="resume en-cours">
@@ -825,8 +836,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     if (d.action === "filtre-joueur") { filtreJoueur = d.valeur; afficherHistorique(); }
     if (d.action === "actualiser") { actualiserCommunaute(); afficherHistorique(); }
-    if (d.action === "reprendre") changerVue("parcours");
-    if (d.action === "modifier") modifierPartie(d.id);
+    if (d.action === "reprendre") changerVue("parcours");    if (d.action === "modifier") modifierPartie(d.id);
     if (d.action === "supprimer") supprimerPartie(d.id);
   });
 });

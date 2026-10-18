@@ -278,6 +278,8 @@ details[open] > summary::before { transform: rotate(90deg); }
 
 /* ---------- Historique ---------- */
 .resume.en-cours { border-color: var(--accent); }
+.resume.en-attente { background: var(--alerte-fond); color: var(--alerte-texte); }
+.resume.en-attente .resume-detail { color: var(--alerte-texte); }
 .retour { width: 100%; margin-bottom: 16px; }
 .resultat.partie { flex-direction: row; align-items: center; gap: 14px; }
 .partie-score {

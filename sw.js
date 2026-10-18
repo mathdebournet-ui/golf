@@ -6,7 +6,7 @@
    affiche la dernière copie enregistrée.
    ========================================================= */
 
-const NOM_CACHE = "golf-seance-v6";   // changer le numéro force un cache neuf
+const NOM_CACHE = "golf-seance-v7";   // changer le numéro force un cache neuf
 const FICHIERS_ESSENTIELS = [
   "./",
   "index.html",
@@ -41,7 +41,9 @@ self.addEventListener("fetch", (evenement) => {
   if (requete.method !== "GET" || new URL(requete.url).origin !== location.origin) return;
 
   evenement.respondWith(
-    fetch(requete)
+    // « no-cache » : on redemande toujours au site s'il y a du nouveau
+    // (sinon le navigateur peut garder une ancienne version ~10 minutes)
+    fetch(requete.url, { cache: "no-cache" })
       .then((reponse) => {
         if (reponse.ok) {
           const copie = reponse.clone();

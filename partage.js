@@ -39,7 +39,18 @@ const MESSAGES_PARTAGE = {
   "non-configure": "Le partage entre joueurs n'est pas encore activé (bientôt).",
   "hors-ligne": "Pas de réseau : impossible de voir les parties des autres joueurs pour l'instant.",
   erreur: "Le partage en ligne ne répond pas. Réessaie dans un moment.",
+  refuse: "La base en ligne a refusé l'envoi (nom ou note trop long ?). Préviens Mathias.",
+  connexion: "Ce téléphone n'arrive pas à se connecter au partage (navigation privée ?). Ouvre l'appli dans un navigateur normal.",
 };
+
+// Code d'erreur Firebase -> code de message ci-dessus
+function codeErreurPartage(e) {
+  if (!navigator.onLine) return "hors-ligne";
+  const code = (e && e.code) || "";
+  if (code === "permission-denied") return "refuse";
+  if (code.startsWith("auth/")) return "connexion";
+  return "erreur";
+}
 
 // État (non mémorisé)
 let etatPartage = CONFIG_FIREBASE ? "attente" : "non-configure";   // attente, pret, hors-ligne, erreur
@@ -84,7 +95,7 @@ function demarrerPartage() {
       etatPartage = "pret";
       return true;
     } catch (e) {
-      etatPartage = navigator.onLine ? "erreur" : "hors-ligne";
+      etatPartage = codeErreurPartage(e);
       return false;
     } finally {
       promesseDemarrage = null;   // on pourra réessayer plus tard
@@ -105,8 +116,13 @@ function donneesAEnvoyer(partie) {
 
 // Envoie les parties pas encore partagées et applique les suppressions en attente
 async function synchroniserPartage() {
-  if (synchroEnCours || !(await demarrerPartage())) return;
+  if (synchroEnCours) return;
+  if (!(await demarrerPartage())) {
+    rafraichirHistorique();
+    return;
+  }
   synchroEnCours = true;
+  etatPartage = "pret";
   try {
     // 1. Suppressions demandées (y compris hors-ligne)
     for (const id of lireParcours("aSupprimer", [])) {
@@ -114,13 +130,20 @@ async function synchroniserPartage() {
       ecrireParcours("aSupprimer", lireParcours("aSupprimer", []).filter((x) => x !== id));
     }
     // 2. Parties terminées ou modifiées, pas encore envoyées
+    // (une partie refusée ne bloque pas l'envoi des suivantes)
+    let erreurEnvoi = null;
     for (const partie of partiesTerminees().filter((p) => !p.partagee)) {
       const envoyee = donneesAEnvoyer(partie);
-      await documentPartie(partie.id).set({
-        ...envoyee,
-        uid: idAppareil,
-        envoyeLe: firebase.firestore.FieldValue.serverTimestamp(),
-      });
+      try {
+        await documentPartie(partie.id).set({
+          ...envoyee,
+          uid: idAppareil,
+          envoyeLe: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+      } catch (e) {
+        erreurEnvoi = e;
+        continue;
+      }
       // On marque « partagée » seulement si elle n'a pas changé pendant l'envoi
       const parties = partiesTerminees();
       const actuelle = parties.find((p) => p.id === partie.id);
@@ -129,12 +152,17 @@ async function synchroniserPartage() {
         ecrireParcours("parties", parties);
       }
     }
+    if (erreurEnvoi) throw erreurEnvoi;   // pour afficher la raison dans l'Historique
   } catch (e) {
-    etatPartage = navigator.onLine ? "erreur" : "hors-ligne";
+    etatPartage = codeErreurPartage(e);
   } finally {
     synchroEnCours = false;
   }
-  // Met à jour les pastilles « partagée / en attente » si l'historique est affiché
+  rafraichirHistorique();
+}
+
+// Met à jour les pastilles « partagée / en attente » si l'historique est affiché
+function rafraichirHistorique() {
   if (!document.getElementById("vue-historique").hidden) afficherHistorique();
 }
 
@@ -155,14 +183,30 @@ async function chargerCommunaute() {
       .orderBy("envoyeLe", "desc").limit(PARTIES_COMMUNAUTE_MAX).get();
     return instantane.docs.map((doc) => ({ ...doc.data(), cle: doc.id }));
   } catch (e) {
-    etatPartage = navigator.onLine ? "erreur" : "hors-ligne";
+    etatPartage = codeErreurPartage(e);
     return null;
   }
 }
 
-// Au lancement, et dès que le réseau revient : on envoie ce qui attend
+// Envoi automatique de ce qui attend (aucun bouton à toucher) :
+//  - au lancement de l'appli,
+//  - dès que le réseau revient,
+//  - quand on revient dans l'appli (téléphone rallumé),
+//  - et toutes les 30 secondes tant qu'une partie attend.
+const INTERVALLE_REESSAI_MS = 30000;
+
+function partiesEnAttente() {
+  return partiesTerminees().some((p) => !p.partagee) || lireParcours("aSupprimer", []).length > 0;
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   if (!partageConfigure()) return;
   synchroniserPartage();
   window.addEventListener("online", synchroniserPartage);
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible" && partiesEnAttente()) synchroniserPartage();
+  });
+  setInterval(() => {
+    if (document.visibilityState === "visible" && partiesEnAttente()) synchroniserPartage();
+  }, INTERVALLE_REESSAI_MS);
 });

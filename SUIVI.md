@@ -23,6 +23,8 @@ Page web statique (GitHub Pages) qui propose chaque jour un programme golf + une
 
 - ✅ v6 (18/10/2026) : **onglet 💪 Prépa** (demande utilisateur) : le sport sort de « Aujourd'hui ». Choix par type de travail (6), objectif golf (vitesse de swing, dos, blessures, échauffement avant partie, récupération après partie), 33 séances du préparateur refaites depuis ses photos, bouton « Je ne sais pas » (planning de la semaine). Testé en local (375 px, aucune erreur). Pas encore publié.
 
+- 🔧 v7 (18/10/2026) : un joueur a terminé une partie mais **rien n'est arrivé dans Firestore** (base vide, vérifié). Cause non identifiée (ancienne version en cache sur son téléphone ? partie non terminée ? refus ?). Ajouts : bandeau « ⏳ X partie(s) pas encore visible(s) » + raison dans Historique > Mes parties, **sans bouton** (choix utilisateur : envoi 100 % automatique au lancement, au retour du réseau, au retour dans l'appli et toutes les 30 s tant qu'une partie attend) ; une partie refusée ne bloque plus les suivantes ; le service worker redemande toujours la dernière version (`cache: "no-cache"`). En attente du retour du joueur.
+
 ## Décisions techniques
 - **Photos du préparateur toujours privées** (choix utilisateur v6) : l'onglet Prépa montre les séances refaites en fiches, jamais les photos.
 - **Objectifs golf « vitesse / dos / blessures » = mélange de catégories** (pas de classement exercice par exercice) ; échauffement et récupération = listes fixes du préparateur.
