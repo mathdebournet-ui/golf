@@ -83,18 +83,20 @@ let filtreActif = "tous";   // filtre de la bibliothèque
    (il peut être indisponible : navigation privée, quota…)
    ========================================================= */
 
-function lireStockage(cle, valeurParDefaut) {
+// « prefixe » : par défaut celui du programme du jour ; parcours.js utilise
+// le sien, pour que ses données (les parties) ne soient jamais purgées.
+function lireStockage(cle, valeurParDefaut, prefixe = PREFIXE_STOCKAGE) {
   try {
-    const texte = localStorage.getItem(PREFIXE_STOCKAGE + cle);
+    const texte = localStorage.getItem(prefixe + cle);
     return texte === null ? valeurParDefaut : JSON.parse(texte);
   } catch (e) {
     return valeurParDefaut;
   }
 }
 
-function ecrireStockage(cle, valeur) {
+function ecrireStockage(cle, valeur, prefixe = PREFIXE_STOCKAGE) {
   try {
-    localStorage.setItem(PREFIXE_STOCKAGE + cle, JSON.stringify(valeur));
+    localStorage.setItem(prefixe + cle, JSON.stringify(valeur));
     return true;
   } catch (e) {
     return false;
@@ -495,15 +497,19 @@ function afficherErreur(code, complement = "") {
   zone.hidden = false;
 }
 
+// Affiche une vue (jour, biblio, parcours, historique) et cache les autres
 function changerVue(vue) {
-  document.getElementById("vue-jour").hidden = vue !== "jour";
-  document.getElementById("vue-biblio").hidden = vue !== "biblio";
+  document.querySelectorAll("main > section[id^='vue-']").forEach((section) => {
+    section.hidden = section.id !== "vue-" + vue;
+  });
   document.querySelectorAll(".onglet").forEach((bouton) => {
     const actif = bouton.dataset.vue === vue;
     bouton.classList.toggle("actif", actif);
     bouton.setAttribute("aria-pressed", String(actif));
   });
   if (vue === "biblio") afficherBibliotheque();
+  if (vue === "parcours") afficherParcours();       // dans parcours.js
+  if (vue === "historique") afficherHistorique();   // dans parcours.js
   window.scrollTo(0, 0);
 }
 
@@ -540,6 +546,13 @@ async function demarrer() {
 
   const memoireOk = stockageDisponible();
   nettoyerVieuxJours();
+
+  // Onglets branchés tout de suite : « Parcours » marche même sans les fiches
+  document.querySelectorAll(".onglet").forEach((bouton) => {
+    bouton.addEventListener("click", () => changerVue(bouton.dataset.vue));
+  });
+  // Une partie était en cours (téléphone mis en veille sur le parcours) : on la reprend
+  if (partieEnCoursExiste()) changerVue("parcours");
 
   let donnees;
   try {
@@ -585,10 +598,6 @@ async function demarrer() {
     if (!bouton) return;
     filtreActif = bouton.dataset.filtre;
     afficherBibliotheque();
-  });
-
-  document.querySelectorAll(".onglet").forEach((bouton) => {
-    bouton.addEventListener("click", () => changerVue(bouton.dataset.vue));
   });
 
   // Si la page reste ouverte jusqu'au lendemain, on recharge au retour

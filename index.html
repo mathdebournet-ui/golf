@@ -33,6 +33,8 @@
   <nav class="onglets" aria-label="Vues">
     <button type="button" class="onglet actif" data-vue="jour" aria-pressed="true">Aujourd'hui</button>
     <button type="button" class="onglet" data-vue="biblio" aria-pressed="false">Bibliothèque</button>
+    <button type="button" class="onglet" data-vue="parcours" aria-pressed="false">⛳ Parcours</button>
+    <button type="button" class="onglet" data-vue="historique" aria-pressed="false">Historique</button>
   </nav>
 
   <main>
@@ -50,6 +52,16 @@
       <div id="filtres" class="filtres"></div>
       <div id="liste"></div>
     </section>
+
+    <!-- Vue 3 : noter une partie sur le parcours (parcours.js) -->
+    <section id="vue-parcours" hidden>
+      <div id="parcours"></div>
+    </section>
+
+    <!-- Vue 4 : parties terminées (parcours.js) -->
+    <section id="vue-historique" hidden>
+      <div id="historique"></div>
+    </section>
   </main>
 
   <footer class="pied">
@@ -58,6 +70,8 @@
 
   <!-- Copie de secours des fiches (pour ouvrir la page sans serveur) -->
   <script src="fiches-data.js"></script>
+  <!-- parcours.js avant app.js : app.js en a besoin dès le démarrage -->
+  <script src="parcours.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

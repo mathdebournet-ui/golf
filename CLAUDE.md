@@ -12,7 +12,8 @@ Site statique (GitHub Pages, aucun serveur/BDD) qui affiche chaque jour un « pr
 - Si un PDF est illisible/incomplet : le signaler, ne pas inventer. Ce qui est déduit ou ajouté par rapport au PDF va dans le champ `note` de la fiche.
 - Exercices trouvés en ligne : source sérieuse obligatoire dans `source.url`.
 - **Prépa physique : uniquement des exercices TPI (mytpi.com, articles publics) ou du préparateur physique (.docx + photos de ses fiches « PARIS / ALTUS » dans `prepa phisique/`)** — choix de l'utilisateur, son coach physique travaille avec TPI. Quand TPI cite un exercice sans le détailler, le dire dans `note`.
-- Tout accès `localStorage` passe par `lireStockage` / `ecrireStockage` (try/catch) dans `app.js`.
+- Tout accès `localStorage` passe par `lireStockage` / `ecrireStockage` (try/catch) dans `app.js` (paramètre `prefixe` optionnel ; `parcours.js` passe par `lireParcours` / `ecrireParcours`).
+- **Ne jamais purger ni changer le préfixe `golf-parcours-v1:`** : ce sont les parties de l'utilisateur, sans autre copie.
 
 ## Commandes
 
@@ -35,6 +36,8 @@ Pas de build, pas de tests automatisés, pas de dépendances JS. Python embarqu�
 - **Structure du jour** (constantes en tête de `app.js`) : `CRENEAUX_GOLF` = 3 putting, 1 chipping/bunker, 2 practice (fers/drive/approches, `categoriesDifferentes`) ; `SEANCES_SPORT` par jour de semaine (0 = dimanche) : lun cardio ×5, mar/jeu 2 puissance + 3 force, mer/sam mobilité ×5, ven abdos ×5, dim récupération légère (1 récupération + 2 mobilité). Chaque exercice est un « créneau » `{bloc, categories}` ; `tirerPourCreneau()` sert au tirage ET à « Autre exo ».
 - **Nouveau tirage à chaque ouverture** (choix de l'utilisateur, v3 — l'ancien tirage déterministe par date a été abandonné) : `nouveauProgramme()` utilise `Math.random`, en évitant via `idsRecents()` les exos des 3 jours précédents **et** du dernier programme affiché aujourd'hui. Dans un créneau, le tirage choisit d'abord une **catégorie** puis une fiche. L'exclusion est « si possible » (repli si le pool est trop petit).
 - Stockage par jour `golf-seance-v3:jour:AAAA-MM-JJ` = `{ programme: [ids par position de créneau], faits, dejaProposes }`. Chaque ouverture écrase le programme du jour et remet les ✓ à zéro ; « Autre exo » met à jour `programme`. L'historique (donc l'exclusion) est propre à chaque navigateur. Changer la structure des créneaux impose de changer `PREFIXE_STOCKAGE`. Données de plus de 30 jours purgées.
+- **4 onglets** (`changerVue` dans `app.js` montre `#vue-<nom>`) : Aujourd'hui, Bibliothèque, ⛳ Parcours, Historique.
+- **`parcours.js`** (chargé AVANT `app.js`, qui appelle `partieEnCoursExiste()` au démarrage pour rouvrir directement une partie en cours) : nom du joueur demandé à la 1re utilisation ; recherche des golfs = « mes parcours » (filtre local) + **Photon** (`photon.komoot.io`, données OpenStreetMap, filtre `osm_tag=leisure:golf_course`, priorité France, sur appui de « Chercher » uniquement, attribution OSM affichée) + ajout manuel ; formats 18 / 9 aller / 9 retour ; par trou : par (3/4/5, mémorisé par parcours), score, putts, fairway (par 4-5), pénalités ; GIR calculé (`score − putts ≤ par − 2`) ; note libre ; Historique = liste + détail (stats, carte de score, Modifier, Supprimer). Clés `golf-parcours-v1:` : `joueur`, `parcours` ({id → {nom, lieu, pars[18], dernierePartie}}), `partieEnCours`, `parties`.
 - `sw.js` : service worker réseau-d'abord pour l'usage hors-ligne (actif seulement en https/localhost). Incrémenter `NOM_CACHE` si on ajoute des fichiers essentiels.
 
 ## Format d'une fiche (`fiches.json` → `fiches[]`)

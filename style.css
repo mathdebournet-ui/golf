@@ -71,9 +71,11 @@ header, nav, main, footer { max-width: 680px; margin: 0 auto; }
 .badge.attention { background: var(--alerte-fond); color: var(--alerte-texte); }
 
 /* ---------- Onglets ---------- */
-.onglets { display: flex; gap: 8px; margin-bottom: 16px; }
+/* 2 × 2 sur téléphone, 4 sur une ligne si l'écran est assez large */
+.onglets { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+@media (min-width: 600px) { .onglets { grid-template-columns: repeat(4, 1fr); } }
 .onglet {
-  flex: 1; min-height: 52px;
+  min-height: 52px;
   font: inherit; font-weight: 700;
   border: 2px solid var(--accent); border-radius: 12px;
   background: transparent; color: var(--texte);
@@ -178,6 +180,112 @@ details[open] > summary::before { transform: rotate(90deg); }
 }
 .filtre.actif { border-color: var(--accent); background: var(--accent); color: var(--accent-texte); }
 .compte { color: var(--texte-doux); margin: 0 0 12px; }
+
+/* ---------- Parcours : saisie de la partie ---------- */
+.champ {
+  width: 100%; min-height: 52px; padding: 10px 14px;
+  font: inherit; color: var(--texte); background: var(--carte);
+  border: 2px solid var(--bord); border-radius: 12px;
+}
+.champ:focus { outline: none; border-color: var(--accent); }
+.zone-note { min-height: 96px; resize: vertical; }
+.formulaire label { display: block; font-weight: 700; margin-bottom: 6px; }
+
+.ligne-joueur {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  margin-bottom: 14px; color: var(--texte-doux);
+}
+.lien-bouton {
+  min-height: 44px; padding: 0 4px;
+  font: inherit; font-weight: 700; color: var(--accent);
+  background: none; border: none; text-decoration: underline; cursor: pointer;
+}
+
+.recherche { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin-bottom: 14px; }
+.sous-titre { margin: 16px 0 8px; font-size: 1rem; text-transform: uppercase; letter-spacing: 0.03em; color: var(--texte-doux); }
+.resultat {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+  width: 100%; min-height: 60px; padding: 10px 14px; margin-bottom: 8px;
+  font: inherit; text-align: left; color: var(--texte);
+  background: var(--carte); border: 1px solid var(--bord); border-left: 6px solid var(--accent);
+  border-radius: 12px; box-shadow: var(--ombre); cursor: pointer;
+}
+.resultat span { color: var(--texte-doux); font-size: 0.9rem; }
+.info-recherche { color: var(--texte-doux); font-weight: 600; }
+.info-recherche.attention { padding: 12px 14px; border-radius: 12px; background: var(--alerte-fond); color: var(--alerte-texte); }
+.ajout-manuel { margin-top: 8px; }
+.petit { font-size: 0.85rem; color: var(--texte-doux); }
+.petit a { color: var(--accent); }
+
+/* Grille des trous en haut de la partie */
+.grille-trous { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; margin-bottom: 16px; }
+@media (min-width: 600px) { .grille-trous { grid-template-columns: repeat(9, 1fr); } }
+.case-trou {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-height: 52px; font: inherit; font-weight: 800; line-height: 1.1;
+  color: var(--texte); background: var(--carte);
+  border: 2px solid var(--bord); border-radius: 10px; cursor: pointer;
+}
+.case-trou small { font-size: 0.7rem; font-weight: 600; color: var(--texte-doux); }
+.case-trou.actuel { border-color: var(--texte); border-width: 3px; }
+
+/* Couleurs des scores (case, carte de score, historique) */
+.sous-par { color: #0b5fa5; }
+.au-par   { color: var(--accent); }
+.bogey    { color: #9a5b00; }
+.double   { color: #b0122f; }
+@media (prefers-color-scheme: dark) {
+  .sous-par { color: #7cc0ff; }
+  .bogey    { color: #ffc266; }
+  .double   { color: #ff8a8a; }
+}
+
+.numero-trou { margin: 0; font-size: 1.6rem; }
+.carte-trou h4 { margin-top: 16px; }
+
+/* Rangées de gros boutons à choix unique (par, score, putts…) */
+.choix { display: grid; grid-template-columns: repeat(var(--colonnes, 5), 1fr); gap: 8px; }
+.choix-bouton {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-height: 56px; padding: 4px 2px;
+  font: inherit; font-weight: 800; line-height: 1.15;
+  color: var(--texte); background: var(--carte);
+  border: 2px solid var(--bord); border-radius: 12px; cursor: pointer;
+}
+.choix-bouton small { font-size: 0.65rem; font-weight: 600; color: var(--texte-doux); }
+.choix-bouton.actif { background: var(--accent); border-color: var(--accent); color: var(--accent-texte); }
+.choix-bouton.actif small { color: var(--accent-texte); }
+
+.green { margin: 14px 0 0; padding: 10px 12px; border-radius: 10px; background: var(--fond); color: var(--texte-doux); font-weight: 600; }
+.green.oui { background: var(--accent-doux); color: var(--accent); }
+.green.non { background: var(--alerte-fond); color: var(--alerte-texte); }
+
+.bouton:disabled { opacity: 0.4; cursor: default; }
+.bouton.danger { border-color: var(--erreur-texte); color: var(--erreur-texte); }
+
+/* ---------- Historique ---------- */
+.resume.en-cours { border-color: var(--accent); }
+.retour { width: 100%; margin-bottom: 16px; }
+.resultat.partie { flex-direction: row; align-items: center; gap: 14px; }
+.partie-score {
+  display: flex; flex-direction: column; align-items: center;
+  min-width: 54px; font-size: 1.5rem; font-weight: 800; line-height: 1.1;
+}
+.partie-score small { font-size: 0.8rem; }
+.partie-texte { display: flex; flex-direction: column; gap: 2px; }
+
+.chiffres { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 12px 0 0; }
+.chiffres div { padding: 8px 10px; border-radius: 10px; background: var(--accent-doux); }
+.chiffres dt { font-size: 0.8rem; color: var(--texte-doux); font-weight: 600; }
+.chiffres dd { margin: 0; font-weight: 800; }
+.note-partie { white-space: pre-wrap; }
+
+.tableau-defilant { overflow-x: auto; }
+.carte-score { width: 100%; border-collapse: collapse; font-size: 0.85rem; text-align: center; }
+.carte-score th, .carte-score td { padding: 6px 4px; border-bottom: 1px solid var(--bord); }
+.carte-score th { color: var(--texte-doux); }
+.carte-score td:nth-child(3) { font-weight: 800; }
+.carte-score tfoot td { font-weight: 800; border-top: 2px solid var(--texte); border-bottom: none; }
 
 /* ---------- Messages ---------- */
 .erreur { padding: 14px 16px; margin-bottom: 16px; border-radius: 12px; background: var(--erreur-fond); color: var(--erreur-texte); font-weight: 600; }

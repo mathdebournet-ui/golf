@@ -17,7 +17,12 @@ Page web statique (GitHub Pages) qui propose chaque jour un programme golf + une
 
 - ✅ v3 (17/10/2026) : **nouveau programme à chaque ouverture** (demande utilisateur) au lieu d'un programme fixe par jour. Évite les exos des 3 jours précédents et de la dernière ouverture. Les ✓ repartent de zéro à chaque ouverture.
 
+- ✅ v4 (18/10/2026) : **onglets ⛳ Parcours + Historique** (demande utilisateur). Nom demandé au départ, recherche du golf (mes parcours + OpenStreetMap via Photon, ou ajout manuel), saisie trou par trou (par, score, putts, fairway, pénalités, GIR auto), note libre, historique avec stats et carte de score, modifier/supprimer. Testé en local (mobile 375 px, clair/sombre) : recherche « saint-cloud » → Golf de Saint-Cloud (Garches), partie 18 trous complète, stats justes, pars retenus, reprise après rechargement, aucune erreur console. **Pas encore publié.**
+
 ## Décisions techniques
+- **Recherche des golfs avec Photon** (OpenStreetMap) : gratuit, sans clé, filtre « terrain de golf », rapide (~50-400 ms). Nominatim testé : renvoie surtout des rues « Golf … » ; Overpass : trop lent.
+- **Parties gardées seulement dans le navigateur du téléphone** (préfixe `golf-parcours-v1:`, jamais purgé). Pas de sauvegarde fichier (non demandée) : vider le navigateur ou changer de téléphone = parties perdues.
+- **Par saisi pendant la partie** (pas d'écran de saisie préalable) et mémorisé par parcours.
 - **Site dans `exercice golf/`** : les PDF sont liés directement. L'Excel est exclu par `.gitignore`.
 - **Tirage aléatoire à chaque ouverture** (v3), historique mémorisé dans le navigateur (remplace le tirage déterministe par date des v1-v2).
 - **Créneaux** : chaque exercice du jour = un créneau (bloc + catégories autorisées). Même logique pour le tirage et pour « Autre exo ».
@@ -33,6 +38,8 @@ Page web statique (GitHub Pages) qui propose chaque jour un programme golf + une
 - Mises à jour : GitHub Desktop → message → **Commit to main** → **Push origin**.
 - [ ] Confirmer : bunker dans le créneau chipping ? Durée de la journée (~2 h) acceptable ?
 - [ ] Ajuster les objectifs chiffrés après quelques séances.
+- [ ] Publier la v4 (Parcours + Historique) et tester sur le téléphone, sur un vrai parcours.
+- [ ] Idée possible : bouton « Sauvegarder mes parties » (fichier) si l'utilisateur craint de les perdre.
 
 ## Idées repérées dans les photos (non faites)
 - **Défi à points** (photo 25, avril 2026) : barème d'activités (50 pompes = 2 pts, footing 3 km = 5…) avec un objectif de points par jour → pourrait devenir un onglet « Défi ».
