@@ -417,22 +417,27 @@ function afficherProgramme(jour) {
     <p class="resume-detail">Golf · le sport est dans l'onglet 💪 Prépa physique</p>
     ${nbFaits === presents.length ? `<p class="resume-bravo">Journée terminée, bravo ! 🎉</p>` : ""}`;
 
-  // Un bloc par groupe (putting, chipping, practice)
+  // Un bloc par groupe (putting, chipping, practice) avec les exos pas encore faits ;
+  // les exos faits descendent tout en bas, grisés, dans « Terminés »
   const blocs = ["putting", "chipping", "practice"];
-  document.getElementById("programme").innerHTML = blocs
+  const cartesFaites = [];
+  const html = blocs
     .map((bloc) => {
       const places = presents.filter((p) => p.creneau.bloc === bloc);
       if (places.length === 0) return "";
       const faits = places.filter(estFait).length;
       const titre = NOMS_BLOCS[bloc];
-      const cartes = places
-        .map((p, i) => carteFiche(p.fiche, {
+      let cartes = "";
+      places.forEach((p, i) => {
+        const carte = carteFiche(p.fiche, {
           position: p.position,
           numero: `${i + 1}/${places.length}`,
           fait: estFait(p),
           avecActions: true,
-        }))
-        .join("");
+        });
+        if (estFait(p)) cartesFaites.push(carte); else cartes += carte;
+      });
+      if (!cartes) return "";   // tout le bloc est fait : il n'est plus que dans « Terminés »
       return `
         <section class="bloc">
           <h2 class="bloc-titre">${echapper(titre)}</h2>
@@ -441,6 +446,18 @@ function afficherProgramme(jour) {
         </section>`;
     })
     .join("");
+  document.getElementById("programme").innerHTML = html + blocTermines(cartesFaites);
+}
+
+// Bloc « ✓ Terminés » placé en bas de page (Aujourd'hui et Prépa)
+function blocTermines(cartes) {
+  if (cartes.length === 0) return "";
+  return `
+    <section class="bloc termines">
+      <h2 class="bloc-titre">✓ Terminés</h2>
+      <p class="bloc-info">${cartes.length} exo${cartes.length > 1 ? "s" : ""} fait${cartes.length > 1 ? "s" : ""} · appuie sur « ✓ Fait » pour annuler</p>
+      ${cartes.join("")}
+    </section>`;
 }
 
 function afficherBibliotheque() {

@@ -130,6 +130,9 @@ body.accueil-actif main > section[id^="vue-"] { display: none; }
 }
 .carte.faite { border-color: var(--accent); border-left-color: var(--accent); }
 .carte.faite .carte-titre::after { content: " ✓"; color: var(--accent); }
+/* Exos terminés (en bas de page) : grisés pour les distinguer d'un coup d'œil */
+.termines { border-top: 2px dashed var(--bord); padding-top: 16px; }
+.termines .carte.faite { opacity: 0.55; filter: grayscale(1); border-color: var(--bord); }
 
 .carte-haut { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .pastille {

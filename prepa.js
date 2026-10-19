@@ -225,12 +225,20 @@ function ecranSeance(seance) {
   const programme = programmeDeSeance(seance);
   const duree = programme.reduce((t, p) => t + (Number(p.fiche.duree) || 0), 0);
   const nbFaits = programme.filter((p) => seance.faits.includes(p.fiche.id)).length;
-  const cartes = programme.map((p, i) => carteFiche(p.fiche, {
-    position: p.position,
-    numero: `${i + 1}/${programme.length}`,
-    fait: seance.faits.includes(p.fiche.id),
-    avecActions: true,
-  })).join("");
+  // Exos pas encore faits en haut ; les exos faits descendent en bas, grisés (blocTermines, app.js)
+  let cartes = "";
+  const cartesFaites = [];
+  programme.forEach((p, i) => {
+    const fait = seance.faits.includes(p.fiche.id);
+    const carte = carteFiche(p.fiche, {
+      position: p.position,
+      numero: `${i + 1}/${programme.length}`,
+      fait,
+      avecActions: true,
+    });
+    if (fait) cartesFaites.push(carte); else cartes += carte;
+  });
+  cartes += blocTermines(cartesFaites);
 
   return `
     <div class="resume">
