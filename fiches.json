@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "miseAJour": "2026-10-18",
+  "miseAJour": "2026-10-19",
   "fiches": [
     {
       "id": "2-feet-circle",
@@ -3686,24 +3686,25 @@
     },
     {
       "id": "chaise-murale",
-      "titre": "Chaise contre le mur",
+      "titre": "Gainage à genoux, mains contre le mur",
       "type": "physique",
-      "categorie": "force",
+      "categorie": "abdos",
       "duree": 3,
-      "objectif": "Endurance des cuisses (échauffement).",
+      "objectif": "Gainage du tronc en statique (échauffement).",
       "materiel": [
         "Un mur"
       ],
       "miseEnPlace": [
-        "Dos contre le mur, descends jusqu'à avoir les tibias parallèles au sol."
+        "Mets-toi à genoux face au mur, les tibias posés au sol (parallèles au sol).",
+        "Penche le buste en avant jusqu'à avoir le dos à l'horizontale, et pose les mains contre le mur."
       ],
       "deroule": [
-        "Tiens la position : dos droit, collé au mur.",
+        "Tiens la position en statique, en gardant bien le dos droit.",
         "30 secondes."
       ],
-      "reussite": "30 secondes sans bouger.",
-      "varianteFacile": "Moins descendu.",
-      "varianteDifficile": "Sur une jambe.",
+      "reussite": "30 secondes sans bouger, dos droit.",
+      "varianteFacile": "20 secondes.",
+      "varianteDifficile": "45 secondes.",
       "source": {
         "type": "photo",
         "fichier": "prepa phisique/13.jpeg",
@@ -3711,7 +3712,7 @@
           "prepa phisique/13.jpeg"
         ]
       },
-      "note": "Exercice et dosage : fiche de ton préparateur physique (photo 13). Consignes détaillées complétées par Claude. « Tibias parallèles au sol » : consigne du préparateur, confirmée par toi.",
+      "note": "Exercice et dosage : fiche de ton préparateur physique (photo 13). Position corrigée d'après ta description et le dessin de la fiche (à genoux, mains contre le mur, tibias parallèles au sol). Les variantes (20 s / 45 s) sont proposées par Claude.",
       "statut": "valide"
     },
     {
