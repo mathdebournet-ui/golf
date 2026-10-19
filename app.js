@@ -264,12 +264,14 @@ function enregistrerProgramme(jour, journee) {
 
 function basculerFait(jour, idFiche) {
   const journee = lireJournee(jour);
-  if (journee.faits.includes(idFiche)) {
-    journee.faits = journee.faits.filter((id) => id !== idFiche);
-  } else {
+  const fait = !journee.faits.includes(idFiche);
+  if (fait) {
     journee.faits.push(idFiche);
+  } else {
+    journee.faits = journee.faits.filter((id) => id !== idFiche);
   }
   ecrireJournee(jour, journee);
+  noterExoFait(idFiche, fait);   // série de jours d'affilée (serie.js)
   afficherProgramme(jour);
 }
 
@@ -500,6 +502,7 @@ function changerVue(vue) {
   if (vue === "prepa") afficherPrepa();             // dans prepa.js
   if (vue === "parcours") afficherParcours();       // dans parcours.js
   if (vue === "historique") afficherHistorique();   // dans parcours.js
+  if (vue === "admin") ouvrirAdmin();               // dans serie.js
   window.scrollTo(0, 0);
 }
 
@@ -541,6 +544,8 @@ async function demarrer() {
   document.querySelectorAll(".onglet").forEach((bouton) => {
     bouton.addEventListener("click", () => changerVue(bouton.dataset.vue));
   });
+  // Première ouverture : la page d'accueil demande le nom (parcours.js)
+  afficherAccueil();
   // Une partie était en cours (téléphone mis en veille sur le parcours) : on la reprend
   if (partieEnCoursExiste()) changerVue("parcours");
 

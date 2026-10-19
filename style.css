@@ -69,6 +69,17 @@ header, nav, main, footer { max-width: 680px; margin: 0 auto; }
   border: 1px solid var(--bord);
 }
 .badge.attention { background: var(--alerte-fond); color: var(--alerte-texte); }
+/* Série de jours d'affilée : orange quand elle est en cours */
+#serie { margin-top: -6px; }
+.badge.serie.active { background: #ffe1c2; color: #6b2e00; border-color: #f0a868; }
+@media (prefers-color-scheme: dark) {
+  .badge.serie.active { background: #4a2a10; color: #ffd2a8; border-color: #8a5226; }
+}
+
+/* ---------- Première page (nom du joueur) ---------- */
+/* Tant que le nom n'est pas donné : ni onglets, ni autres vues */
+body.accueil-actif .onglets,
+body.accueil-actif main > section[id^="vue-"] { display: none; }
 
 /* ---------- Onglets ---------- */
 /* Téléphone : 3 onglets en haut, 2 plus larges en dessous ;

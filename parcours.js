@@ -368,7 +368,7 @@ function ecranNom() {
   return `
     <article class="carte">
       <h2 class="carte-titre">${actuel ? "Changer de nom" : "👋 Bienvenue !"}</h2>
-      <p>${actuel ? "Ce nom sera affiché sur tes prochaines parties." : "Avant ta première partie, comment tu t'appelles ?"}</p>
+      <p>${actuel ? "Ce nom sera affiché sur tes prochaines parties." : "Comment tu t'appelles ?"}</p>
       ${partageConfigure() ? `<p class="info-recherche attention">ℹ️ Tes parties terminées sont partagées : tous les joueurs qui utilisent l'appli voient ton nom, tes scores, tes statistiques et tes notes.</p>` : ""}
       <form id="form-nom" class="formulaire">
         <label for="champ-nom">Ton nom</label>
@@ -524,6 +524,15 @@ function ecranTrou(partie) {
         <button type="button" class="bouton" data-action="abandonner">${partie.enModification ? "Annuler" : "Abandonner"}</button>
       </div>
     </article>`;
+}
+
+// Première page du site : tant qu'on ne connaît pas le nom, on ne montre que la question
+// (les onglets sont cachés par la classe « accueil-actif », voir style.css)
+function afficherAccueil() {
+  const actif = !nomDuJoueur();
+  document.body.classList.toggle("accueil-actif", actif);
+  document.getElementById("accueil").hidden = !actif;
+  if (actif) document.getElementById("zone-accueil").innerHTML = ecranNom();
 }
 
 function afficherParcours() {
@@ -764,6 +773,17 @@ async function actualiserCommunaute() {
 document.addEventListener("DOMContentLoaded", () => {
   const zoneParcours = document.getElementById("parcours");
   const zoneHistorique = document.getElementById("historique");
+
+  // Première page : nom validé → on ouvre le site
+  document.getElementById("zone-accueil").addEventListener("submit", (evenement) => {
+    evenement.preventDefault();
+    const nom = evenement.target.nom.value.trim();
+    if (!nom) return;
+    ecrireParcours("joueur", nom);
+    document.body.classList.remove("accueil-actif");   // même si la mémoire est indisponible
+    document.getElementById("accueil").hidden = true;
+    changerVue("jour");
+  });
 
   zoneParcours.addEventListener("submit", (evenement) => {
     evenement.preventDefault();   // pas de rechargement de la page

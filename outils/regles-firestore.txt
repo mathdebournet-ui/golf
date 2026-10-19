@@ -6,6 +6,10 @@ rules_version = '2';
 //  - Un téléphone ne peut créer, modifier ou supprimer QUE ses propres parties
 //    (identifiant anonyme donné par Firebase Authentication).
 //  - Les données envoyées sont vérifiées (taille, format) pour éviter les abus.
+//  - Séries (jours d'affilée) : chaque téléphone écrit la sienne, mais SEUL
+//    l'administrateur (connecté avec son compte Google) peut les lire.
+//    ⚠ Ce fichier est public : avant de coller, remplacer ADRESSE_ADMIN
+//    par l'adresse Gmail de l'administrateur (ne pas l'écrire ici).
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -31,6 +35,25 @@ service cloud.firestore {
         && partieValide();
       allow delete: if request.auth != null
         && (resource == null || resource.data.uid == request.auth.uid);
+    }
+
+    function serieValide() {
+      let d = request.resource.data;
+      return d.uid == request.auth.uid
+        && d.keys().hasOnly(['uid', 'joueur', 'actuelle', 'record', 'dernierJour', 'majLe'])
+        && d.joueur is string && d.joueur.size() > 0 && d.joueur.size() <= 40
+        && d.actuelle is int && d.actuelle >= 0 && d.actuelle <= 100000
+        && d.record is int && d.record >= 0 && d.record <= 100000
+        && d.dernierJour is string && d.dernierJour.size() <= 10;
+    }
+
+    match /series/{idAppareil} {
+      allow read: if request.auth != null
+        && request.auth.token.email == 'ADRESSE_ADMIN'
+        && request.auth.token.email_verified == true;
+      allow create, update: if request.auth != null
+        && idAppareil == request.auth.uid
+        && serieValide();
     }
   }
 }
