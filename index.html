@@ -30,6 +30,8 @@
     <div id="badges" class="badges" aria-live="polite"></div>
     <!-- Série de jours d'affilée (serie.js) -->
     <div id="serie" class="badges"></div>
+    <!-- Sauvegarde Google (compte.js) -->
+    <div id="compte" class="badges"></div>
   </header>
 
   <nav class="onglets" aria-label="Vues">
@@ -87,12 +89,21 @@
     <button type="button" id="lien-admin" class="lien-bouton">🔒 Espace admin</button>
   </footer>
 
+  <!-- Chrono en cours (chrono.js), toujours visible en bas de l'écran -->
+  <div id="barre-chrono" class="barre-chrono" role="timer" aria-live="polite" hidden>
+    <span class="chrono-temps"></span>
+    <button type="button" class="bouton">Arrêter</button>
+  </div>
+
   <!-- Copie de secours des fiches (pour ouvrir la page sans serveur) -->
   <script src="fiches-data.js"></script>
   <!-- parcours.js (et partage.js) avant app.js : app.js en a besoin dès le démarrage -->
   <script src="partage.js"></script>
   <script src="parcours.js"></script>
   <script src="serie.js"></script>
+  <script src="scores.js"></script>
+  <script src="compte.js"></script>
+  <script src="chrono.js"></script>
   <script src="prepa.js"></script>
   <script src="app.js"></script>
 </body>

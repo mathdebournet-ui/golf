@@ -2,16 +2,26 @@ rules_version = '2';
 
 // Règles de sécurité de la base Firestore (à coller dans la console Firebase :
 // Firestore Database > Règles > remplacer tout le texte > Publier).
-//  - Tout le monde peut LIRE les parties.
-//  - Un téléphone ne peut créer, modifier ou supprimer QUE ses propres parties
-//    (identifiant anonyme donné par Firebase Authentication).
+//  - Parties : tout le monde peut les LIRE ; un téléphone ne peut créer,
+//    modifier ou supprimer QUE les siennes.
+//  - Séries (jours d'affilée) et scores de putting : chaque joueur écrit les
+//    siens, mais SEUL l'administrateur (connecté avec Google) peut les lire.
+//  - Sauvegardes : privées, lisibles seulement par leur compte Google.
 //  - Les données envoyées sont vérifiées (taille, format) pour éviter les abus.
-//  - Séries (jours d'affilée) : chaque téléphone écrit la sienne, mais SEUL
-//    l'administrateur (connecté avec son compte Google) peut les lire.
-//    ⚠ Ce fichier est public : avant de coller, remplacer ADRESSE_ADMIN
-//    par l'adresse Gmail de l'administrateur (ne pas l'écrire ici).
+// ⚠ Ce fichier est public : avant de coller, remplacer ADRESSE_ADMIN_1 et
+//   ADRESSE_ADMIN_2 par les adresses Gmail de l'administrateur (ne pas les écrire ici).
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    function estAdmin() {
+      return request.auth != null
+        && request.auth.token.email in ['ADRESSE_ADMIN_1', 'ADRESSE_ADMIN_2']
+        && request.auth.token.email_verified == true;
+    }
+
+    function estProprietaire(uid) {
+      return request.auth != null && uid == request.auth.uid;
+    }
 
     function partieValide() {
       let d = request.resource.data;
@@ -47,18 +57,37 @@ service cloud.firestore {
         && d.dernierJour is string && d.dernierJour.size() <= 10;
     }
 
-    // Administrateur : connecté avec un de ses comptes Google
-    function estAdmin() {
-      return request.auth != null
-        && request.auth.token.email in ['ADRESSE_ADMIN_1', 'ADRESSE_ADMIN_2']
-        && request.auth.token.email_verified == true;
+    match /series/{idAppareil} {
+      allow read: if estAdmin();
+      allow delete: if estAdmin() || estProprietaire(idAppareil);
+      allow create, update: if estProprietaire(idAppareil) && serieValide();
     }
 
-    match /series/{idAppareil} {
-      allow read, delete: if estAdmin();
-      allow create, update: if request.auth != null
-        && idAppareil == request.auth.uid
-        && serieValide();
+    function scoresValides() {
+      let d = request.resource.data;
+      return d.uid == request.auth.uid
+        && d.keys().hasOnly(['uid', 'joueur', 'scores', 'majLe'])
+        && d.joueur is string && d.joueur.size() > 0 && d.joueur.size() <= 40
+        && d.scores is map && d.scores.size() <= 100;
+    }
+
+    match /scores/{idAppareil} {
+      allow read: if estAdmin();
+      allow delete: if estAdmin() || estProprietaire(idAppareil);
+      allow create, update: if estProprietaire(idAppareil) && scoresValides();
+    }
+
+    // Sauvegarde privée : seulement avec un compte Google (pas en anonyme)
+    function compteGoogle(uid) {
+      return estProprietaire(uid) && request.auth.token.firebase.sign_in_provider == 'google.com';
+    }
+
+    match /sauvegardes/{idCompte} {
+      allow read, delete: if compteGoogle(idCompte);
+      allow create, update: if compteGoogle(idCompte)
+        && request.resource.data.keys().hasOnly(['uid', 'donnees', 'majLe'])
+        && request.resource.data.donnees is string
+        && request.resource.data.donnees.size() <= 900000;
     }
   }
 }

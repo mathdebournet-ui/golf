@@ -5,10 +5,11 @@
    2. Construire le programme golf du jour : 3 putting, 1 chipping
       (ou bunker), 2 practice (fers / drive / wedging, de catégories
       différentes). Le sport est dans l'onglet Prépa physique (prepa.js).
-      Un NOUVEAU programme est tiré à chaque ouverture de la page. Il évite
-      les exercices des 3 jours précédents et ceux de la dernière ouverture.
-   3. Gérer « Fait ✓ » et « Autre exo », mémorisés dans le navigateur
-      (jusqu'à la prochaine ouverture, qui tire un nouveau programme).
+      Le programme est tiré une fois par jour et reste le même toute la
+      journée ; le bouton « 🔄 Nouveau programme » en tire un autre. Il évite
+      les exercices des 3 jours précédents (et le programme actuel).
+   3. Gérer « Fait ✓ », « Autre exo », la case score (putting, scores.js)
+      et le chrono des exos chronométrés, mémorisés dans le navigateur.
    ========================================================= */
 
 "use strict";
@@ -251,6 +252,24 @@ function nouveauProgramme(jour) {
   return programme;
 }
 
+// Programme déjà tiré aujourd'hui (null s'il n'y en a pas ou si une fiche a disparu)
+function programmeEnregistre(jour) {
+  const ids = lireJournee(jour).programme;
+  const creneaux = creneauxDuJour(jour);
+  if (ids.length !== creneaux.length) return null;
+  const programme = creneaux.map((creneau, i) => ({ creneau, fiche: fichesValides.find((f) => f.id === ids[i]) || null }));
+  return programme.every((p) => p.fiche) ? programme : null;
+}
+
+// Bouton « 🔄 Nouveau programme » : nouveau tirage, les ✓ repartent de zéro
+function tirerNouveauProgramme(jour) {
+  if (lireJournee(jour).faits.length > 0 && !confirm("Tirer un nouveau programme ? Les exos cochés « Fait » seront décochés (ta série 🔥 du jour est gardée).")) return;
+  programmeCourant = nouveauProgramme(jour);
+  enregistrerProgramme(jour, { faits: [], dejaProposes: {} });
+  afficherProgramme(jour);
+  window.scrollTo(0, 0);
+}
+
 // Mémorise le programme affiché (sert d'historique pour les prochains tirages)
 function enregistrerProgramme(jour, journee) {
   journee.programme = programmeCourant.map((p) => (p.fiche ? p.fiche.id : null));
@@ -388,6 +407,10 @@ function carteFiche(fiche, options) {
     actions = `<div class="actions">${lienOrigine(fiche)}</div>`;
   }
 
+  // Chrono (chrono.js) et case score du putting (scores.js)
+  const chronos = brouillon ? "" : boutonsChrono(fiche);
+  const score = options.avecActions && !brouillon ? caseScore(fiche) : "";
+
   return `
     <article class="carte cat-${echapper(fiche.categorie)} ${options.fait ? "faite" : ""}">
       <div class="carte-haut">${pastille}<span class="duree">⏱ ${Number(fiche.duree) || 0} min</span>${numero}</div>
@@ -398,6 +421,8 @@ function carteFiche(fiche, options) {
         ${contenu}
         <p class="source">${texteSource(fiche)}</p>
       </details>
+      ${chronos ? `<div class="chronos">${chronos}</div>` : ""}
+      ${score}
       ${actions}
     </article>`;
 }
@@ -415,7 +440,8 @@ function afficherProgramme(jour) {
     <span class="resume-total">⏱ ${formaterDuree(duree(presents))}</span>
     <span class="resume-avancement">${nbFaits}/${presents.length} fait${nbFaits > 1 ? "s" : ""}</span>
     <p class="resume-detail">Golf · le sport est dans l'onglet 💪 Prépa physique</p>
-    ${nbFaits === presents.length ? `<p class="resume-bravo">Journée terminée, bravo ! 🎉</p>` : ""}`;
+    ${nbFaits === presents.length ? `<p class="resume-bravo">Journée terminée, bravo ! 🎉</p>` : ""}
+    <button type="button" class="lien-bouton" data-action="nouveau-programme">🔄 Nouveau programme</button>`;
 
   // Un bloc par groupe (putting, chipping, practice) avec les exos pas encore faits ;
   // les exos faits descendent tout en bas, grisés, dans « Terminés »
@@ -489,10 +515,9 @@ function afficherBibliotheque() {
 }
 
 function afficherBadges(nombreBrouillons, memoireOk) {
-  const badges = [`<span class="badge">📚 ${fichesValides.length} exercices</span>`];
-  badges.push(memoireOk
-    ? `<span class="badge">💾 Progression mémorisée</span>`
-    : `<span class="badge attention">⚠ Mémoire du navigateur indisponible : les ✓ ne seront pas gardés</span>`);
+  // Seulement les alertes (le nombre d'exos et « progression mémorisée » ont été retirés à la demande de l'utilisateur)
+  const badges = [];
+  if (!memoireOk) badges.push(`<span class="badge attention">⚠ Mémoire du navigateur indisponible : les ✓ ne seront pas gardés</span>`);
   if (nombreBrouillons > 0) {
     badges.push(`<span class="badge attention">✏️ ${nombreBrouillons} fiche${nombreBrouillons > 1 ? "s" : ""} à compléter</span>`);
   }
@@ -592,12 +617,19 @@ async function demarrer() {
     afficherErreur("manque", manquantes.map((c) => NOMS_CATEGORIES[c] || c).join(", ") + ".");
   }
 
-  // Nouveau programme à chaque ouverture (les ✓ repartent de zéro)
-  programmeCourant = nouveauProgramme(aujourdhui);
-  enregistrerProgramme(aujourdhui, { faits: [], dejaProposes: {} });
+  // Même programme toute la journée (on retrouve aussi les ✓) ; sinon on en tire un
+  programmeCourant = programmeEnregistre(aujourdhui);
+  if (!programmeCourant) {
+    programmeCourant = nouveauProgramme(aujourdhui);
+    enregistrerProgramme(aujourdhui, { faits: [], dejaProposes: {} });
+  }
   afficherProgramme(aujourdhui);
   // Onglet Prépa ouvert avant la fin du chargement : on l'affiche maintenant
   if (!document.getElementById("vue-prepa").hidden) afficherPrepa();
+
+  document.getElementById("resume").addEventListener("click", (evenement) => {
+    if (evenement.target.closest('button[data-action="nouveau-programme"]')) tirerNouveauProgramme(aujourdhui);
+  });
 
   // Un seul écouteur pour tous les boutons des cartes (délégation)
   document.getElementById("programme").addEventListener("click", (evenement) => {

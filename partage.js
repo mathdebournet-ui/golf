@@ -87,10 +87,14 @@ function demarrerPartage() {
         await chargerScript(base + "firebase-auth-compat.js");
         await chargerScript(base + "firebase-firestore-compat.js");
       }
-      if (firebase.apps.length === 0) firebase.initializeApp(CONFIG_FIREBASE);
-      // Si ce téléphone est déjà connu, Firebase redonne le même identifiant
-      const resultat = await firebase.auth().signInAnonymously();
-      idAppareil = resultat.user.uid;
+      if (!firebase.apps.some((a) => a.name === "[DEFAULT]")) firebase.initializeApp(CONFIG_FIREBASE);
+      // On attend que Firebase retrouve la connexion déjà faite sur ce téléphone
+      // (anonyme, ou Google si le joueur a activé la sauvegarde : voir compte.js)
+      const dejaConnecte = await new Promise((ok) => {
+        const arreter = firebase.auth().onAuthStateChanged((u) => { arreter(); ok(u); });
+      });
+      const utilisateur = dejaConnecte || (await firebase.auth().signInAnonymously()).user;
+      idAppareil = utilisateur.uid;
       baseDeDonnees = firebase.firestore();
       etatPartage = "pret";
       return true;

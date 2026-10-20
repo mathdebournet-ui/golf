@@ -6,7 +6,7 @@
    affiche la dernière copie enregistrée.
    ========================================================= */
 
-const NOM_CACHE = "golf-seance-v15";   // changer le numéro force un cache neuf
+const NOM_CACHE = "golf-seance-v17";   // changer le numéro force un cache neuf
 const FICHIERS_ESSENTIELS = [
   "./",
   "index.html",
@@ -16,6 +16,9 @@ const FICHIERS_ESSENTIELS = [
   "prepa.js",
   "partage.js",
   "serie.js",
+  "scores.js",
+  "compte.js",
+  "chrono.js",
   "fiches.json",
   "fiches-data.js",
   "manifest.json",

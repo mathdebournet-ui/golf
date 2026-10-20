@@ -62,7 +62,12 @@ let filtreJoueur = "tous";
    ========================================================= */
 
 function lireParcours(cle, defaut) { return lireStockage(cle, defaut, PREFIXE_PARCOURS); }
-function ecrireParcours(cle, valeur) { return ecrireStockage(cle, valeur, PREFIXE_PARCOURS); }
+function ecrireParcours(cle, valeur) {
+  const ok = ecrireStockage(cle, valeur, PREFIXE_PARCOURS);
+  // Nom, parcours et parties sont aussi sauvegardés en ligne si le joueur a activé Google (compte.js)
+  if (["joueur", "parcours", "parties"].includes(cle) && typeof planifierSauvegarde === "function") planifierSauvegarde();
+  return ok;
+}
 
 function nomDuJoueur() { return lireParcours("joueur", ""); }
 function mesParcours() { return lireParcours("parcours", {}); }          // { id: { id, nom, lieu, pars[18], dernierePartie } }
@@ -296,6 +301,7 @@ function terminerPartie() {
   // On range la partie dans l'historique (à la place de l'ancienne version si on la modifiait)
   const { trouActuel, enModification, ...aGarder } = partie;
   aGarder.partagee = false;   // à (r)envoyer en ligne (partage.js)
+  aGarder.modifieeLe = Date.now();   // la version la plus récente gagne entre deux appareils (compte.js)
   const parties = partiesTerminees().filter((p) => p.id !== partie.id);
   parties.push(aGarder);
   ecrireParcours("parties", parties);
@@ -340,6 +346,9 @@ function modifierPartie(id) {
 function supprimerPartie(id) {
   if (!confirm("Supprimer définitivement cette partie de l'historique ?")) return;
   const partie = partiesTerminees().find((p) => p.id === id);
+  // Mémorisée pour que la sauvegarde Google ne la fasse pas revenir (compte.js)
+  const supprimees = lireParcours("supprimees", []);
+  if (!supprimees.includes(id)) ecrireStockage("supprimees", [...supprimees, id], PREFIXE_PARCOURS);
   ecrireParcours("parties", partiesTerminees().filter((p) => p.id !== id));
   if (partie) supprimerEnLigne(partie);   // la retire aussi pour les autres joueurs
   partieOuverte = null;
@@ -532,7 +541,14 @@ function afficherAccueil() {
   const actif = !nomDuJoueur();
   document.body.classList.toggle("accueil-actif", actif);
   document.getElementById("accueil").hidden = !actif;
-  if (actif) document.getElementById("zone-accueil").innerHTML = ecranNom();
+  if (actif) {
+    document.getElementById("zone-accueil").innerHTML = ecranNom() + (partageConfigure() ? `
+      <article class="carte" id="accueil-google">
+        <h2 class="carte-titre">Déjà utilisé l'appli ?</h2>
+        <p>Sur un autre téléphone ou sur ton ordinateur, avec la sauvegarde Google : retrouve ton nom, tes parties, ta série et tes scores.</p>
+        <div class="actions"><button type="button" class="bouton pleine-largeur" data-action="activer-sauvegarde">☁️ Retrouver mes données avec Google</button></div>
+      </article>` : "");
+  }
 }
 
 function afficherParcours() {
@@ -736,27 +752,33 @@ function afficherCommunaute() {
   zone.innerHTML = html;
 }
 
+// Données venues d'internet : on garde seulement les parties bien formées
+// (sert aussi à l'Espace admin, serie.js)
+function normaliserParties(parties) {
+  const nombre = (v) => (Number.isInteger(v) && v >= 0 && v < 30 ? v : null);
+  return parties
+    .filter((p) => p && Array.isArray(p.trous) && typeof p.joueur === "string" && typeof p.parcoursNom === "string")
+    .map((p) => ({
+      ...p,
+      date: typeof p.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(p.date) ? p.date : "2000-01-01",
+      note: typeof p.note === "string" ? p.note : "",
+      trous: p.trous.map((t) => ({
+        numero: nombre(t.numero) || 0,
+        par: [3, 4, 5].includes(t.par) ? t.par : 4,
+        score: nombre(t.score),
+        putts: nombre(t.putts),
+        fairway: ["gauche", "ok", "droite"].includes(t.fairway) ? t.fairway : null,
+        penalites: nombre(t.penalites) || 0,
+      })),
+    }));
+}
+
 async function actualiserCommunaute() {
   chargementCommunaute = true;
   const parties = await chargerCommunaute();   // partage.js
   chargementCommunaute = false;
   if (parties) {
-    // Données venues d'internet : on garde seulement les parties bien formées
-    const nombre = (v) => (Number.isInteger(v) && v >= 0 && v < 30 ? v : null);
-    partiesCommunaute = parties
-      .filter((p) => p && Array.isArray(p.trous) && typeof p.joueur === "string" && typeof p.parcoursNom === "string")
-      .map((p) => ({
-        ...p,
-        note: typeof p.note === "string" ? p.note : "",
-        trous: p.trous.map((t) => ({
-          numero: nombre(t.numero) || 0,
-          par: [3, 4, 5].includes(t.par) ? t.par : 4,
-          score: nombre(t.score),
-          putts: nombre(t.putts),
-          fairway: ["gauche", "ok", "droite"].includes(t.fairway) ? t.fairway : null,
-          penalites: nombre(t.penalites) || 0,
-        })),
-      }));
+    partiesCommunaute = normaliserParties(parties);
     erreurCommunaute = "";
   } else {
     erreurCommunaute = etatPartage;

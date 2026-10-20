@@ -9,6 +9,8 @@
      peut lire les séries de tous les joueurs : c'est garanti
      par les règles Firestore (outils/regles-firestore.txt),
      pas par ce code.
+   L'espace admin montre aussi les parties (⛳) et les scores de
+   putting (🎯, voir scores.js) de chaque joueur, en tableaux.
    Utilise : lireStockage / ecrireStockage / dateEnTexte /
    texteEnDate / ajouterJours / echapper (app.js),
    nomDuJoueur / dateLisible (parcours.js),
@@ -68,6 +70,7 @@ function noterExoFait(idFiche, fait) {
     envoyerSerie();
   }
   afficherSerie();
+  if (typeof planifierSauvegarde === "function") planifierSauvegarde();   // compte.js
 }
 
 // { actuelle, record, dernierJour, aujourdhuiFait }
@@ -144,7 +147,12 @@ async function envoyerSerie() {
 
 /* ---------- 4. Espace administrateur ---------- */
 
-let seriesAdmin = null;      // séries reçues (null = pas encore chargées)
+// Trois onglets : 🔥 Séries, ⛳ Parcours (parties de chaque joueur), 🎯 Putting (scores)
+let ongletAdmin = "series";
+let joueurAdmin = "";         // uid du joueur affiché (onglets Parcours et Putting)
+let seriesAdmin = null;       // données reçues (null = pas encore chargées)
+let partiesAdmin = null;
+let scoresAdmin = null;
 let erreurAdmin = "";
 let chargementAdmin = false;
 
@@ -177,7 +185,7 @@ async function connecterAdmin() {
     return;
   }
   try {
-    // Les séries se chargent ensuite toutes seules (onAuthStateChanged, voir ouvrirAdmin)
+    // Les données se chargent ensuite toutes seules (onAuthStateChanged, voir ouvrirAdmin)
     await appAdmin().auth().signInWithPopup(new firebase.auth.GoogleAuthProvider());
   } catch (e) {
     erreurAdmin = codeErreurAdmin(e);
@@ -187,33 +195,154 @@ async function connecterAdmin() {
 
 async function deconnecterAdmin() {
   try { await appAdmin().auth().signOut(); } catch (e) { /* rien à faire */ }
-  seriesAdmin = null;
+  seriesAdmin = partiesAdmin = scoresAdmin = null;
   erreurAdmin = "";
   afficherAdmin();
 }
 
-async function chargerSeriesAdmin() {
+const dateValide = (d) => (typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d) ? d : "");
+
+async function chargerAdmin() {
   chargementAdmin = true;
   erreurAdmin = "";
   afficherAdmin();
-  try {
-    const instantane = await appAdmin().firestore().collection(COLLECTION_SERIES).get();
-    // Données en ligne = non fiables : on vérifie chaque champ
-    seriesAdmin = instantane.docs
+  const base = appAdmin().firestore();
+  const [series, parties, scores] = await Promise.allSettled([
+    base.collection(COLLECTION_SERIES).get(),
+    base.collection(COLLECTION_PARTIES).orderBy("envoyeLe", "desc").limit(500).get(),
+    base.collection(COLLECTION_SCORES).get(),
+  ]);
+  // Données en ligne = non fiables : on vérifie chaque champ
+  if (series.status === "fulfilled") {
+    seriesAdmin = series.value.docs
       .map((doc) => ({ ...doc.data(), id: doc.id }))
-      .filter((s) => s && typeof s.joueur === "string")
+      .filter((s) => typeof s.joueur === "string")
       .map((s) => ({
         id: s.id,
         joueur: s.joueur,
         actuelle: Number.isInteger(s.actuelle) ? s.actuelle : 0,
         record: Number.isInteger(s.record) ? s.record : 0,
-        dernierJour: typeof s.dernierJour === "string" && /^\d{4}-\d{2}-\d{2}$/.test(s.dernierJour) ? s.dernierJour : "",
+        dernierJour: dateValide(s.dernierJour),
       }));
-  } catch (e) {
-    erreurAdmin = codeErreurAdmin(e);
+  } else {
+    erreurAdmin = codeErreurAdmin(series.reason);
+  }
+  if (parties.status === "fulfilled") {
+    partiesAdmin = normaliserParties(parties.value.docs.map((doc) => doc.data()))   // parcours.js
+      .filter((p) => typeof p.uid === "string");
+  }
+  if (scores.status === "fulfilled") {
+    scoresAdmin = scores.value.docs
+      .map((doc) => ({ ...doc.data(), id: doc.id }))
+      .filter((s) => typeof s.joueur === "string" && s.scores && typeof s.scores === "object")
+      .map((s) => {
+        const propres = {};
+        for (const [idFiche, liste] of Object.entries(s.scores)) {
+          if (!Array.isArray(liste)) continue;
+          const ok = liste.filter((x) => x && Number.isInteger(x.v) && dateValide(x.d));
+          if (ok.length) propres[idFiche] = ok.map((x) => ({ d: x.d, v: x.v }));
+        }
+        return { id: s.id, joueur: s.joueur, scores: propres };
+      });
+  } else if (!erreurAdmin) {
+    erreurAdmin = codeErreurAdmin(scores.reason);
   }
   chargementAdmin = false;
   afficherAdmin();
+}
+
+// Tous les joueurs connus (un par identifiant), avec leur nom le plus récent
+function joueursAdmin() {
+  const noms = new Map();
+  (partiesAdmin || []).slice().reverse().forEach((p) => noms.set(p.uid, p.joueur));   // de la plus ancienne à la plus récente
+  (seriesAdmin || []).forEach((s) => noms.set(s.id, s.joueur));
+  (scoresAdmin || []).forEach((s) => noms.set(s.id, s.joueur));
+  return [...noms.entries()]
+    .map(([uid, nom]) => ({ uid, nom }))
+    .sort((a, b) => a.nom.localeCompare(b.nom, "fr"));
+}
+
+// Boutons pour choisir le joueur (même prénom sur 2 appareils : on numérote)
+function choixJoueurAdmin(joueurs) {
+  if (!joueurs.some((j) => j.uid === joueurAdmin)) joueurAdmin = joueurs.length ? joueurs[0].uid : "";
+  const compte = {};
+  return `<div class="filtres">${joueurs.map((j) => {
+    compte[j.nom] = (compte[j.nom] || 0) + 1;
+    const doublon = joueurs.filter((x) => x.nom === j.nom).length > 1 ? ` (${compte[j.nom]})` : "";
+    const actif = j.uid === joueurAdmin;
+    return `<button type="button" class="filtre ${actif ? "actif" : ""}" data-action="admin-joueur" data-uid="${echapper(j.uid)}" aria-pressed="${actif}">${echapper(j.nom + doublon)}</button>`;
+  }).join("")}</div>`;
+}
+
+function htmlSeriesAdmin() {
+  if (!seriesAdmin) return "";
+  const liste = seriesAdmin
+    .map((s) => ({ ...s, enCours: serieEnCours(s) }))
+    .sort((a, b) => b.enCours - a.enCours || b.record - a.record || a.joueur.localeCompare(b.joueur, "fr"));
+  if (liste.length === 0) return `<p class="petit">Aucune série reçue pour l'instant.</p>`;
+  return liste.map((s) => `
+    <div class="resultat partie">
+      <span class="partie-score ${s.enCours > 0 ? "sous-par" : ""}">${s.enCours}<small>🔥</small></span>
+      <span class="partie-texte">
+        <strong>${echapper(s.joueur)}</strong>
+        <span>🏆 Record ${s.record} · ${s.dernierJour ? "dernier jour validé : " + echapper(dateLisible(s.dernierJour)) : "aucun jour validé"}</span>
+      </span>
+      <button type="button" class="bouton danger supprimer-serie" data-action="admin-supprimer" data-id="${echapper(s.id)}" data-nom="${echapper(s.joueur)}" aria-label="Supprimer ${echapper(s.joueur)}">🗑</button>
+    </div>`).join("");
+}
+
+function htmlParcoursAdmin() {
+  if (!partiesAdmin) return "";
+  const joueurs = joueursAdmin().filter((j) => partiesAdmin.some((p) => p.uid === j.uid));
+  if (joueurs.length === 0) return `<p class="petit">Aucune partie partagée pour l'instant.</p>`;
+  let html = choixJoueurAdmin(joueurs);
+  const parties = partiesAdmin.filter((p) => p.uid === joueurAdmin).sort((a, b) => b.date.localeCompare(a.date));
+  const lignes = parties.map((p) => {
+    const s = calculerStats(p);   // parcours.js
+    return `<tr>
+      <td>${echapper(dateLisible(p.date))}</td>
+      <td>${echapper(p.parcoursNom)}<br><small>${echapper(nomFormat(p.format))}</small></td>
+      <td class="nombre"><strong>${s.score}</strong> <small>${texteEcart(s.ecart)}</small></td>
+      <td class="nombre">${s.trousAvecPutts ? s.putts : "—"}</td>
+      <td class="nombre">${s.trousAvecPutts ? `${s.greens}/${s.trousAvecPutts}` : "—"}</td>
+      <td class="nombre">${s.fairwaysNotes ? `${s.fairwaysTouches}/${s.fairwaysNotes}` : "—"}</td>
+    </tr>`;
+  }).join("");
+  html += `<div class="tableau-defilant"><table class="tableau-admin">
+    <thead><tr><th>Date</th><th>Parcours</th><th>Score</th><th>Putts</th><th>GIR</th><th>Fairways</th></tr></thead>
+    <tbody>${lignes}</tbody></table></div>`;
+  return html;
+}
+
+function htmlPuttingAdmin() {
+  if (!scoresAdmin) return "";
+  const joueurs = joueursAdmin().filter((j) => scoresAdmin.some((s) => s.id === j.uid && Object.keys(s.scores).length));
+  if (joueurs.length === 0) return `<p class="petit">Aucun score de putting reçu pour l'instant.</p>`;
+  let html = choixJoueurAdmin(joueurs);
+  const scores = (scoresAdmin.find((s) => s.id === joueurAdmin) || { scores: {} }).scores;
+  const lignes = Object.entries(scores)
+    .map(([idFiche, liste]) => {
+      const fiche = fichesValides.find((f) => f.id === idFiche);
+      const tries = liste.slice().sort((a, b) => a.d.localeCompare(b.d));
+      return { titre: fiche ? fiche.titre : idFiche, idFiche, liste: tries };
+    })
+    .sort((a, b) => a.titre.localeCompare(b.titre, "fr"))
+    .map((e) => {
+      const dernier = e.liste[e.liste.length - 1];
+      const record = Math.max(...e.liste.map((x) => x.v));
+      const recents = e.liste.slice(-5).map((x) => x.v).join(" · ");
+      return `<tr>
+        <td>${echapper(e.titre)}</td>
+        <td class="nombre"><strong>${echapper(texteScore(e.idFiche, dernier.v))}</strong><br><small>${echapper(dateLisible(dernier.d))}</small></td>
+        <td class="nombre">${echapper(texteScore(e.idFiche, record))}</td>
+        <td class="nombre">${e.liste.length}</td>
+        <td><small>${echapper(recents)}</small></td>
+      </tr>`;
+    }).join("");
+  html += `<div class="tableau-defilant"><table class="tableau-admin">
+    <thead><tr><th>Exo</th><th>Dernier</th><th>Record</th><th>Nb</th><th>5 derniers</th></tr></thead>
+    <tbody>${lignes}</tbody></table></div>`;
+  return html;
 }
 
 function afficherAdmin() {
@@ -222,7 +351,7 @@ function afficherAdmin() {
   try { utilisateur = window.firebase ? appAdmin().auth().currentUser : null; } catch (e) { /* pas encore chargé */ }
 
   let html = `<h2 class="bloc-titre">🔒 Espace admin</h2>
-    <p class="bloc-info">Séries de jours d'affilée de tous les joueurs (visible par toi seul).</p>`;
+    <p class="bloc-info">Suivi de tous les joueurs (visible par toi seul).</p>`;
   if (erreurAdmin) html += `<p class="erreur">${echapper(MESSAGES_ADMIN[erreurAdmin] || MESSAGES_ADMIN.erreur)}</p>`;
 
   if (!utilisateur) {
@@ -231,25 +360,14 @@ function afficherAdmin() {
     return;
   }
 
-  html += `<p class="petit">Connecté : ${echapper(utilisateur.email || "")}</p>`;
-  if (chargementAdmin) {
-    html += `<p class="petit">Chargement…</p>`;
-  } else if (seriesAdmin) {
-    const liste = seriesAdmin
-      .map((s) => ({ ...s, enCours: serieEnCours(s) }))
-      .sort((a, b) => b.enCours - a.enCours || b.record - a.record || a.joueur.localeCompare(b.joueur, "fr"));
-    html += liste.length === 0
-      ? `<p class="petit">Aucune série reçue pour l'instant.</p>`
-      : liste.map((s) => `
-        <div class="resultat partie">
-          <span class="partie-score ${s.enCours > 0 ? "sous-par" : ""}">${s.enCours}<small>🔥</small></span>
-          <span class="partie-texte">
-            <strong>${echapper(s.joueur)}</strong>
-            <span>🏆 Record ${s.record} · ${s.dernierJour ? "dernier jour validé : " + echapper(dateLisible(s.dernierJour)) : "aucun jour validé"}</span>
-          </span>
-          <button type="button" class="bouton danger supprimer-serie" data-action="admin-supprimer" data-id="${echapper(s.id)}" data-nom="${echapper(s.joueur)}" aria-label="Supprimer ${echapper(s.joueur)}">🗑</button>
-        </div>`).join("");
-  }
+  html += `<p class="petit">Connecté : ${echapper(utilisateur.email || "")}</p>
+    <div class="filtres">${[["series", "🔥 Séries"], ["parcours", "⛳ Parcours"], ["putting", "🎯 Putting"]].map(([valeur, nom]) =>
+      `<button type="button" class="filtre ${ongletAdmin === valeur ? "actif" : ""}" data-action="admin-onglet" data-valeur="${valeur}" aria-pressed="${ongletAdmin === valeur}">${nom}</button>`).join("")}</div>`;
+  if (chargementAdmin) html += `<p class="petit">Chargement…</p>`;
+  else if (ongletAdmin === "series") html += htmlSeriesAdmin();
+  else if (ongletAdmin === "parcours") html += htmlParcoursAdmin();
+  else html += htmlPuttingAdmin();
+
   html += `<div class="actions">
     <button type="button" class="bouton" data-action="admin-actualiser">↻ Actualiser</button>
     <button type="button" class="bouton" data-action="admin-deconnexion">Se déconnecter</button>
@@ -257,13 +375,15 @@ function afficherAdmin() {
   zone.innerHTML = html;
 }
 
-// Supprime la ligne d'un joueur (ex. le même joueur sur deux appareils).
-// Si cet appareil valide un nouveau jour, sa série réapparaîtra.
+// Supprime la série ET les scores d'un joueur (ex. le même joueur sur deux appareils).
+// Si cet appareil valide un nouveau jour ou note un score, il réapparaîtra.
 async function supprimerSerieAdmin(id, nom) {
-  if (!confirm(`Supprimer « ${nom} » de la liste des séries ?`)) return;
+  if (!confirm(`Supprimer « ${nom} » (série et scores de putting) ?`)) return;
   try {
-    await appAdmin().firestore().collection(COLLECTION_SERIES).doc(id).delete();
-    await chargerSeriesAdmin();
+    const base = appAdmin().firestore();
+    await base.collection(COLLECTION_SERIES).doc(id).delete();
+    await base.collection(COLLECTION_SCORES).doc(id).delete();
+    await chargerAdmin();
   } catch (e) {
     erreurAdmin = codeErreurAdmin(e) === "refuse" ? "suppression-refusee" : codeErreurAdmin(e);
     afficherAdmin();
@@ -282,10 +402,10 @@ async function ouvrirAdmin() {
     suiviAdmin = true;
     appAdmin().auth().onAuthStateChanged((u) => {
       if (document.getElementById("vue-admin").hidden) return;
-      if (u) chargerSeriesAdmin(); else afficherAdmin();
+      if (u) chargerAdmin(); else afficherAdmin();
     });
   } else if (appAdmin().auth().currentUser) {
-    chargerSeriesAdmin();           // données fraîches à chaque ouverture
+    chargerAdmin();                 // données fraîches à chaque ouverture
   }
 }
 
@@ -304,7 +424,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const bouton = evenement.target.closest("button[data-action]");
     if (!bouton) return;
     if (bouton.dataset.action === "admin-connexion") connecterAdmin();
-    if (bouton.dataset.action === "admin-actualiser") chargerSeriesAdmin();
+    if (bouton.dataset.action === "admin-actualiser") chargerAdmin();
+    if (bouton.dataset.action === "admin-onglet") { ongletAdmin = bouton.dataset.valeur; afficherAdmin(); }
+    if (bouton.dataset.action === "admin-joueur") { joueurAdmin = bouton.dataset.uid; afficherAdmin(); }
     if (bouton.dataset.action === "admin-deconnexion") deconnecterAdmin();
     if (bouton.dataset.action === "admin-supprimer") supprimerSerieAdmin(bouton.dataset.id, bouton.dataset.nom);
   });
