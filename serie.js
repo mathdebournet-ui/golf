@@ -28,6 +28,7 @@ const MESSAGES_ADMIN = {
   "hors-ligne": "Pas de réseau : impossible de charger les séries.",
   "popup-bloquee": "La fenêtre de connexion Google a été bloquée. Autorise les fenêtres pour ce site, puis réessaie.",
   annule: "Connexion annulée.",
+  "suppression-refusee": "Suppression refusée par Firebase : dans les règles Firestore, la ligne « allow read, delete » des séries n'est pas (encore) publiée.",
   domaine: "Ce site n'est pas encore autorisé pour la connexion Google (Firebase > Authentication > Paramètres > Domaines autorisés).",
   "google-inactif": "La connexion Google n'est pas encore activée dans Firebase (Authentication > Méthode de connexion).",
   erreur: "Impossible de charger les séries pour l'instant. Réessaie dans un moment.",
@@ -264,7 +265,7 @@ async function supprimerSerieAdmin(id, nom) {
     await appAdmin().firestore().collection(COLLECTION_SERIES).doc(id).delete();
     await chargerSeriesAdmin();
   } catch (e) {
-    erreurAdmin = codeErreurAdmin(e);
+    erreurAdmin = codeErreurAdmin(e) === "refuse" ? "suppression-refusee" : codeErreurAdmin(e);
     afficherAdmin();
   }
 }
