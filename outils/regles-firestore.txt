@@ -43,8 +43,8 @@ service cloud.firestore {
       allow update: if request.auth != null
         && resource.data.uid == request.auth.uid
         && partieValide();
-      allow delete: if request.auth != null
-        && (resource == null || resource.data.uid == request.auth.uid);
+      allow delete: if estAdmin() || (request.auth != null
+        && (resource == null || resource.data.uid == request.auth.uid));
     }
 
     function serieValide() {

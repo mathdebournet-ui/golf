@@ -63,6 +63,7 @@ function utilisateurGoogle() {
 
 function donneesLocales() {
   return {
+    remise: REMISE_A_ZERO,   // remise-a-zero.js
     joueur: nomDuJoueur(),
     parcours: mesParcours(),
     parties: partiesTerminees(),
@@ -78,8 +79,13 @@ const union = (a, b) => [...new Set([...(a || []), ...(b || [])])];
 
 // Fusionne deux sauvegardes. « prioritaire » gagne pour le nom du joueur.
 function fusionner(prioritaire, autre) {
-  const a = prioritaire || {};
-  const b = autre || {};
+  let a = prioritaire || {};
+  let b = autre || {};
+  // Une sauvegarde d'avant la dernière remise à zéro ne garde que le nom et les parcours
+  const remise = Math.max(a.remise || 0, b.remise || 0);
+  const avantRemise = (d) => ({ remise, joueur: d.joueur, parcours: d.parcours });
+  if ((a.remise || 0) < remise) a = avantRemise(a);
+  if ((b.remise || 0) < remise) b = avantRemise(b);
 
   const supprimees = union(a.supprimees, b.supprimees);
   const parties = {};
@@ -115,6 +121,7 @@ function fusionner(prioritaire, autre) {
   }
 
   return {
+    remise,
     joueur: a.joueur || b.joueur || "",
     parcours,
     parties: Object.values(parties).sort((x, y) => x.id.localeCompare(y.id)),

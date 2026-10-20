@@ -101,6 +101,11 @@ function enregistrerScore(idFiche, valeur) {
   rafraichirCaseScore(idFiche);
   envoyerScores();
   if (typeof planifierSauvegarde === "function") planifierSauvegarde();
+
+  // Score noté = exo fait : il est coché « ✓ Fait » et descend dans « Terminés » (app.js)
+  const jour = dateEnTexte(new Date());
+  const dansLeProgramme = programmeCourant.some((p) => p.fiche && p.fiche.id === idFiche);
+  if (dansLeProgramme && !lireJournee(jour).faits.includes(idFiche)) basculerFait(jour, idFiche);
 }
 
 function effacerDernierScore(idFiche) {

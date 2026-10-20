@@ -48,7 +48,8 @@ Pas de build, pas de tests automatisés, pas de dépendances JS. Python embarqu�
 - **`chrono.js`** (v16) : `boutonsChrono(fiche)` (durées de 10 s à 10 min trouvées dans titre/miseEnPlace/deroule), barre `#barre-chrono`.
 - **`compte.js`** (v16) : sauvegarde Google facultative (compte anonyme relié via `linkWithPopup`, ou on rejoint un compte existant). Document privé `sauvegardes/<uid>` = JSON de `donneesLocales()`. `fusionner()` ne perd rien sauf les suppressions mémorisées (`golf-parcours-v1:supprimees`, `golf-scores-v1:effaces`). `planifierSauvegarde()` est appelée par `ecrireParcours`, `noterExoFait` et les scores. `demarrerPartage()` (partage.js) réutilise la connexion existante (Google ou anonyme) avant de se connecter en anonyme.
 - **Espace admin** (`serie.js`) : onglets Séries / Parcours / Putting ; `normaliserParties()` (parcours.js) nettoie les parties reçues.
-- Ordre des scripts : fiches-data, partage, parcours, serie, scores, compte, chrono, prepa, app.
+- **`remise-a-zero.js`** : `REMISE_A_ZERO` (1 = 21/10/2026). L'augmenter efface parties/série/scores sur chaque appareil à l'ouverture (clé `golf-remise-a-zero`) ; c'est la seule exception voulue à « ne jamais purger `golf-parcours-v1:` », et seulement sur demande explicite de l'utilisateur.
+- Ordre des scripts : fiches-data, remise-a-zero, partage, parcours, serie, scores, compte, chrono, prepa, app.
 - `sw.js` : service worker réseau-d'abord pour l'usage hors-ligne (actif seulement en https/localhost). Incrémenter `NOM_CACHE` si on ajoute des fichiers essentiels.
 
 ## Format d'une fiche (`fiches.json` → `fiches[]`)

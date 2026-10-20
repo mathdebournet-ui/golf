@@ -30,7 +30,7 @@ const MESSAGES_ADMIN = {
   "hors-ligne": "Pas de réseau : impossible de charger les séries.",
   "popup-bloquee": "La fenêtre de connexion Google a été bloquée. Autorise les fenêtres pour ce site, puis réessaie.",
   annule: "Connexion annulée.",
-  "suppression-refusee": "Suppression refusée par Firebase : dans les règles Firestore, la ligne « allow read, delete » des séries n'est pas (encore) publiée.",
+  "suppression-refusee": "Suppression refusée par Firebase : les règles Firestore publiées n'autorisent pas encore l'admin à supprimer (recolle les dernières règles).",
   domaine: "Ce site n'est pas encore autorisé pour la connexion Google (Firebase > Authentication > Paramètres > Domaines autorisés).",
   "google-inactif": "La connexion Google n'est pas encore activée dans Firebase (Authentication > Méthode de connexion).",
   erreur: "Impossible de charger les séries pour l'instant. Réessaie dans un moment.",
@@ -371,8 +371,35 @@ function afficherAdmin() {
   html += `<div class="actions">
     <button type="button" class="bouton" data-action="admin-actualiser">↻ Actualiser</button>
     <button type="button" class="bouton" data-action="admin-deconnexion">Se déconnecter</button>
+    <button type="button" class="bouton danger pleine-largeur" data-action="admin-remise-a-zero">🧹 Tout remettre à zéro (parties, séries, scores)</button>
   </div>`;
   zone.innerHTML = html;
+}
+
+// Efface en ligne TOUTES les parties, séries et scores de tous les joueurs.
+// Les téléphones effacent leur propre copie à l'ouverture (remise-a-zero.js).
+async function remiseAZeroAdmin() {
+  if (!confirm("Effacer DÉFINITIVEMENT les parties, séries et scores de TOUS les joueurs ?")) return;
+  if (!confirm("Dernière vérification : c'est impossible à annuler. On efface tout ?")) return;
+  chargementAdmin = true;
+  afficherAdmin();
+  try {
+    const base = appAdmin().firestore();
+    for (const collection of [COLLECTION_PARTIES, COLLECTION_SERIES, COLLECTION_SCORES]) {
+      const instantane = await base.collection(collection).get();
+      // Par paquets de 400 (Firestore accepte 500 opérations par paquet)
+      for (let i = 0; i < instantane.docs.length; i += 400) {
+        const paquet = base.batch();
+        instantane.docs.slice(i, i + 400).forEach((doc) => paquet.delete(doc.ref));
+        await paquet.commit();
+      }
+    }
+    alert("C'est fait : tout est remis à zéro en ligne.");
+  } catch (e) {
+    erreurAdmin = codeErreurAdmin(e) === "refuse" ? "suppression-refusee" : codeErreurAdmin(e);
+  }
+  chargementAdmin = false;
+  await chargerAdmin();
 }
 
 // Supprime la série ET les scores d'un joueur (ex. le même joueur sur deux appareils).
@@ -425,6 +452,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!bouton) return;
     if (bouton.dataset.action === "admin-connexion") connecterAdmin();
     if (bouton.dataset.action === "admin-actualiser") chargerAdmin();
+    if (bouton.dataset.action === "admin-remise-a-zero") remiseAZeroAdmin();
     if (bouton.dataset.action === "admin-onglet") { ongletAdmin = bouton.dataset.valeur; afficherAdmin(); }
     if (bouton.dataset.action === "admin-joueur") { joueurAdmin = bouton.dataset.uid; afficherAdmin(); }
     if (bouton.dataset.action === "admin-deconnexion") deconnecterAdmin();
