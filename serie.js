@@ -199,9 +199,10 @@ async function chargerSeriesAdmin() {
     const instantane = await appAdmin().firestore().collection(COLLECTION_SERIES).get();
     // Données en ligne = non fiables : on vérifie chaque champ
     seriesAdmin = instantane.docs
-      .map((doc) => doc.data())
+      .map((doc) => ({ ...doc.data(), id: doc.id }))
       .filter((s) => s && typeof s.joueur === "string")
       .map((s) => ({
+        id: s.id,
         joueur: s.joueur,
         actuelle: Number.isInteger(s.actuelle) ? s.actuelle : 0,
         record: Number.isInteger(s.record) ? s.record : 0,
@@ -245,6 +246,7 @@ function afficherAdmin() {
             <strong>${echapper(s.joueur)}</strong>
             <span>🏆 Record ${s.record} · ${s.dernierJour ? "dernier jour validé : " + echapper(dateLisible(s.dernierJour)) : "aucun jour validé"}</span>
           </span>
+          <button type="button" class="bouton danger supprimer-serie" data-action="admin-supprimer" data-id="${echapper(s.id)}" data-nom="${echapper(s.joueur)}" aria-label="Supprimer ${echapper(s.joueur)}">🗑</button>
         </div>`).join("");
   }
   html += `<div class="actions">
@@ -252,6 +254,19 @@ function afficherAdmin() {
     <button type="button" class="bouton" data-action="admin-deconnexion">Se déconnecter</button>
   </div>`;
   zone.innerHTML = html;
+}
+
+// Supprime la ligne d'un joueur (ex. le même joueur sur deux appareils).
+// Si cet appareil valide un nouveau jour, sa série réapparaîtra.
+async function supprimerSerieAdmin(id, nom) {
+  if (!confirm(`Supprimer « ${nom} » de la liste des séries ?`)) return;
+  try {
+    await appAdmin().firestore().collection(COLLECTION_SERIES).doc(id).delete();
+    await chargerSeriesAdmin();
+  } catch (e) {
+    erreurAdmin = codeErreurAdmin(e);
+    afficherAdmin();
+  }
 }
 
 // Appelé par changerVue("admin")
@@ -290,5 +305,6 @@ document.addEventListener("DOMContentLoaded", () => {
     if (bouton.dataset.action === "admin-connexion") connecterAdmin();
     if (bouton.dataset.action === "admin-actualiser") chargerSeriesAdmin();
     if (bouton.dataset.action === "admin-deconnexion") deconnecterAdmin();
+    if (bouton.dataset.action === "admin-supprimer") supprimerSerieAdmin(bouton.dataset.id, bouton.dataset.nom);
   });
 });

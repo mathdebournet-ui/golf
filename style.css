@@ -302,6 +302,8 @@ details[open] > summary::before { transform: rotate(90deg); }
 }
 .partie-score small { font-size: 0.8rem; }
 .partie-texte { display: flex; flex-direction: column; gap: 2px; }
+/* Espace admin : bouton 🗑 au bout de la ligne d'un joueur */
+.supprimer-serie { margin-left: auto; flex: none; min-height: 44px; min-width: 44px; padding: 6px 10px; }
 
 .chiffres { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 12px 0 0; }
 .chiffres div { padding: 8px 10px; border-radius: 10px; background: var(--accent-doux); }

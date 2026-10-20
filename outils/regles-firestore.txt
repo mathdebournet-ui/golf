@@ -47,10 +47,15 @@ service cloud.firestore {
         && d.dernierJour is string && d.dernierJour.size() <= 10;
     }
 
-    match /series/{idAppareil} {
-      allow read: if request.auth != null
-        && request.auth.token.email == 'ADRESSE_ADMIN'
+    // Administrateur : connecté avec un de ses comptes Google
+    function estAdmin() {
+      return request.auth != null
+        && request.auth.token.email in ['ADRESSE_ADMIN_1', 'ADRESSE_ADMIN_2']
         && request.auth.token.email_verified == true;
+    }
+
+    match /series/{idAppareil} {
+      allow read, delete: if estAdmin();
       allow create, update: if request.auth != null
         && idAppareil == request.auth.uid
         && serieValide();
