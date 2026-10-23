@@ -72,6 +72,7 @@ function caseScore(fiche) {
     : "Pas encore de score : note le tien pour suivre tes progrès.";
   return `
     <div class="score-exo" data-score-id="${id}">
+      ${fiche.id === "trefle" ? zoneTrefle() : ""}
       <form class="form-score" data-id="${id}">
         <label for="score-${id}">📝 Mon score</label>
         <div class="ligne-score">
@@ -132,6 +133,9 @@ async function envoyerScores() {
     if (!/^[a-z0-9-]{1,60}$/.test(id) || !Array.isArray(liste)) continue;
     scores[id] = liste.slice(-SCORES_ENVOYES_MAX).map((s) => ({ d: s.d, v: s.v }));
   }
+  // Trèfle interactif : ratés à 3, 4 et 5 pieds de chaque tour (trefle.js)
+  const tours = toursTrefle();
+  if (tours.length) scores[CLE_STATS_TREFLE] = tours.slice(-SCORES_ENVOYES_MAX).map((x) => ({ d: x.d, v: x.rentres, m3: x.m3, m4: x.m4, m5: x.m5 }));
   const donnees = { joueur: nomDuJoueur(), scores };
   if (JSON.stringify(lireStockage("dernierEnvoi", null, PREFIXE_SCORES)) === JSON.stringify(donnees)) return;
   if (!(await demarrerPartage())) return;   // réessayé au prochain lancement / retour du réseau

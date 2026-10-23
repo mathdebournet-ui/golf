@@ -107,6 +107,35 @@ body:has(.barre-chrono:not([hidden])) { padding-bottom: 90px; }
 .unite-score { font-weight: 700; color: var(--texte-doux); white-space: nowrap; }
 .ligne-score .bouton { margin-left: auto; }
 
+/* ---------- Trèfle interactif (trefle.js) ---------- */
+.zone-trefle { margin-bottom: 12px; }
+.zone-trefle .petit { margin: 8px 0 0; }
+.trefle-jeu {
+  position: fixed; inset: 0; z-index: 20; overflow-y: auto;
+  background: var(--fond);
+  padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+}
+.trefle-jeu[hidden] { display: none; }
+.trefle-contenu { max-width: 480px; margin: 0 auto; }
+.trefle-haut { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.trefle-haut .bouton { min-height: 44px; }
+.schema-trefle { display: block; width: 100%; max-width: 400px; margin: 0 auto; touch-action: manipulation; }
+.schema-trefle .trou { fill: var(--texte); }
+.point-trefle { cursor: pointer; }
+.point-trefle circle { stroke-width: 5; }
+.point-trefle text { font-size: 28px; font-weight: 800; pointer-events: none; }
+.point-trefle.a-jouer circle { fill: var(--carte); stroke: var(--texte-doux); }
+.point-trefle.a-jouer text { fill: var(--texte); }
+.point-trefle.rentre circle { fill: #1e8e3e; stroke: #1e8e3e; }
+.point-trefle.rate circle { fill: #c5221f; stroke: #c5221f; }
+.point-trefle.rentre text, .point-trefle.rate text { fill: #fff; }
+.point-trefle.choisi circle { stroke: var(--accent); stroke-width: 10; }
+.point-trefle:focus { outline: none; }
+.point-trefle:focus-visible circle { stroke: var(--accent); stroke-width: 10; }
+.trefle-choix { min-height: 110px; text-align: center; }
+.trefle-choix p { margin: 8px 0; }
+.bouton:disabled { opacity: 0.5; cursor: not-allowed; }
+
 /* ---------- Tableaux de l'espace admin (serie.js) ---------- */
 /* Le tableau défile de côté sur téléphone, la page ne déborde pas */
 .tableau-defilant { overflow-x: auto; margin: 8px 0 16px; border: 1px solid var(--bord); border-radius: 12px; background: var(--carte); }

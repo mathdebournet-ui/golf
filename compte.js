@@ -72,6 +72,7 @@ function donneesLocales() {
     faitsDuJour: lireStockage("faitsDuJour", {}, PREFIXE_SERIE),
     scores: lireScores(),
     scoresEffaces: lireStockage("effaces", [], PREFIXE_SCORES),
+    trefles: toursTrefle(),   // trefle.js
   };
 }
 
@@ -120,8 +121,13 @@ function fusionner(prioritaire, autre) {
     }
   }
 
+  // Tours de Trèfle : union (chaque tour a son identifiant t)
+  const trefles = new Map();
+  [...(b.trefles || []), ...(a.trefles || [])].forEach((x) => { if (x && x.t) trefles.set(x.t, x); });
+
   return {
     remise,
+    trefles: [...trefles.values()].sort((x, y) => x.t - y.t),
     joueur: a.joueur || b.joueur || "",
     parcours,
     parties: Object.values(parties).sort((x, y) => x.id.localeCompare(y.id)),
@@ -143,6 +149,7 @@ function appliquerLocalement(d) {
   ecrireStockage("faitsDuJour", d.faitsDuJour, PREFIXE_SERIE);
   ecrireStockage("scores", d.scores, PREFIXE_SCORES);
   ecrireStockage("effaces", d.scoresEffaces, PREFIXE_SCORES);
+  ecrireStockage("trefles", d.trefles || [], PREFIXE_SCORES);
 }
 
 // Rafraîchit ce qui est affiché après une restauration

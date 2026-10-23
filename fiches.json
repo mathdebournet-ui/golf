@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "miseAJour": "2026-10-19",
+  "miseAJour": "2026-10-23",
   "fiches": [
     {
       "id": "2-feet-circle",
@@ -282,10 +282,10 @@
         "16 marques (tees ou marque-balles)"
       ],
       "miseEnPlace": [
-        "Autour du trou, place 16 marques en forme de trèfle :",
-        "4 marques à 3 pieds (≈ 90 cm), sur les diagonales ;",
-        "4 marques à 5 pieds (≈ 1,5 m), devant, derrière, à gauche et à droite ;",
-        "8 marques à 4 pieds (≈ 1,2 m), deux de part et d'autre de chaque marque à 5 pieds."
+        "Autour du trou, place 16 marques comme sur le schéma de la fiche (3 pieds ≈ 90 cm, 4 pieds ≈ 1,2 m, 5 pieds ≈ 1,5 m) :",
+        "3 « feuilles » en haut, à gauche et à droite : dans chacune, une marque à 5 pieds au bout et deux marques à 4 pieds de part et d'autre ;",
+        "4 marques à 3 pieds entre les feuilles, en diagonale ;",
+        "en bas, une ligne droite de 3 marques : 3, 4 et 5 pieds."
       ],
       "deroule": [
         "Joue un putt depuis chaque marque en tournant autour du trou.",
@@ -301,7 +301,7 @@
         "fichier": "Fiches exercices.pdf",
         "page": 2
       },
-      "note": "Disposition lue sur le schéma.",
+      "note": "Disposition lue sur le schéma et confirmée par toi (la ligne de 3 points en bas fait partie du trèfle).",
       "statut": "valide"
     },
     {
