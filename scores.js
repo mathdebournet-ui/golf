@@ -70,6 +70,9 @@ function caseScore(fiche) {
   const resume = r
     ? `Dernier : <strong>${echapper(texteScore(fiche.id, r.dernier.v))}</strong> (${echapper(dateLisible(r.dernier.d))}) · 🏆 Record : <strong>${echapper(texteScore(fiche.id, r.record))}</strong> · ${r.nombre} score${r.nombre > 1 ? "s" : ""}`
     : "Pas encore de score : note le tien pour suivre tes progrès.";
+  // Snail : pas de case score (choix de l'utilisateur), seulement le jeu et ses moyennes
+  const exo = exoDeLaFiche(fiche.id);
+  if (exo && sansScore(exo)) return `<div class="score-exo" data-score-id="${id}">${zoneExoPoints(fiche.id)}</div>`;
   return `
     <div class="score-exo" data-score-id="${id}">
       ${zoneExoPoints(fiche.id)}

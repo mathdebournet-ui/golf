@@ -2,7 +2,7 @@
 // Copie de fiches.json, utilisée quand la page est ouverte sans serveur (double-clic).
 window.FICHES_SECOURS = {
   "version": 1,
-  "miseAJour": "2026-10-23",
+  "miseAJour": "2026-10-25",
   "fiches": [
     {
       "id": "2-feet-circle",
@@ -322,11 +322,11 @@ window.FICHES_SECOURS = {
         "Place 8 marques en spirale (« escargot ») autour du trou : la première à 3 pieds (≈ 0,9 m), puis chaque marque un peu plus loin en tournant, jusqu'à 10 pieds (≈ 3 m)."
       ],
       "deroule": [
-        "Joue la spirale de la marque la plus proche à la plus éloignée (montante).",
-        "Objectif : tout rentrer d'affilée.",
-        "Version complète : enchaîne la montante puis la descendante (de 3 m vers 90 cm)."
+        "Joue la spirale de la marque la plus proche (3 pieds) vers la plus éloignée (10 pieds).",
+        "Objectif 1 : tout rentrer de suite.",
+        "Objectif 2, en montante / descendante : putt rentré, tu avances à la marque suivante ; putt raté, tu redescends à la marque d'avant. L'exercice est fini quand tu rentres le 10 pieds."
       ],
-      "reussite": "Tout rentrer de suite, ou réussir la montante puis la descendante.",
+      "reussite": "Tout rentrer de suite, ou arriver à rentrer le 10 pieds en montante / descendante.",
       "varianteFacile": "Spirale de 2 à 6 pieds.",
       "varianteDifficile": "Spirale jusqu'à 12 pieds, ou retour à zéro au moindre raté sur l'aller-retour.",
       "source": {
@@ -334,7 +334,7 @@ window.FICHES_SECOURS = {
         "fichier": "Fiches exercices.pdf",
         "page": 3
       },
-      "note": "« Montante/descendante » est interprété ainsi : de 3 à 10 pieds, puis de 10 à 3 pieds.",
+      "note": "Règle « montante / descendante » expliquée par toi (rentré = on avance, raté = on redescend d'une marque).",
       "statut": "valide"
     },
     {

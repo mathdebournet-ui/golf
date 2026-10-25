@@ -58,11 +58,11 @@ const EXOS_POINTS = {
       { x: 190, y: 201, d: 6 }, { x: 296, y: 141, d: 7 }, { x: 363, y: 55, d: 8 },
       { x: 365, y: -54, d: 9 }, { x: 308, y: -164, d: 10 },
     ],
-    modes: {
-      montante: { nom: "⬆ Montante (3 → 10 pieds)", phases: [[0, 1, 2, 3, 4, 5, 6, 7]] },
-      descendante: { nom: "⬇ Descendante (10 → 3 pieds)", phases: [[7, 6, 5, 4, 3, 2, 1, 0]] },
-      "aller-retour": { nom: "⬆⬇ Montante puis descendante", phases: [[0, 1, 2, 3, 4, 5, 6, 7], [7, 6, 5, 4, 3, 2, 1, 0]] },
-    },
+    // Règle « montante / descendante » (expliquée par l'utilisateur) : on part de
+    // 3 pieds ; putt rentré = on avance au point suivant, putt raté = on redescend
+    // au point d'avant. Fini quand le 10 pieds est rentré. Pas de score dans
+    // « Mon score » (choix de l'utilisateur) : seulement les moyennes par distance.
+    modes: { "montante-descendante": { nom: "⬆⬇ Montante / descendante", dynamique: true, sansScore: true } },
   },
 };
 
@@ -73,6 +73,9 @@ const virgule = (n) => (Math.round(n * 10) / 10).toLocaleString("fr-FR");
 function distancesDe(exo) {
   return [...new Set(EXOS_POINTS[exo].points.map((p) => p.d))].sort((a, b) => a - b);
 }
+
+// Exo sans case « Mon score » (tous ses modes sont sans score : le Snail)
+function sansScore(exo) { return Object.values(EXOS_POINTS[exo].modes).every((m) => m.sansScore); }
 
 function exoDeLaFiche(idFiche) {
   return Object.keys(EXOS_POINTS).find((cle) => EXOS_POINTS[cle].idFiche === idFiche) || null;
@@ -98,8 +101,13 @@ function toursDe(exo) {
 
 function tourEnCours(exo) {
   const tour = lireStockage(EXOS_POINTS[exo].cleEnCours, null, PREFIXE_SCORES);
-  return tour && Array.isArray(tour.etapes) && Array.isArray(tour.resultats) && tour.etapes.length === tour.resultats.length ? tour : null;
+  const mode = tour && EXOS_POINTS[exo].modes[tour.mode];
+  if (!mode) return null;   // mode supprimé depuis (ex. ancien Snail « montante puis descendante »)
+  if (mode.dynamique) return Array.isArray(tour.coups) && Number.isInteger(tour.position) ? tour : null;
+  return Array.isArray(tour.etapes) && Array.isArray(tour.resultats) && tour.etapes.length === tour.resultats.length ? tour : null;
 }
+
+function estDynamique(tour) { return !!EXOS_POINTS[tour.exo].modes[tour.mode].dynamique; }
 
 // Moyennes sur des tours : { nombre, rentres, total, rates: {d}, reussite: {d} }
 function statsDe(exo, tours) {
@@ -126,7 +134,9 @@ function statsDe(exo, tours) {
 function tableauStats(exo, stats) {
   if (!stats) return `<p class="petit">Pas encore de ${EXOS_POINTS[exo].nom} joué : tes moyennes par distance apparaîtront ici.</p>`;
   return `
-    <p class="petit">${stats.nombre} ${EXOS_POINTS[exo].nom}${stats.nombre > 1 ? "s" : ""} joué${stats.nombre > 1 ? "s" : ""} · moyenne ${virgule(stats.rentres)} rentrés sur ${virgule(stats.total)}</p>
+    <p class="petit">${stats.nombre} ${EXOS_POINTS[exo].nom}${stats.nombre > 1 ? "s" : ""} joué${stats.nombre > 1 ? "s" : ""} · ${sansScore(exo)
+      ? `en moyenne ${virgule(stats.total)} putts joués par tour (${virgule(stats.rentres)} rentrés)`
+      : `moyenne ${virgule(stats.rentres)} rentrés sur ${virgule(stats.total)}`}</p>
     <div class="tableau-defilant"><table class="tableau-admin">
       <thead><tr><th>Distance</th><th>Ratés en moyenne</th><th>Réussite</th></tr></thead>
       <tbody>${distancesDe(exo).map((d) => `<tr><td>${d} pieds</td><td class="nombre">${virgule(stats.rates[d])}</td><td class="nombre">${stats.reussite[d] === null ? "—" : stats.reussite[d] + " %"}</td></tr>`).join("")}</tbody>
@@ -194,10 +204,63 @@ function schemaExo(tour) {
     </svg>`;
 }
 
+// Mode « montante / descendante » : seul le point où l'on est peut être joué
+function schemaDynamique(tour) {
+  const config = EXOS_POINTS[tour.exo];
+  const meilleur = Math.max(-1, ...tour.coups.filter((c) => c.rentre).map((c) => c.point));
+  const points = config.points.map((p, i) => {
+    const etat = i === tour.position ? "a-jouer" : i <= meilleur ? "rentre" : "hors-phase";
+    return `
+      <g class="point-trefle ${etat} ${i === tour.position ? "choisi" : ""}" aria-label="${p.d} pieds${i === tour.position ? ", à jouer maintenant" : i <= meilleur ? ", déjà rentré" : ""}">
+        <circle cx="${p.x}" cy="${p.y}" r="31"></circle>
+        <text x="${p.x}" y="${p.y + 9}" text-anchor="middle">${p.d}</text>
+      </g>`;
+  }).join("");
+  return `
+    <svg class="schema-trefle" viewBox="${config.viewBox}" role="img" aria-label="Schéma du ${config.nom} : point en cours entouré">
+      <circle class="trou" cx="0" cy="0" r="20"></circle>
+      ${points}
+    </svg>`;
+}
+
+function afficherDynamique(tour) {
+  const zone = document.getElementById("trefle-jeu");
+  const config = EXOS_POINTS[tour.exo];
+  const p = config.points[tour.position];
+  const rentres = tour.coups.filter((c) => c.rentre).length;
+  const dernier = tour.coups[tour.coups.length - 1];
+  const message = dernier
+    ? (dernier.rentre ? `✅ Rentré à ${config.points[dernier.point].d} pieds : tu avances.` : `❌ Raté à ${config.points[dernier.point].d} pieds : tu redescends.`)
+    : "Rentré = tu avances au point suivant · Raté = tu redescends d'un point.";
+  zone.innerHTML = `
+    <div class="trefle-contenu">
+      <div class="trefle-haut">
+        <h2 class="bloc-titre">${config.emoji} ${echapper(config.nom)}</h2>
+        <button type="button" class="bouton" data-action="points-fermer">Fermer</button>
+      </div>
+      <p class="bloc-info">${echapper(config.modes[tour.mode].nom)} · ${tour.coups.length} putt${tour.coups.length > 1 ? "s" : ""} joué${tour.coups.length > 1 ? "s" : ""} · ${rentres} rentré${rentres > 1 ? "s" : ""}</p>
+      ${schemaDynamique(tour)}
+      <div class="trefle-choix">
+        <p class="petit">${message}</p>
+        <p><strong>À jouer : ${p.d} pieds</strong></p>
+        <div class="actions">
+          <button type="button" class="bouton principal" data-action="points-resultat" data-valeur="oui">✅ Rentré</button>
+          <button type="button" class="bouton danger" data-action="points-resultat" data-valeur="non">❌ Raté</button>
+        </div>
+      </div>
+      <div class="actions">
+        <button type="button" class="bouton pleine-largeur" data-action="points-terminer" ${tour.coups.length === 0 ? "disabled" : ""}>Arrêter et enregistrer</button>
+        <button type="button" class="bouton pleine-largeur" data-action="points-abandonner">Abandonner (rien n'est compté)</button>
+      </div>
+    </div>`;
+  zone.hidden = false;
+}
+
 function afficherExoPoints() {
   const zone = document.getElementById("trefle-jeu");
   const tour = exoAffiche ? tourEnCours(exoAffiche) : null;
   if (!tour) { zone.hidden = true; return; }
+  if (estDynamique(tour)) { afficherDynamique(tour); return; }
   const config = EXOS_POINTS[tour.exo];
   const mode = config.modes[tour.mode];
   const phase = phaseActuelle(tour);
@@ -247,6 +310,13 @@ function etapeSuivante(tour, depuis = -1) {
 function commencerExo(exo, mode) {
   const config = EXOS_POINTS[exo];
   if (!config || !config.modes[mode]) return;
+  if (config.modes[mode].dynamique) {
+    ecrireStockage(config.cleEnCours, { exo, mode, debut: Date.now(), position: 0, coups: [] }, PREFIXE_SCORES);
+    exoAffiche = exo;
+    etapeChoisie = null;
+    afficherExoPoints();
+    return;
+  }
   const etapes = config.modes[mode].phases.flat();
   ecrireStockage(config.cleEnCours, { exo, mode, debut: Date.now(), etapes, resultats: etapes.map(() => null) }, PREFIXE_SCORES);
   exoAffiche = exo;
@@ -258,13 +328,28 @@ function reprendreExo(exo) {
   const tour = tourEnCours(exo);
   if (!tour) return;
   exoAffiche = exo;
-  etapeChoisie = etapeSuivante(tour);
+  etapeChoisie = estDynamique(tour) ? null : etapeSuivante(tour);
   afficherExoPoints();
 }
 
 function noterEtape(rentre) {
   const tour = exoAffiche ? tourEnCours(exoAffiche) : null;
-  if (!tour || etapeChoisie === null) return;
+  if (!tour) return;
+  if (estDynamique(tour)) {
+    // Rentré : on avance (fini si c'était le dernier point) ; raté : on redescend d'un point
+    tour.coups.push({ point: tour.position, rentre });
+    const dernier = EXOS_POINTS[tour.exo].points.length - 1;
+    if (rentre && tour.position === dernier) {
+      ecrireStockage(EXOS_POINTS[tour.exo].cleEnCours, tour, PREFIXE_SCORES);
+      terminerExo();
+      return;
+    }
+    tour.position = rentre ? tour.position + 1 : Math.max(0, tour.position - 1);
+    ecrireStockage(EXOS_POINTS[tour.exo].cleEnCours, tour, PREFIXE_SCORES);
+    afficherExoPoints();
+    return;
+  }
+  if (etapeChoisie === null) return;
   tour.resultats[etapeChoisie] = rentre;
   ecrireStockage(EXOS_POINTS[tour.exo].cleEnCours, tour, PREFIXE_SCORES);
   etapeChoisie = etapeSuivante(tour, etapeChoisie);
@@ -273,29 +358,58 @@ function noterEtape(rentre) {
 
 function terminerExo() {
   const tour = exoAffiche ? tourEnCours(exoAffiche) : null;
-  if (!tour || tour.resultats.some((r) => r === null)) return;
+  if (!tour) return;
   const config = EXOS_POINTS[tour.exo];
+  const mode = config.modes[tour.mode];
+  // Liste des putts joués : [{ point, rentre }]
+  let coups;
+  if (mode.dynamique) {
+    if (tour.coups.length === 0) return;
+    coups = tour.coups;
+  } else {
+    if (tour.resultats.some((r) => r === null)) return;
+    coups = tour.etapes.map((point, e) => ({ point, rentre: tour.resultats[e] }));
+  }
   const rates = {};
   const tentes = {};
   distancesDe(tour.exo).forEach((d) => { rates[d] = 0; tentes[d] = 0; });
-  tour.etapes.forEach((pt, e) => {
-    const d = config.points[pt].d;
+  coups.forEach((c) => {
+    const d = config.points[c.point].d;
     tentes[d]++;
-    if (tour.resultats[e] === false) rates[d]++;
+    if (!c.rentre) rates[d]++;
   });
-  const rentres = tour.resultats.filter((r) => r === true).length;
+  const rentres = coups.filter((c) => c.rentre).length;
+  const dernierPoint = config.points.length - 1;
+  const fini = !mode.dynamique || coups.some((c) => c.rentre && c.point === dernierPoint);
   const tours = toursDe(tour.exo);
-  tours.push({ t: Date.now(), d: dateEnTexte(new Date()), mode: tour.mode, rentres, total: tour.etapes.length, rates, tentes });
+  tours.push({ t: Date.now(), d: dateEnTexte(new Date()), mode: tour.mode, rentres, total: coups.length, fini, rates, tentes });
   ecrireStockage(config.cleTours, tours, PREFIXE_SCORES);
   ecrireStockage(config.cleEnCours, null, PREFIXE_SCORES);
   etapeChoisie = null;
   exoAffiche = null;
   document.getElementById("trefle-jeu").hidden = true;
-  // Score dans « Mon score » + exo coché « Fait » (scores.js)
-  enregistrerScore(config.idFiche, rentres);
+
+  if (mode.sansScore) {
+    // Pas de score (choix de l'utilisateur) : l'exo est juste coché « Fait » et les moyennes envoyées
+    const jour = dateEnTexte(new Date());
+    const dansLeProgramme = programmeCourant.some((p) => p.fiche && p.fiche.id === config.idFiche);
+    if (dansLeProgramme && !lireJournee(jour).faits.includes(config.idFiche)) basculerFait(jour, config.idFiche);
+    else rafraichirCaseScore(config.idFiche);
+    envoyerScores();
+    if (typeof planifierSauvegarde === "function") planifierSauvegarde();
+  } else {
+    // Score dans « Mon score » + exo coché « Fait » (scores.js)
+    enregistrerScore(config.idFiche, rentres);
+  }
   const detail = distancesDe(tour.exo).filter((d) => rates[d] > 0).map((d) => `${rates[d]} à ${d} pieds`).join(", ");
-  alert(`${config.nom} terminé : ${rentres}/${tour.etapes.length} rentrés.\n${detail ? "Ratés : " + detail + "." : "Aucun raté, bravo !"}`);
+  const bilan = mode.dynamique
+    ? `${fini ? `Bravo, ${d10(config)} rentré !` : "Arrêté avant la fin."} ${coups.length} putts joués, ${rentres} rentrés.`
+    : `${rentres}/${coups.length} rentrés.`;
+  alert(`${config.nom} terminé : ${bilan}\n${detail ? "Ratés : " + detail + "." : "Aucun raté, bravo !"}`);
 }
+
+// « 10 pieds » : la distance du dernier point
+function d10(config) { return `${config.points[config.points.length - 1].d} pieds`; }
 
 function abandonnerExo() {
   if (!exoAffiche || !confirm("Abandonner ? Les putts notés seront effacés (rien n'est compté).")) return;
