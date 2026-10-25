@@ -28,7 +28,7 @@ const UNITES_SCORE = {
   "start-line": "%",
   "speed-drill": "/ 30",
   trefle: "/ 16",
-  "snail-3-10-feet": "putts d'affilée",
+  "snail-3-10-feet": "rentrés",
   "cercle-mickelson": "d'affilée",
   "porte-de-depart": "/ 30",
   "echelle-de-dosage": "balles réussies",
@@ -72,7 +72,7 @@ function caseScore(fiche) {
     : "Pas encore de score : note le tien pour suivre tes progrès.";
   return `
     <div class="score-exo" data-score-id="${id}">
-      ${fiche.id === "trefle" ? zoneTrefle() : ""}
+      ${zoneExoPoints(fiche.id)}
       <form class="form-score" data-id="${id}">
         <label for="score-${id}">📝 Mon score</label>
         <div class="ligne-score">
@@ -133,9 +133,14 @@ async function envoyerScores() {
     if (!/^[a-z0-9-]{1,60}$/.test(id) || !Array.isArray(liste)) continue;
     scores[id] = liste.slice(-SCORES_ENVOYES_MAX).map((s) => ({ d: s.d, v: s.v }));
   }
-  // Trèfle interactif : ratés à 3, 4 et 5 pieds de chaque tour (trefle.js)
-  const tours = toursTrefle();
-  if (tours.length) scores[CLE_STATS_TREFLE] = tours.slice(-SCORES_ENVOYES_MAX).map((x) => ({ d: x.d, v: x.rentres, m3: x.m3, m4: x.m4, m5: x.m5 }));
+  // Exos à points (Trèfle, Snail) : ratés et putts tentés par distance (exos-points.js)
+  for (const [exo, config] of Object.entries(EXOS_POINTS)) {
+    const tours = toursDe(exo);
+    if (tours.length) {
+      scores[config.cleStats] = tours.slice(-SCORES_ENVOYES_MAX)
+        .map((x) => ({ d: x.d, v: x.rentres, n: x.total, mode: x.mode, r: x.rates, e: x.tentes }));
+    }
+  }
   const donnees = { joueur: nomDuJoueur(), scores };
   if (JSON.stringify(lireStockage("dernierEnvoi", null, PREFIXE_SCORES)) === JSON.stringify(donnees)) return;
   if (!(await demarrerPartage())) return;   // réessayé au prochain lancement / retour du réseau

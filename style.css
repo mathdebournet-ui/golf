@@ -129,6 +129,11 @@ body:has(.barre-chrono:not([hidden])) { padding-bottom: 90px; }
 .point-trefle.rentre circle { fill: #1e8e3e; stroke: #1e8e3e; }
 .point-trefle.rate circle { fill: #c5221f; stroke: #c5221f; }
 .point-trefle.rentre text, .point-trefle.rate text { fill: #fff; }
+/* Snail montante puis descendante : points pas concernés par la phase en cours */
+.point-trefle.hors-phase { cursor: default; opacity: 0.35; }
+.point-trefle.hors-phase circle { fill: var(--carte); stroke: var(--bord); }
+.point-trefle.hors-phase text { fill: var(--texte-doux); }
+.boutons-modes { display: grid; gap: 8px; }
 .point-trefle.choisi circle { stroke: var(--accent); stroke-width: 10; }
 .point-trefle:focus { outline: none; }
 .point-trefle:focus-visible circle { stroke: var(--accent); stroke-width: 10; }

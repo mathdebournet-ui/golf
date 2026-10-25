@@ -72,7 +72,8 @@ function donneesLocales() {
     faitsDuJour: lireStockage("faitsDuJour", {}, PREFIXE_SERIE),
     scores: lireScores(),
     scoresEffaces: lireStockage("effaces", [], PREFIXE_SCORES),
-    trefles: toursTrefle(),   // trefle.js
+    // Tours des exos à points (exos-points.js) : { trefles: [...], snails: [...] }
+    ...Object.fromEntries(Object.keys(EXOS_POINTS).map((exo) => [EXOS_POINTS[exo].cleTours, toursDe(exo)])),
   };
 }
 
@@ -121,13 +122,17 @@ function fusionner(prioritaire, autre) {
     }
   }
 
-  // Tours de Trèfle : union (chaque tour a son identifiant t)
-  const trefles = new Map();
-  [...(b.trefles || []), ...(a.trefles || [])].forEach((x) => { if (x && x.t) trefles.set(x.t, x); });
+  // Tours des exos à points (Trèfle, Snail) : union (chaque tour a son identifiant t)
+  const tours = {};
+  for (const config of Object.values(EXOS_POINTS)) {
+    const parT = new Map();
+    [...(b[config.cleTours] || []), ...(a[config.cleTours] || [])].forEach((x) => { if (x && x.t) parT.set(x.t, x); });
+    tours[config.cleTours] = [...parT.values()].sort((x, y) => x.t - y.t);
+  }
 
   return {
     remise,
-    trefles: [...trefles.values()].sort((x, y) => x.t - y.t),
+    ...tours,
     joueur: a.joueur || b.joueur || "",
     parcours,
     parties: Object.values(parties).sort((x, y) => x.id.localeCompare(y.id)),
@@ -149,7 +154,7 @@ function appliquerLocalement(d) {
   ecrireStockage("faitsDuJour", d.faitsDuJour, PREFIXE_SERIE);
   ecrireStockage("scores", d.scores, PREFIXE_SCORES);
   ecrireStockage("effaces", d.scoresEffaces, PREFIXE_SCORES);
-  ecrireStockage("trefles", d.trefles || [], PREFIXE_SCORES);
+  for (const config of Object.values(EXOS_POINTS)) ecrireStockage(config.cleTours, d[config.cleTours] || [], PREFIXE_SCORES);
 }
 
 // Rafraîchit ce qui est affiché après une restauration

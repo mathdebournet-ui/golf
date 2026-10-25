@@ -237,19 +237,24 @@ async function chargerAdmin() {
       .filter((s) => typeof s.joueur === "string" && s.scores && typeof s.scores === "object")
       .map((s) => {
         const propres = {};
-        let trefles = [];
+        const exosPoints = {};
         for (const [idFiche, liste] of Object.entries(s.scores)) {
           if (!Array.isArray(liste)) continue;
           const ok = liste.filter((x) => x && Number.isInteger(x.v) && dateValide(x.d));
-          if (idFiche === CLE_STATS_TREFLE) {
-            // Tours du Trèfle interactif (trefle.js) : ratés à 3, 4 et 5 pieds
-            const rate = (n) => (Number.isInteger(n) && n >= 0 && n <= 8 ? n : 0);
-            trefles = ok.map((x) => ({ d: x.d, rentres: x.v, m3: rate(x.m3), m4: rate(x.m4), m5: rate(x.m5) }));
+          const exo = Object.keys(EXOS_POINTS).find((cle) => EXOS_POINTS[cle].cleStats === idFiche);
+          if (exo) {
+            // Tours des exos à points (exos-points.js) : ratés et putts tentés par distance
+            const nombre = (n) => (Number.isInteger(n) && n >= 0 && n <= 100 ? n : 0);
+            const parDistance = (objet) => Object.fromEntries(distancesDe(exo).map((d) => [d, nombre(objet && objet[d])]));
+            exosPoints[exo] = ok
+              .map((x) => (x.r ? { d: x.d, rentres: x.v, total: nombre(x.n), mode: String(x.mode || ""), rates: parDistance(x.r), tentes: parDistance(x.e) }
+                               : normaliserTour(exo, { d: x.d, rentres: x.v, m3: nombre(x.m3), m4: nombre(x.m4), m5: nombre(x.m5) })))
+              .filter(Boolean);
           } else if (ok.length) {
             propres[idFiche] = ok.map((x) => ({ d: x.d, v: x.v }));
           }
         }
-        return { id: s.id, joueur: s.joueur, scores: propres, trefles };
+        return { id: s.id, joueur: s.joueur, scores: propres, exosPoints };
       });
   } else if (!erreurAdmin) {
     erreurAdmin = codeErreurAdmin(scores.reason);
@@ -352,22 +357,24 @@ function htmlPuttingAdmin() {
   return html;
 }
 
-// Un tableau pour tous les joueurs : ratés moyens par trèfle à 3, 4 et 5 pieds
-function htmlTrefleAdmin() {
+// Un tableau pour tous les joueurs : ratés moyens par tour à chaque distance (exos-points.js)
+function htmlExoPointsAdmin(exo) {
   if (!scoresAdmin) return "";
+  const config = EXOS_POINTS[exo];
   const lignes = scoresAdmin
-    .filter((s) => s.trefles.length)
-    .map((s) => ({ joueur: s.joueur, stats: statsTrefle(s.trefles) }))   // trefle.js
+    .filter((s) => (s.exosPoints[exo] || []).length)
+    .map((s) => ({ joueur: s.joueur, stats: statsDe(exo, s.exosPoints[exo]) }))
     .sort((a, b) => b.stats.rentres - a.stats.rentres);
-  if (lignes.length === 0) return `<p class="petit">Aucun trèfle joué pour l'instant.</p>`;
-  return `<p class="petit">Ratés en moyenne par trèfle (réussite entre parenthèses).</p>
+  if (lignes.length === 0) return `<p class="petit">Aucun ${config.nom} joué pour l'instant.</p>`;
+  const distances = distancesDe(exo);
+  return `<p class="petit">Ratés en moyenne par tour (réussite entre parenthèses).</p>
     <div class="tableau-defilant"><table class="tableau-admin">
-      <thead><tr><th>Joueur</th><th>Trèfles</th><th>Rentrés / 16</th>${DISTANCES_TREFLE.map((d) => `<th>${d} pieds</th>`).join("")}</tr></thead>
+      <thead><tr><th>Joueur</th><th>Tours</th><th>Rentrés</th>${distances.map((d) => `<th>${d} pieds</th>`).join("")}</tr></thead>
       <tbody>${lignes.map((l) => `<tr>
         <td>${echapper(l.joueur)}</td>
         <td class="nombre">${l.stats.nombre}</td>
-        <td class="nombre">${virgule(l.stats.rentres)}</td>
-        ${DISTANCES_TREFLE.map((d) => `<td class="nombre">${virgule(l.stats.rates[d])} <small>(${l.stats.reussite[d]} %)</small></td>`).join("")}
+        <td class="nombre">${virgule(l.stats.rentres)} / ${virgule(l.stats.total)}</td>
+        ${distances.map((d) => `<td class="nombre">${virgule(l.stats.rates[d])} <small>(${l.stats.reussite[d] === null ? "—" : l.stats.reussite[d] + " %"})</small></td>`).join("")}
       </tr>`).join("")}</tbody>
     </table></div>`;
 }
@@ -388,12 +395,12 @@ function afficherAdmin() {
   }
 
   html += `<p class="petit">Connecté : ${echapper(utilisateur.email || "")}</p>
-    <div class="filtres">${[["series", "🔥 Séries"], ["parcours", "⛳ Parcours"], ["putting", "🎯 Putting"], ["trefle", "🍀 Trèfle"]].map(([valeur, nom]) =>
+    <div class="filtres">${[["series", "🔥 Séries"], ["parcours", "⛳ Parcours"], ["putting", "🎯 Putting"], ...Object.entries(EXOS_POINTS).map(([exo, c]) => [exo, `${c.emoji} ${c.nom}`])].map(([valeur, nom]) =>
       `<button type="button" class="filtre ${ongletAdmin === valeur ? "actif" : ""}" data-action="admin-onglet" data-valeur="${valeur}" aria-pressed="${ongletAdmin === valeur}">${nom}</button>`).join("")}</div>`;
   if (chargementAdmin) html += `<p class="petit">Chargement…</p>`;
   else if (ongletAdmin === "series") html += htmlSeriesAdmin();
   else if (ongletAdmin === "parcours") html += htmlParcoursAdmin();
-  else if (ongletAdmin === "trefle") html += htmlTrefleAdmin();
+  else if (EXOS_POINTS[ongletAdmin]) html += htmlExoPointsAdmin(ongletAdmin);
   else html += htmlPuttingAdmin();
 
   html += `<div class="actions">
