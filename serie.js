@@ -150,6 +150,7 @@ async function envoyerSerie() {
 // Trois onglets : 🔥 Séries, ⛳ Parcours (parties de chaque joueur), 🎯 Putting (scores)
 let ongletAdmin = "series";
 let joueurAdmin = "";         // uid du joueur affiché (onglets Parcours et Putting)
+let partieAdminOuverte = null; // index dans partiesAdmin de la partie affichée en détail
 let seriesAdmin = null;       // données reçues (null = pas encore chargées)
 let partiesAdmin = null;
 let scoresAdmin = null;
@@ -204,6 +205,7 @@ const dateValide = (d) => (typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d
 
 async function chargerAdmin() {
   chargementAdmin = true;
+  partieAdminOuverte = null;   // la liste va changer : on revient au tableau
   erreurAdmin = "";
   afficherAdmin();
   const base = appAdmin().firestore();
@@ -307,13 +309,20 @@ function htmlParcoursAdmin() {
   if (!partiesAdmin) return "";
   const joueurs = joueursAdmin().filter((j) => partiesAdmin.some((p) => p.uid === j.uid));
   if (joueurs.length === 0) return `<p class="petit">Aucune partie partagée pour l'instant.</p>`;
+  // Une partie ouverte : son détail complet (stats, carte de score, note), comme dans l'Historique
+  const ouverte = partiesAdmin[partieAdminOuverte];
+  if (ouverte) return detailPartie(ouverte, false);   // parcours.js (son bouton « ← » a data-action="liste")
+
   let html = choixJoueurAdmin(joueurs);
-  const parties = partiesAdmin.filter((p) => p.uid === joueurAdmin).sort((a, b) => b.date.localeCompare(a.date));
-  const lignes = parties.map((p) => {
+  const parties = partiesAdmin
+    .map((p, index) => ({ p, index }))
+    .filter(({ p }) => p.uid === joueurAdmin)
+    .sort((a, b) => b.p.date.localeCompare(a.p.date));
+  const lignes = parties.map(({ p, index }) => {
     const s = calculerStats(p);   // parcours.js
     return `<tr>
       <td>${echapper(dateLisible(p.date))}</td>
-      <td>${echapper(p.parcoursNom)}<br><small>${echapper(nomFormat(p.format))}</small></td>
+      <td><button type="button" class="lien-bouton" data-action="admin-partie" data-index="${index}">${echapper(p.parcoursNom)}</button><br><small>${echapper(nomFormat(p.format))} · voir la partie</small></td>
       <td class="nombre"><strong>${s.score}</strong> <small>${texteEcart(s.ecart)}</small></td>
       <td class="nombre">${s.trousAvecPutts ? s.putts : "—"}</td>
       <td class="nombre">${s.trousAvecPutts ? `${s.greens}/${s.trousAvecPutts}` : "—"}</td>
@@ -488,8 +497,10 @@ document.addEventListener("DOMContentLoaded", () => {
     if (bouton.dataset.action === "admin-connexion") connecterAdmin();
     if (bouton.dataset.action === "admin-actualiser") chargerAdmin();
     if (bouton.dataset.action === "admin-remise-a-zero") remiseAZeroAdmin();
-    if (bouton.dataset.action === "admin-onglet") { ongletAdmin = bouton.dataset.valeur; afficherAdmin(); }
-    if (bouton.dataset.action === "admin-joueur") { joueurAdmin = bouton.dataset.uid; afficherAdmin(); }
+    if (bouton.dataset.action === "admin-onglet") { ongletAdmin = bouton.dataset.valeur; partieAdminOuverte = null; afficherAdmin(); }
+    if (bouton.dataset.action === "admin-joueur") { joueurAdmin = bouton.dataset.uid; partieAdminOuverte = null; afficherAdmin(); }
+    if (bouton.dataset.action === "admin-partie") { partieAdminOuverte = Number(bouton.dataset.index); afficherAdmin(); window.scrollTo(0, 0); }
+    if (bouton.dataset.action === "liste") { partieAdminOuverte = null; afficherAdmin(); }
     if (bouton.dataset.action === "admin-deconnexion") deconnecterAdmin();
     if (bouton.dataset.action === "admin-supprimer") supprimerSerieAdmin(bouton.dataset.id, bouton.dataset.nom);
   });
