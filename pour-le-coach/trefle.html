@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Trèfle – putting</title>
+  <meta name="description" content="Exercice de putting Trèfle : 16 putts à 3, 4 et 5 pieds, avec suivi des ratés par distance.">
+  <meta name="color-scheme" content="light dark">
+  <!--
+    =========================================================
+    Trèfle interactif – version autonome (un seul fichier)
+    ---------------------------------------------------------
+    - Aucune base de données, aucun compte : les résultats de
+      chaque joueur restent dans SON navigateur (localStorage).
+    - À mettre tel quel sur un site (ou à afficher dans une page
+      avec une balise <iframe>, voir LISEZMOI.txt).
+    - Pour changer les couleurs : variables en haut du <style>.
+    =========================================================
+  -->
+  <style>
+    :root {
+      --fond: #f4f7f3;
+      --carte: #ffffff;
+      --texte: #0b1a10;
+      --texte-doux: #3a4a3f;
+      --bord: #c9d4cc;
+      --accent: #0b6b3a;
+      --accent-texte: #ffffff;
+      --accent-doux: #e1efe6;
+      --rentre: #1e8e3e;
+      --rate: #c5221f;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --fond: #0d130f; --carte: #172019; --texte: #eef4f0; --texte-doux: #b6c4ba;
+        --bord: #2d3b32; --accent: #4cc38a; --accent-texte: #05210f; --accent-doux: #1d3326;
+      }
+    }
+    * { box-sizing: border-box; }
+    html { font-size: 18px; -webkit-text-size-adjust: 100%; }
+    body {
+      margin: 0; background: var(--fond); color: var(--texte);
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; line-height: 1.5;
+      padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+    }
+    main { max-width: 480px; margin: 0 auto; }
+    h1 { margin: 0 0 4px; font-size: 1.6rem; line-height: 1.2; }
+    h2 { margin: 20px 0 6px; font-size: 1.15rem; }
+    .doux { color: var(--texte-doux); }
+    .petit { font-size: 0.85rem; color: var(--texte-doux); }
+    .carte { background: var(--carte); border: 1px solid var(--bord); border-radius: 16px; padding: 16px; margin: 12px 0; }
+    .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+    .bouton {
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      min-height: 52px; padding: 0 12px; font: inherit; font-weight: 800;
+      border-radius: 12px; border: 2px solid var(--accent); background: transparent; color: var(--texte); cursor: pointer;
+    }
+    .bouton.principal { background: var(--accent); color: var(--accent-texte); }
+    .bouton.danger { border-color: var(--rate); color: var(--rate); }
+    .bouton.large { grid-column: 1 / -1; }
+    .bouton:disabled { opacity: 0.5; cursor: not-allowed; }
+    .bouton:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+    ul { padding-left: 1.2em; margin: 6px 0; }
+
+    .schema { display: block; width: 100%; max-width: 400px; margin: 4px auto; touch-action: manipulation; }
+    .schema .trou { fill: var(--texte); }
+    .point { cursor: pointer; }
+    .point circle { stroke-width: 5; }
+    .point text { font-size: 28px; font-weight: 800; pointer-events: none; }
+    .point.a-jouer circle { fill: var(--carte); stroke: var(--texte-doux); }
+    .point.a-jouer text { fill: var(--texte); }
+    .point.rentre circle { fill: var(--rentre); stroke: var(--rentre); }
+    .point.rate circle { fill: var(--rate); stroke: var(--rate); }
+    .point.rentre text, .point.rate text { fill: #fff; }
+    .point.choisi circle { stroke: var(--accent); stroke-width: 10; }
+    .point:focus { outline: none; }
+    .point:focus-visible circle { stroke: var(--accent); stroke-width: 10; }
+    .choix { min-height: 110px; text-align: center; }
+    .choix p { margin: 8px 0; }
+
+    .tableau { overflow-x: auto; border: 1px solid var(--bord); border-radius: 12px; background: var(--carte); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--bord); }
+    th { background: var(--accent-doux); white-space: nowrap; }
+    tr:last-child td { border-bottom: none; }
+    td.nombre { white-space: nowrap; }
+    .message { padding: 12px 14px; border-radius: 12px; background: var(--accent-doux); font-weight: 700; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>🍀 Trèfle</h1>
+    <p class="doux">16 putts autour du trou, à 3, 4 et 5 pieds. Note chaque putt : l'outil calcule tes ratés moyens par distance.</p>
+    <div id="app"></div>
+  </main>
+
+  <script>
+    "use strict";
+
+    // ---------- Réglages ----------
+    const CLE = "trefle-autonome-v1";   // nom de la mémoire du navigateur
+    const DISTANCES = [3, 4, 5];        // en pieds
+
+    // Les 16 points du schéma (x, y par rapport au trou, y vers le bas), dans l'ordre
+    // des aiguilles d'une montre en partant du haut : 3 feuilles (haut, gauche, droite),
+    // 4 points à 3 pieds en diagonale, et en bas une ligne droite 3 - 4 - 5 pieds.
+    const POINTS = [
+      { x: 0, y: -217, d: 5 }, { x: 70, y: -167, d: 4 }, { x: 92, y: -77, d: 3 },
+      { x: 187, y: -55, d: 4 }, { x: 255, y: 0, d: 5 }, { x: 187, y: 61, d: 4 },
+      { x: 92, y: 103, d: 3 }, { x: 0, y: 148, d: 3 }, { x: 0, y: 216, d: 4 },
+      { x: 0, y: 303, d: 5 }, { x: -92, y: 103, d: 3 }, { x: -187, y: 61, d: 4 },
+      { x: -255, y: 0, d: 5 }, { x: -187, y: -55, d: 4 }, { x: -92, y: -77, d: 3 },
+      { x: -70, y: -167, d: 4 },
+    ];
+
+    let pointChoisi = null;
+    let messageFin = "";
+
+    // ---------- Mémoire du navigateur (toujours protégée) ----------
+    function lire() {
+      try {
+        const d = JSON.parse(localStorage.getItem(CLE) || "{}");
+        return { tours: Array.isArray(d.tours) ? d.tours : [], enCours: d.enCours || null };
+      } catch (e) {
+        return { tours: [], enCours: null };
+      }
+    }
+    function ecrire(donnees) {
+      try { localStorage.setItem(CLE, JSON.stringify(donnees)); return true; } catch (e) { return false; }
+    }
+    const memoireOk = ecrire(lire());
+
+    // ---------- Calculs ----------
+    const virgule = (n) => (Math.round(n * 10) / 10).toLocaleString("fr-FR");
+    const nbPoints = (d) => POINTS.filter((p) => p.d === d).length;
+
+    function stats(tours) {
+      if (tours.length === 0) return null;
+      const s = { nombre: tours.length, rentres: tours.reduce((t, x) => t + x.rentres, 0) / tours.length, rates: {}, reussite: {} };
+      DISTANCES.forEach((d) => {
+        const total = tours.reduce((t, x) => t + (x.rates[d] || 0), 0);
+        s.rates[d] = total / tours.length;
+        s.reussite[d] = Math.round(100 * (1 - total / (tours.length * nbPoints(d))));
+      });
+      return s;
+    }
+
+    const echapper = (t) => String(t).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+    // ---------- Affichage ----------
+    function htmlStats(tours) {
+      const s = stats(tours);
+      if (!s) return `<p class="petit">Pas encore de trèfle terminé : tes moyennes par distance apparaîtront ici.</p>`;
+      const derniers = tours.slice(-5).reverse().map((t) =>
+        `<tr><td>${echapper(new Date(t.date).toLocaleDateString("fr-FR"))}</td><td class="nombre">${t.rentres} / 16</td>${DISTANCES.map((d) => `<td class="nombre">${t.rates[d]}</td>`).join("")}</tr>`).join("");
+      return `
+        <p class="petit">${s.nombre} trèfle${s.nombre > 1 ? "s" : ""} terminé${s.nombre > 1 ? "s" : ""} · moyenne ${virgule(s.rentres)} / 16 rentrés</p>
+        <div class="tableau"><table>
+          <thead><tr><th>Distance</th><th>Ratés en moyenne</th><th>Réussite</th></tr></thead>
+          <tbody>${DISTANCES.map((d) => `<tr><td>${d} pieds</td><td class="nombre">${virgule(s.rates[d])}</td><td class="nombre">${s.reussite[d]} %</td></tr>`).join("")}</tbody>
+        </table></div>
+        <h2>Derniers trèfles</h2>
+        <div class="tableau"><table>
+          <thead><tr><th>Date</th><th>Rentrés</th>${DISTANCES.map((d) => `<th>Ratés ${d} p.</th>`).join("")}</tr></thead>
+          <tbody>${derniers}</tbody>
+        </table></div>`;
+    }
+
+    function htmlSchema(resultats) {
+      const points = POINTS.map((p, i) => {
+        const r = resultats[i];
+        const etat = r === true ? "rentre" : r === false ? "rate" : "a-jouer";
+        const nomEtat = { rentre: "rentré", rate: "raté", "a-jouer": "à jouer" }[etat];
+        return `<g class="point ${etat} ${pointChoisi === i ? "choisi" : ""}" data-action="point" data-index="${i}" role="button" tabindex="0" aria-label="Point ${i + 1}, ${p.d} pieds, ${nomEtat}">
+          <circle cx="${p.x}" cy="${p.y}" r="31"></circle>
+          <text x="${p.x}" y="${p.y + 9}" text-anchor="middle">${r === true ? "✓" : r === false ? "✗" : p.d}</text>
+        </g>`;
+      }).join("");
+      return `<svg class="schema" viewBox="-295 -255 590 600" role="group" aria-label="Schéma du trèfle : appuie sur un point">
+        <circle class="trou" cx="0" cy="0" r="20"></circle>${points}</svg>`;
+    }
+
+    function afficher() {
+      const { tours, enCours } = lire();
+      const app = document.getElementById("app");
+      let html = memoireOk ? "" : `<p class="message">⚠ Ce navigateur ne peut pas garder tes résultats (navigation privée ?). Le trèfle marche, mais rien ne sera mémorisé.</p>`;
+
+      if (!enCours) {
+        html += `
+          ${messageFin ? `<p class="message">${echapper(messageFin)}</p>` : ""}
+          <div class="carte">
+            <strong>Mise en place</strong>
+            <ul>
+              <li>16 marques autour du trou, comme sur le schéma (3 pieds ≈ 90 cm, 4 pieds ≈ 1,2 m, 5 pieds ≈ 1,5 m).</li>
+              <li>Joue un putt depuis chaque marque, en tournant autour du trou.</li>
+              <li>Objectif : rentrer les 16 putts.</li>
+            </ul>
+            <div class="actions"><button type="button" class="bouton principal large" data-action="commencer">🍀 Commencer un trèfle</button></div>
+          </div>
+          <h2>Mes moyennes</h2>
+          ${htmlStats(tours)}
+          ${tours.length ? `<div class="actions"><button type="button" class="bouton danger large" data-action="effacer-tout">Effacer mon historique</button></div>` : ""}`;
+        app.innerHTML = html;
+        return;
+      }
+
+      const joues = enCours.resultats.filter((r) => r !== null).length;
+      const rentres = enCours.resultats.filter((r) => r === true).length;
+      const p = pointChoisi !== null ? POINTS[pointChoisi] : null;
+      html += `
+        <p class="doux"><strong>${joues}/16 joués · ${rentres} rentré${rentres > 1 ? "s" : ""}</strong> · les chiffres = distance en pieds</p>
+        ${htmlSchema(enCours.resultats)}
+        <div class="choix">
+          ${p
+            ? `<p><strong>Point ${pointChoisi + 1} · ${p.d} pieds</strong></p>
+               <div class="actions">
+                 <button type="button" class="bouton principal" data-action="resultat" data-valeur="oui">✅ Rentré</button>
+                 <button type="button" class="bouton danger" data-action="resultat" data-valeur="non">❌ Raté</button>
+               </div>`
+            : `<p class="petit">Appuie sur un point (gris = à jouer, vert = rentré, rouge = raté) pour le corriger.</p>`}
+        </div>
+        <div class="actions">
+          <button type="button" class="bouton principal large" data-action="terminer" ${joues < 16 ? "disabled" : ""}>
+            ${joues < 16 ? `Terminer (encore ${16 - joues} point${16 - joues > 1 ? "s" : ""})` : "✔ Terminer le trèfle"}
+          </button>
+          <button type="button" class="bouton large" data-action="abandonner">Abandonner ce trèfle</button>
+        </div>`;
+      app.innerHTML = html;
+    }
+
+    // ---------- Actions ----------
+    function commencer() {
+      const d = lire();
+      d.enCours = { debut: Date.now(), resultats: Array(16).fill(null) };
+      ecrire(d);
+      pointChoisi = 0;
+      messageFin = "";
+      afficher();
+    }
+
+    function noter(rentre) {
+      const d = lire();
+      if (!d.enCours || pointChoisi === null) return;
+      d.enCours.resultats[pointChoisi] = rentre;
+      ecrire(d);
+      // Point suivant pas encore joué, en tournant
+      const ordre = [...Array(16).keys()].map((k) => (pointChoisi + 1 + k) % 16);
+      const suivant = ordre.find((i) => d.enCours.resultats[i] === null);
+      pointChoisi = suivant !== undefined ? suivant : null;
+      afficher();
+    }
+
+    function terminer() {
+      const d = lire();
+      if (!d.enCours || d.enCours.resultats.some((r) => r === null)) return;
+      const rates = { 3: 0, 4: 0, 5: 0 };
+      d.enCours.resultats.forEach((r, i) => { if (r === false) rates[POINTS[i].d]++; });
+      const rentres = d.enCours.resultats.filter((r) => r === true).length;
+      const resultats = d.enCours.resultats;
+      const tour = { date: Date.now(), rentres, rates };
+      d.tours.push(tour);
+      d.enCours = null;
+      ecrire(d);
+      // Si le Trèfle est affiché dans une autre application (iframe), on lui envoie le résultat :
+      // elle peut l'enregistrer dans sa base (ex. pour l'espace coach). Voir LISEZMOI.txt.
+      if (window.parent !== window) {
+        window.parent.postMessage({
+          type: "trefle-termine",
+          date: new Date(tour.date).toISOString(),
+          rentres,                                   // sur 16
+          rates: { "3": rates[3], "4": rates[4], "5": rates[5] },   // ratés par distance (pieds)
+          putts: POINTS.map((p, i) => ({ point: i + 1, distance: p.d, rentre: resultats[i] })),   // détail des 16 putts
+        }, "*");
+      }
+      pointChoisi = null;
+      messageFin = `Trèfle terminé : ${rentres}/16 rentrés. Ratés : ${rates[3]} à 3 pieds, ${rates[4]} à 4 pieds, ${rates[5]} à 5 pieds.`;
+      afficher();
+      window.scrollTo(0, 0);
+    }
+
+    // Un seul écouteur pour toute la page
+    document.getElementById("app").addEventListener("click", (e) => {
+      const cible = e.target.closest("[data-action]");
+      if (!cible) return;
+      const a = cible.dataset.action;
+      if (a === "commencer") commencer();
+      if (a === "point") { pointChoisi = Number(cible.dataset.index); afficher(); }
+      if (a === "resultat") noter(cible.dataset.valeur === "oui");
+      if (a === "terminer") terminer();
+      if (a === "abandonner" && confirm("Abandonner ce trèfle ? Les putts notés seront effacés.")) {
+        const d = lire(); d.enCours = null; ecrire(d); pointChoisi = null; afficher();
+      }
+      if (a === "effacer-tout" && confirm("Effacer tout ton historique de trèfles ? C'est définitif.")) {
+        ecrire({ tours: [], enCours: null }); messageFin = ""; afficher();
+      }
+    });
+    // Clavier : Entrée ou Espace sur un point du schéma
+    document.getElementById("app").addEventListener("keydown", (e) => {
+      const point = e.target.closest && e.target.closest(".point");
+      if (point && (e.key === "Enter" || e.key === " ")) {
+        e.preventDefault();
+        pointChoisi = Number(point.dataset.index);
+        afficher();
+      }
+    });
+
+    // Un trèfle était en cours (téléphone en veille) : on reprend au premier point non joué
+    const depart = lire().enCours;
+    if (depart) {
+      const i = depart.resultats.findIndex((r) => r === null);
+      pointChoisi = i >= 0 ? i : null;
+    }
+    afficher();
+  </script>
+</body>
+</html>

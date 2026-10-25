@@ -74,6 +74,7 @@ Page web statique (GitHub Pages) qui propose chaque jour un programme golf + une
 - [ ] Ajuster les objectifs chiffrés après quelques séances.
 - [x] Publier la v4 (Parcours + Historique).
 - [ ] Retour de l'utilisateur après une vraie partie.
+- [ ] **Plus tard (en pause, choix utilisateur du 25/10/2026)** : Trèfle pour le coach. `pour-le-coach/trefle.html` (version autonome, sans base, avec `postMessage` « trefle-termine » pour l'appli du coach) + `LISEZMOI.txt`. Le coach a une application sur mesure (perfgen.app, espace joueur / espace coach) : l'intégration est à faire par son développeur. ⚠ Version autonome **pas encore testée dans le navigateur** (une fenêtre de connexion Google bloquait le navigateur intégré) : la tester avant de l'envoyer.
 - [ ] Idée possible : bouton « Sauvegarder mes parties » (fichier) si l'utilisateur craint de les perdre.
 
 ## Idées repérées dans les photos (non faites)

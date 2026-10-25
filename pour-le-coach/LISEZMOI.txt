@@ -1,0 +1,67 @@
+TRÈFLE INTERACTIF – à mettre sur votre site
+============================================
+
+C'est quoi ?
+- Un seul fichier : trefle.html.
+- Le joueur fait son Trèfle (16 putts à 3, 4 et 5 pieds), note chaque
+  putt « Rentré » ou « Raté », et voit ses ratés moyens par distance.
+- Aucune base de données, aucun compte, aucun abonnement : les résultats
+  restent dans le téléphone de chaque joueur.
+- Marche sur téléphone et sur ordinateur, en mode clair et en mode sombre.
+
+
+SOLUTION 1 – Mettre le fichier sur votre site (recommandé)
+-----------------------------------------------------------
+1. Envoyez trefle.html sur votre site (comme une image ou un PDF :
+   « téléverser un fichier » / « gestionnaire de fichiers »).
+2. Le Trèfle est alors à l'adresse :  https://VOTRE-SITE/trefle.html
+3. Mettez un lien ou un bouton vers cette adresse sur votre site.
+
+Avec Wix ou Squarespace (qui n'acceptent pas les fichiers .html) :
+ajoutez un bloc « Intégrer du code / HTML » et collez TOUT le contenu
+de trefle.html dedans (ouvrir le fichier avec le Bloc-notes, Ctrl+A, Ctrl+C).
+
+
+SOLUTION 2 – Afficher le Trèfle dans une page (1 ligne à coller)
+-----------------------------------------------------------------
+Dans un bloc « HTML personnalisé » / « Intégrer » de votre site, collez :
+
+<iframe src="https://mathdebournet-ui.github.io/golf/pour-le-coach/trefle.html" style="width:100%;height:1100px;border:0" title="Trèfle – putting"></iframe>
+
+(Le Trèfle reste hébergé sur le site de Mathias.)
+
+
+POUR LE DÉVELOPPEUR (ex. application perfgen.app)
+--------------------------------------------------
+Intégration dans l'espace joueur : servir trefle.html (fichier statique)
+et l'afficher dans une <iframe>, ou reprendre le code dans l'application.
+
+Remontée des résultats vers l'espace coach : à la fin de chaque trèfle,
+la page envoie à la page parente (window.parent.postMessage) :
+
+  {
+    type: "trefle-termine",
+    date: "2026-10-23T14:05:00.000Z",     // ISO 8601
+    rentres: 13,                           // putts rentrés sur 16
+    rates: { "3": 1, "4": 1, "5": 1 },     // ratés par distance (pieds)
+    putts: [ { point: 1, distance: 5, rentre: true }, ... ]   // les 16 putts
+  }
+
+Exemple côté application :
+
+  window.addEventListener("message", (e) => {
+    if (e.origin !== "https://ORIGINE-DU-FICHIER") return;   // vérifier l'origine
+    if (e.data && e.data.type === "trefle-termine") {
+      // enregistrer e.data pour le joueur connecté (base de l'application)
+    }
+  });
+
+Schéma : 16 points (5 à 3 pieds, 7 à 4 pieds, 4 à 5 pieds), constante
+POINTS dans le script. Les données du joueur sont aussi gardées dans son
+navigateur (localStorage, clé « trefle-autonome-v1 »).
+
+
+Personnaliser les couleurs
+--------------------------
+Dans trefle.html, en haut du <style> : --accent (couleur principale,
+vert par défaut), --rentre (vert) et --rate (rouge).
