@@ -246,7 +246,7 @@ async function chargerAdmin() {
           const exo = Object.keys(EXOS_POINTS).find((cle) => EXOS_POINTS[cle].cleStats === idFiche);
           if (exo) {
             // Tours des exos à points (exos-points.js) : ratés et putts tentés par distance
-            const nombre = (n) => (Number.isInteger(n) && n >= 0 && n <= 100 ? n : 0);
+            const nombre = (n) => (Number.isInteger(n) && n >= 0 && n <= 1000 ? n : 0);
             const parDistance = (objet) => Object.fromEntries(distancesDe(exo).map((d) => [d, nombre(objet && objet[d])]));
             exosPoints[exo] = ok
               .map((x) => (x.r ? { d: x.d, rentres: x.v, total: nombre(x.n), mode: String(x.mode || ""), rates: parDistance(x.r), tentes: parDistance(x.e) }
@@ -375,10 +375,21 @@ function htmlExoPointsAdmin(exo) {
     .map((s) => ({ joueur: s.joueur, stats: statsDe(exo, s.exosPoints[exo]) }))
     .sort((a, b) => b.stats.rentres - a.stats.rentres);
   if (lignes.length === 0) return `<p class="petit">Aucun ${config.nom} joué pour l'instant.</p>`;
-  const distances = distancesDe(exo);
-  return `<p class="petit">Ratés en moyenne par tour (réussite entre parenthèses).</p>
+  if (enSerie(exo)) {
+    return `<div class="tableau-defilant"><table class="tableau-admin">
+      <thead><tr><th>Joueur</th><th>Séries</th><th>Moyenne</th><th>Meilleure</th></tr></thead>
+      <tbody>${lignes.map((l) => `<tr>
+        <td>${echapper(l.joueur)}</td>
+        <td class="nombre">${l.stats.nombre}</td>
+        <td class="nombre">${virgule(l.stats.rentres)}</td>
+        <td class="nombre">${l.stats.meilleur}</td>
+      </tr>`).join("")}</tbody>
+    </table></div>`;
+  }
+  const distances = avecTableauDistances(exo) ? distancesDe(exo) : [];
+  return `<p class="petit">${distances.length ? "Ratés en moyenne par tour (réussite entre parenthèses)." : "Moyenne par tour."}</p>
     <div class="tableau-defilant"><table class="tableau-admin">
-      <thead><tr><th>Joueur</th><th>Tours</th><th>Rentrés</th>${distances.map((d) => `<th>${d} pieds</th>`).join("")}</tr></thead>
+      <thead><tr><th>Joueur</th><th>Tours</th><th>Réussis</th>${distances.map((d) => `<th>${echapper(libelleDistance(exo, d))}</th>`).join("")}</tr></thead>
       <tbody>${lignes.map((l) => `<tr>
         <td>${echapper(l.joueur)}</td>
         <td class="nombre">${l.stats.nombre}</td>

@@ -73,6 +73,16 @@ function caseScore(fiche) {
   // Snail : pas de case score (choix de l'utilisateur), seulement le jeu et ses moyennes
   const exo = exoDeLaFiche(fiche.id);
   if (exo && sansScore(exo)) return `<div class="score-exo" data-score-id="${id}">${zoneExoPoints(fiche.id)}</div>`;
+  // Exo interactif : plus de saisie à la main (choix de l'utilisateur, 14/11/2026),
+  // le score ne vient que de l'exo joué. On garde dernier score / record.
+  if (exo) {
+    return `
+    <div class="score-exo" data-score-id="${id}">
+      ${zoneExoPoints(fiche.id)}
+      ${r ? `<p class="petit">${resume}</p>
+             <button type="button" class="lien-bouton" data-action="score-effacer" data-id="${id}">↶ Effacer le dernier score</button>` : ""}
+    </div>`;
+  }
   return `
     <div class="score-exo" data-score-id="${id}">
       ${zoneExoPoints(fiche.id)}

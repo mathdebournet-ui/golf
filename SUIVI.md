@@ -70,6 +70,15 @@ Page web statique (GitHub Pages) qui propose chaque jour un programme golf + une
 - **`fiches-data.js`** : ouverture par double-clic possible.
 - **Python embarqué** (`../python-runtime`) avec `pypdf` + `python-docx`.
 
+- ✅ v25 (14/11/2026) : **tous les exos de putting sont interactifs** (demande utilisateur : améliorer l'interactivité, pas de nouveaux exos). Sur chaque carte de putting, un bouton ouvre l'exo en plein écran avec un schéma (trou, puces, zones) et des boutons Réussi / Raté adaptés à l'exo ; le score va dans « Mon score » à la fin, avec moyennes par distance sur la carte et un onglet par exo dans l'Espace admin.
+  - Points fixes : 2 Feet Circle et Demi-Lune (3 balles par puce, ou variante « ordre au hasard » en 3 tours), 9 Putt Circle, Lowry Putt (zone à viser affichée), Speed Drill Cross, Start Line (10 balles par cible, score en %), Speed Drill (5 suites, ou distances au hasard), Porte de départ (3 séries de 10), Échelle de dosage (tees 4 → 1).
+  - Séries (fin au premier raté, compteur géant, record et objectif) : Cercle de 3 pieds (10 balles en cercle, numéro de tour), Leap Frog, Échelle inversée.
+  - Schémas simplifiés (pas à l'échelle) d'après les fiches ; Trèfle et Snail inchangés.
+  - 2 Feet Circle : puces placées tout autour du trou (4 m en bas à gauche, 7 m en bas à droite, 9 m en bas, 11 m en haut à droite) d'après le dessin de l'utilisateur, alors que le PDF les montre en ligne.
+  - **Plus de bouton « Fait ✓ »** sur les cartes de putting (demande utilisateur) : l'exo est coché seulement en le jouant jusqu'au bout.
+  - **Plus de case « Mon score » à remplir à la main** sur les exos de putting (demande utilisateur) : le score vient uniquement de l'exo interactif. La carte garde dernier score / record et « Effacer le dernier score ».
+  - Testé en local en 375 px : chaque exo ouvert, putts notés, fin de tour (score, moyennes, exo coché Fait), séries avec raté, tableaux admin (données de test), badge 🔥 toujours OK. Pas d'envoi en ligne pendant le test. Cache `golf-seance-v25`.
+
 ## Prochaines étapes
 - [x] Publier sur GitHub Pages.
 - Mises à jour : GitHub Desktop → message → **Commit to main** → **Push origin**.

@@ -393,14 +393,18 @@ function carteFiche(fiche, options) {
       ${fiche.note ? `<p class="note">${echapper(fiche.note)}</p>` : ""}`;
   }
 
+  // Exo de putting interactif (exos-points.js) : pas de bouton « Fait », il est
+  // coché seulement en jouant l'exo (choix de l'utilisateur, 14/11/2026)
+  const boutonFait = exoDeLaFiche(fiche.id) ? "" : `
+        <button type="button" class="bouton ${options.fait ? "fait" : "principal"}" data-action="fait" data-id="${echapper(fiche.id)}" aria-pressed="${options.fait}">
+          ${options.fait ? "✓ Fait" : "Fait ✓"}
+        </button>`;
   let actions = "";
   if (options.avecActions) {
     actions = `
       <div class="actions">
-        <button type="button" class="bouton ${options.fait ? "fait" : "principal"}" data-action="fait" data-id="${echapper(fiche.id)}" aria-pressed="${options.fait}">
-          ${options.fait ? "✓ Fait" : "Fait ✓"}
-        </button>
-        <button type="button" class="bouton" data-action="autre" data-position="${options.position}">↻ Autre exo</button>
+        ${boutonFait}
+        <button type="button" class="bouton ${boutonFait ? "" : "pleine-largeur"}" data-action="autre" data-position="${options.position}">↻ Autre exo</button>
         ${lienOrigine(fiche)}
       </div>`;
   } else if (lienOrigine(fiche)) {
@@ -481,7 +485,7 @@ function blocTermines(cartes) {
   return `
     <section class="bloc termines">
       <h2 class="bloc-titre">✓ Terminés</h2>
-      <p class="bloc-info">${cartes.length} exo${cartes.length > 1 ? "s" : ""} fait${cartes.length > 1 ? "s" : ""} · appuie sur « ✓ Fait » pour annuler</p>
+      <p class="bloc-info">${cartes.length} exo${cartes.length > 1 ? "s" : ""} fait${cartes.length > 1 ? "s" : ""}${cartes.some((c) => c.includes('data-action="fait"')) ? " · appuie sur « ✓ Fait » pour annuler" : ""}</p>
       ${cartes.join("")}
     </section>`;
 }
