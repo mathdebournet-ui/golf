@@ -30,7 +30,6 @@ const UNITES_SCORE = {
   trefle: "/ 16",
   "snail-3-10-feet": "rentrés",
   "cercle-mickelson": "d'affilée",
-  "porte-de-depart": "/ 30",
   "echelle-de-dosage": "balles réussies",
   "echelle-inversee": "balles",
 };

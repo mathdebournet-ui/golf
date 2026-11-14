@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "miseAJour": "2026-10-25",
+  "miseAJour": "2026-11-14",
   "fiches": [
     {
       "id": "2-feet-circle",
@@ -204,36 +204,38 @@
     },
     {
       "id": "start-line",
-      "titre": "Start Line",
+      "titre": "Start Line (porte de départ)",
       "type": "golf",
       "categorie": "putting",
       "duree": 15,
-      "objectif": "Faire partir la balle exactement sur la ligne choisie (face square au contact), puis mesurer la dispersion à 1,5, 3 et 6 m.",
+      "objectif": "Faire partir la balle exactement sur la ligne choisie (face square au contact) en la faisant passer dans une porte de tees, puis mesurer la dispersion à 1,5, 3 et 6 m.",
       "materiel": [
         "Putter",
         "10 balles",
-        "Un guide de ligne de départ (porte de 2 tees juste devant la balle, ligne à la craie ou baguette)",
+        "2 tees pour la porte de départ (ou ligne à la craie / baguette)",
         "3 trous ou cibles"
       ],
       "miseEnPlace": [
         "Choisis un putt droit.",
-        "Installe le guide de départ juste devant la balle, aligné sur le centre de la cible.",
+        "Plante 2 tees à environ 30 cm devant la balle, sur la ligne de départ, à peine plus écartés que la largeur de la balle : c'est la porte.",
+        "Aligne la porte sur le centre de la cible.",
         "Cibles à 5, 10 et 20 pieds (≈ 1,5, 3 et 6 m)."
       ],
       "deroule": [
         "Joue 10 putts vers la cible à 1,5 m, puis 10 vers celle à 3 m, puis 10 vers celle à 6 m.",
-        "À chaque putt, note si la balle sort bien sur la ligne (elle passe le guide sans le toucher).",
+        "À chaque putt, note si la balle passe la porte sans toucher les tees : c'est la sortie de balle qui est jugée, plus que le résultat au trou.",
         "Note aussi la dispersion : de combien la balle passe à gauche ou à droite de la cible.",
-        "Calcule ton pourcentage de sorties réussies pour chaque distance."
+        "Calcule ton pourcentage de sorties réussies pour chaque distance.",
+        "Version courte : 3 séries de 10 putts depuis la cible à 1,5 m."
       ],
-      "reussite": "Noter le % de sorties réussies et la dispersion à 5, 10 et 20 pieds. Objectif proposé : 90 % de sorties réussies.",
+      "reussite": "Noter le % de sorties réussies et la dispersion à 5, 10 et 20 pieds. Objectif : 90 % de sorties réussies (au moins 9 balles sur 10 passent la porte).",
       "varianteFacile": "Porte plus large (environ 2 largeurs de balle).",
-      "varianteDifficile": "Porte à peine plus large que la balle, ou putts avec une légère pente en visant le point de sortie.",
+      "varianteDifficile": "Porte à peine plus large que la balle, placée plus loin (60 cm), ou putts avec une légère pente en visant le point de sortie.",
       "source": {
         "type": "pdf",
         "fichier": "Start Line.pdf.pdf"
       },
-      "note": "Le PDF ne donne ni le nombre de balles ni le type de guide : 10 balles par distance et une porte de tees sont des propositions du coach.",
+      "note": "Le PDF ne donne ni le nombre de balles ni le type de guide : 10 balles par distance et une porte de tees sont des propositions du coach. Fusionnée le 14/11/2026 avec l'exercice « Porte de départ (gate drill) » (source : Titleist – Gate Drill to Start Your Putts On Line, https://titleist.co.uk/videos/instruction/gate-drill-to-start-your-putts-on-line) : position de la porte (30 cm devant la balle), seuil de 9 sur 10 et version courte en 3 séries de 10 viennent de cette fiche.",
       "statut": "valide"
     },
     {
@@ -1038,36 +1040,6 @@
         "type": "web",
         "nom": "Golf.com – Phil Mickelson et les putts de 3 pieds",
         "url": "https://golf.com/instruction/phil-mickelson-key-3-footer-play-smart/"
-      },
-      "statut": "valide"
-    },
-    {
-      "id": "porte-de-depart",
-      "titre": "Porte de départ (gate drill)",
-      "type": "golf",
-      "categorie": "putting",
-      "duree": 10,
-      "objectif": "Vérifier que la face est square au contact : la balle part sur la ligne.",
-      "materiel": [
-        "Putter",
-        "5 balles",
-        "2 tees"
-      ],
-      "miseEnPlace": [
-        "Sur un putt droit d'1,5 à 2 m, plante 2 tees à environ 30 cm devant la balle, sur la ligne de départ, à peine plus écartés que la largeur de la balle."
-      ],
-      "deroule": [
-        "Putte en faisant passer la balle entre les tees sans les toucher.",
-        "C'est la sortie de balle qui est jugée, plus que le résultat au trou.",
-        "3 séries de 10 putts."
-      ],
-      "reussite": "Au moins 9 balles sur 10 passent la porte sans la toucher.",
-      "varianteFacile": "Porte plus large.",
-      "varianteDifficile": "Porte plus étroite, ou placée plus loin (60 cm).",
-      "source": {
-        "type": "web",
-        "nom": "Titleist – Gate Drill to Start Your Putts On Line",
-        "url": "https://titleist.co.uk/videos/instruction/gate-drill-to-start-your-putts-on-line"
       },
       "statut": "valide"
     },

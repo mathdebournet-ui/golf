@@ -280,6 +280,8 @@ details[open] > summary::before { transform: rotate(90deg); }
 
 /* ---------- Bibliothèque ---------- */
 .filtres { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.sous-filtres { padding: 10px; border-radius: 12px; background: var(--accent-doux); }
+.filtres + .filtres { margin-top: -8px; }
 .filtre {
   min-height: 44px; padding: 0 14px;
   font: inherit; font-size: 0.9rem; font-weight: 700;

@@ -217,7 +217,7 @@ const EXOS_POINTS = {
   },
 
   "start-line": {
-    nom: "Start Line",
+    nom: "Start Line (porte)",
     emoji: "➡️",
     idFiche: "start-line",
     cleStats: "start-line-stats",
@@ -229,13 +229,19 @@ const EXOS_POINTS = {
     decor: `<line class="decor-ligne" x1="0" y1="0" x2="0" y2="-320"></line>
             <rect class="decor-tee" x="-22" y="-44" width="9" height="18"></rect>
             <rect class="decor-tee" x="13" y="-44" width="9" height="18"></rect>
+            <text class="decor-texte" x="30" y="-28">porte</text>
             <circle class="decor-balle" cx="0" cy="0" r="13"></circle>`,
-    consigne: "Réussi = la balle passe le guide de départ sans le toucher. (La dispersion se note à part.)",
+    consigne: "Réussi = la balle passe la porte sans toucher les tees. (La dispersion se note à part.)",
     boutons: ["✅ Sortie sur la ligne", "❌ Mal sortie"],
     motReussi: "bien sorties",
     score: "pourcentage",
     points: [{ x: 0, y: -110, d: 5 }, { x: 0, y: -205, d: 10 }, { x: 0, y: -300, d: 20 }],
-    modes: { tour: { nom: "Commencer (10 putts par cible)", phases: [repete([0, 1, 2], 10)] } },
+    // Fusion avec l'ancien exo « Porte de départ » (14/11/2026) : version courte
+    // = 3 séries de 10 putts vers la cible à 1,5 m
+    modes: {
+      tour: { nom: "Complet : 10 putts par cible (1,5, 3 et 6 m)", phases: [repete([0, 1, 2], 10)] },
+      court: { nom: "Version courte : 3 séries de 10 à 1,5 m", phases: phasesIdentiques(repete([0], 10), 3), nomsPhases: nomsNumerotes("Série", 3) },
+    },
   },
 
   "speed-drill": {
@@ -283,29 +289,6 @@ const EXOS_POINTS = {
     modes: { serie: { nom: "▶ Commencer une série", serie: true } },
   },
 
-  "porte-de-depart": {
-    nom: "Porte de départ",
-    emoji: "🚪",
-    idFiche: "porte-de-depart",
-    cleStats: "porte-de-depart-stats",
-    cleTours: "tours-porte-de-depart",
-    cleEnCours: "enCours-porte-de-depart",
-    sansTrou: true,
-    libelle: () => "putt de 1,5 à 2 m",
-    viewBox: "-80 -260 355 330",
-    decor: `<line class="decor-ligne" x1="0" y1="0" x2="0" y2="-215"></line>
-            <rect class="decor-tee" x="-24" y="-90" width="9" height="18"></rect>
-            <rect class="decor-tee" x="15" y="-90" width="9" height="18"></rect>
-            <text class="decor-texte" x="40" y="-75">porte</text>
-            <circle class="trou" cx="0" cy="-225" r="20"></circle>`,
-    consigne: "Putt droit d'1,5 à 2 m. Réussi = la balle passe entre les tees sans les toucher.",
-    boutons: ["✅ Passée sans toucher", "❌ Touche la porte"],
-    motReussi: "réussis",
-    parDistance: false,
-    points: [{ x: 0, y: 0, d: 2, texte: "●" }],
-    modes: { tour: { nom: "Commencer (3 séries de 10)", phases: phasesIdentiques(repete([0], 10), 3), nomsPhases: nomsNumerotes("Série", 3) } },
-  },
-
   "echelle-de-dosage": {
     nom: "Échelle de dosage",
     emoji: "📐",
@@ -345,6 +328,14 @@ const EXOS_POINTS = {
     modes: { serie: { nom: "▶ Commencer une série", serie: true } },
   },
 };
+
+// Classement des exos par famille (onglets de l'Espace admin, serie.js),
+// choisi avec l'utilisateur le 14/11/2026
+const FAMILLES_PUTTING = [
+  { id: "dosage", nom: "📏 Dosage", exos: ["2-feet-circle", "demi-lune", "speed-drill", "lowry-putt", "leap-frog", "echelle-de-dosage", "echelle-inversee"] },
+  { id: "petits", nom: "🎯 Petits putts", exos: ["trefle", "cercle-mickelson", "speed-drill-cross"] },
+  { id: "intermediaire", nom: "↔️ Intermédiaire", exos: ["snail", "9-putt-circle", "start-line"] },
+];
 
 let etapeChoisie = null;   // étape sélectionnée (index dans tour.etapes)
 

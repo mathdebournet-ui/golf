@@ -399,6 +399,24 @@ function htmlExoPointsAdmin(exo) {
     </table></div>`;
 }
 
+// Onglets : Séries, Parcours, Putting, puis une famille d'exos (FAMILLES_PUTTING,
+// exos-points.js) ; la famille choisie affiche une 2e ligne avec ses exos.
+let familleAdmin = null;
+
+function filtresAdmin() {
+  const bouton = (action, valeur, nom, actif) =>
+    `<button type="button" class="filtre ${actif ? "actif" : ""}" data-action="${action}" data-valeur="${valeur}" aria-pressed="${actif}">${nom}</button>`;
+  const famille = FAMILLES_PUTTING.find((f) => f.id === familleAdmin);
+  let html = `<div class="filtres">${[["series", "🔥 Séries"], ["parcours", "⛳ Parcours"], ["putting", "🎯 Scores putting"]]
+    .map(([valeur, nom]) => bouton("admin-onglet", valeur, nom, !famille && ongletAdmin === valeur)).join("")}</div>
+    <div class="filtres">${FAMILLES_PUTTING.map((f) => bouton("admin-famille", f.id, f.nom, famille === f)).join("")}</div>`;
+  if (famille) {
+    html += `<div class="filtres sous-filtres">${famille.exos.filter((exo) => EXOS_POINTS[exo])
+      .map((exo) => bouton("admin-onglet", exo, `${EXOS_POINTS[exo].emoji} ${EXOS_POINTS[exo].nom}`, ongletAdmin === exo)).join("")}</div>`;
+  }
+  return html;
+}
+
 function afficherAdmin() {
   const zone = document.getElementById("admin");
   let utilisateur = null;
@@ -415,8 +433,7 @@ function afficherAdmin() {
   }
 
   html += `<p class="petit">Connecté : ${echapper(utilisateur.email || "")}</p>
-    <div class="filtres">${[["series", "🔥 Séries"], ["parcours", "⛳ Parcours"], ["putting", "🎯 Putting"], ...Object.entries(EXOS_POINTS).map(([exo, c]) => [exo, `${c.emoji} ${c.nom}`])].map(([valeur, nom]) =>
-      `<button type="button" class="filtre ${ongletAdmin === valeur ? "actif" : ""}" data-action="admin-onglet" data-valeur="${valeur}" aria-pressed="${ongletAdmin === valeur}">${nom}</button>`).join("")}</div>`;
+    ${filtresAdmin()}`;
   if (chargementAdmin) html += `<p class="petit">Chargement…</p>`;
   else if (ongletAdmin === "series") html += htmlSeriesAdmin();
   else if (ongletAdmin === "parcours") html += htmlParcoursAdmin();
@@ -508,7 +525,17 @@ document.addEventListener("DOMContentLoaded", () => {
     if (bouton.dataset.action === "admin-connexion") connecterAdmin();
     if (bouton.dataset.action === "admin-actualiser") chargerAdmin();
     if (bouton.dataset.action === "admin-remise-a-zero") remiseAZeroAdmin();
-    if (bouton.dataset.action === "admin-onglet") { ongletAdmin = bouton.dataset.valeur; partieAdminOuverte = null; afficherAdmin(); }
+    if (bouton.dataset.action === "admin-onglet") {
+      ongletAdmin = bouton.dataset.valeur;
+      if (!EXOS_POINTS[ongletAdmin]) familleAdmin = null;
+      partieAdminOuverte = null;
+      afficherAdmin();
+    }
+    if (bouton.dataset.action === "admin-famille") {
+      // Ouvre la famille sur son premier exo
+      const famille = FAMILLES_PUTTING.find((f) => f.id === bouton.dataset.valeur);
+      if (famille) { familleAdmin = famille.id; ongletAdmin = famille.exos[0]; afficherAdmin(); }
+    }
     if (bouton.dataset.action === "admin-joueur") { joueurAdmin = bouton.dataset.uid; partieAdminOuverte = null; afficherAdmin(); }
     if (bouton.dataset.action === "admin-partie") { partieAdminOuverte = Number(bouton.dataset.index); afficherAdmin(); window.scrollTo(0, 0); }
     if (bouton.dataset.action === "liste") { partieAdminOuverte = null; afficherAdmin(); }
