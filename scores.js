@@ -34,10 +34,11 @@ const UNITES_SCORE = {
   "echelle-de-dosage": "balles réussies",
   "echelle-inversee": "balles",
   "couloir-precision-fers": "balles",
+  "neuf-trajectoires": "balles",
 };
 
 // Exos où le PLUS PETIT score est le meilleur (nombre de balles pour réussir)
-const SCORES_PLUS_BAS_MIEUX = new Set(["couloir-precision-fers"]);
+const SCORES_PLUS_BAS_MIEUX = new Set(["couloir-precision-fers", "neuf-trajectoires"]);
 
 // Meilleur score d'une liste de valeurs (le plus haut, ou le plus bas selon l'exo)
 function meilleurScore(idFiche, valeurs) {

@@ -375,10 +375,11 @@ function htmlExoPointsAdmin(exo) {
     .map((s) => ({ joueur: s.joueur, stats: statsDe(exo, s.exosPoints[exo]) }))
     .sort((a, b) => b.stats.rentres - a.stats.rentres);
   if (lignes.length === 0) return `<p class="petit">Aucun ${config.nom} joué pour l'instant.</p>`;
-  if (enJusqua(exo)) {
+  if (enJusqua(exo) || enProgression(exo)) {
     // Moins de balles = mieux : on trie dans l'autre sens
     lignes.sort((a, b) => a.stats.total - b.stats.total);
-    return `<p class="petit">Balles jouées pour ${config.modes[Object.keys(config.modes)[0]].jusqua} ${echapper(motReussi(exo))} (moins = mieux).</p>
+    const quoi = enJusqua(exo) ? `${config.modes[Object.keys(config.modes)[0]].jusqua} ${echapper(motReussi(exo))}` : `les ${config.points.length} coups`;
+    return `<p class="petit">Balles jouées pour ${quoi} (moins = mieux).</p>
     <div class="tableau-defilant"><table class="tableau-admin">
       <thead><tr><th>Joueur</th><th>Tours</th><th>Moyenne</th><th>Meilleur</th></tr></thead>
       <tbody>${lignes.map((l) => `<tr>
