@@ -426,3 +426,15 @@ details[open] > summary::before { transform: rotate(90deg); }
 .cat-abdos     { --couleur-cat: #4a5a12; }
 .cat-recuperation { --couleur-cat: #3a4f66; }
 .cat-a-classer { --couleur-cat: #555555; }
+
+/* ---------- Actualités du golf (actualites.js) ---------- */
+.actualites { margin-bottom: 12px; }
+.actualite {
+  margin: 0 0 8px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--alerte-fond);
+  color: var(--alerte-texte);
+  font-weight: 600;
+  box-shadow: var(--ombre);
+}
