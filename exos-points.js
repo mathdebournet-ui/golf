@@ -1,5 +1,5 @@
 /* =========================================================
-   Exos de putting interactifs (tous les exos de putting)
+   Exos interactifs (tous les exos de putting + couloir de précision aux fers)
    ---------------------------------------------------------
    - Sur la carte de l'exo (Aujourd'hui), un bouton ouvre l'exo en
      plein écran : schéma avec le trou et les points (puces).
@@ -12,6 +12,9 @@
      · dynamique (Snail) : rentré = point suivant, raté = point d'avant.
      · série (Mickelson, Leap Frog, Échelle inversée) : on compte les
        réussites d'affilée, la série s'arrête au premier raté.
+     · « jusqu'à N » (couloir de précision) : on joue jusqu'à avoir N
+       balles réussies ; score = nombre de balles jouées (moins = mieux,
+       voir SCORES_PLUS_BAS_MIEUX dans scores.js).
    - À la fin : le score va dans « Mon score » (scores.js) et l'exo
      passe en « Fait » (sauf modes « sansScore » : le Snail).
    - Statistiques par distance (ratés moyens, réussite) sur tous les
@@ -25,6 +28,7 @@
      points fixes { exo, mode, etapes: [points], resultats, noms? }
      dynamique    { exo, mode, position, coups: [{ point, rentre }] }
      série        { exo, mode, coups: [{ point, rentre }] }
+     jusqu'à N    { exo, mode, coups: [{ point: null, rentre }] }
    ========================================================= */
 
 "use strict";
@@ -327,6 +331,21 @@ const EXOS_POINTS = {
     points: [],
     modes: { serie: { nom: "▶ Commencer une série", serie: true } },
   },
+
+  // Practice (fers) : premier exo interactif hors putting (15/11/2026)
+  "couloir-precision-fers": {
+    nom: "Couloir de précision",
+    emoji: "🎯",
+    idFiche: "couloir-precision-fers",
+    cleStats: "couloir-precision-fers-stats",
+    cleTours: "tours-couloir-precision-fers",
+    cleEnCours: "enCours-couloir-precision-fers",
+    consigne: "Routine complète avant chaque balle. Une balle compte seulement si elle ATTERRIT dans le couloir (un doigt de chaque côté du drapeau, bras tendu).",
+    boutons: ["✅ Dans le couloir", "❌ Hors couloir"],
+    motReussi: "dans le couloir",
+    points: [],
+    modes: { tour: { nom: "▶ Commencer (5 balles dans le couloir)", jusqua: 5 } },
+  },
 };
 
 // Classement des exos par famille (onglets de l'Espace admin, serie.js),
@@ -335,6 +354,7 @@ const FAMILLES_PUTTING = [
   { id: "dosage", nom: "📏 Dosage", exos: ["2-feet-circle", "demi-lune", "speed-drill", "lowry-putt", "leap-frog", "echelle-de-dosage", "echelle-inversee"] },
   { id: "petits", nom: "🎯 Petits putts", exos: ["trefle", "cercle-mickelson", "speed-drill-cross"] },
   { id: "intermediaire", nom: "↔️ Intermédiaire", exos: ["snail", "9-putt-circle", "start-line"] },
+  { id: "practice", nom: "🏌️ Practice", exos: ["couloir-precision-fers"] },
 ];
 
 let etapeChoisie = null;   // étape sélectionnée (index dans tour.etapes)
@@ -355,6 +375,8 @@ function libelleDistance(exo, d) {
 function sansScore(exo) { return Object.values(EXOS_POINTS[exo].modes).every((m) => m.sansScore); }
 // Exo joué en série d'affilée (Mickelson, Leap Frog, Échelle inversée)
 function enSerie(exo) { return Object.values(EXOS_POINTS[exo].modes).every((m) => m.serie); }
+// Exo joué « jusqu'à N réussites » (couloir de précision) : score = balles jouées
+function enJusqua(exo) { return Object.values(EXOS_POINTS[exo].modes).every((m) => m.jusqua); }
 // Tableau par distance utile ? (pas pour une seule distance ou sans distance)
 function avecTableauDistances(exo) { return EXOS_POINTS[exo].parDistance !== false && distancesDe(exo).length > 1; }
 function motReussi(exo) { return EXOS_POINTS[exo].motReussi || "rentrés"; }
@@ -385,7 +407,7 @@ function tourEnCours(exo) {
   const tour = lireStockage(EXOS_POINTS[exo].cleEnCours, null, PREFIXE_SCORES);
   const mode = tour && EXOS_POINTS[exo].modes[tour.mode];
   if (!mode) return null;   // mode supprimé depuis (ex. ancien Snail « montante puis descendante »)
-  if (mode.serie) return Array.isArray(tour.coups) ? tour : null;
+  if (mode.serie || mode.jusqua) return Array.isArray(tour.coups) ? tour : null;
   if (mode.dynamique) return Array.isArray(tour.coups) && Number.isInteger(tour.position) ? tour : null;
   return Array.isArray(tour.etapes) && Array.isArray(tour.resultats) && tour.etapes.length === tour.resultats.length ? tour : null;
 }
@@ -393,6 +415,7 @@ function tourEnCours(exo) {
 function modeDuTour(tour) { return EXOS_POINTS[tour.exo].modes[tour.mode]; }
 function estDynamique(tour) { return !!modeDuTour(tour).dynamique; }
 function estSerie(tour) { return !!modeDuTour(tour).serie; }
+function estJusqua(tour) { return !!modeDuTour(tour).jusqua; }
 
 // Moyennes sur des tours : { nombre, rentres, total, meilleur, rates: {d}, reussite: {d} }
 function statsDe(exo, tours) {
@@ -401,7 +424,8 @@ function statsDe(exo, tours) {
     nombre: tours.length,
     rentres: tours.reduce((t, x) => t + x.rentres, 0) / tours.length,
     total: tours.reduce((t, x) => t + (x.total || 0), 0) / tours.length,
-    meilleur: Math.max(...tours.map((x) => x.rentres)),
+    // Meilleur tour : le plus de réussites, ou le moins de balles (« jusqu'à N »)
+    meilleur: enJusqua(exo) ? Math.min(...tours.map((x) => x.total)) : Math.max(...tours.map((x) => x.rentres)),
     rates: {},
     reussite: {},
   };
@@ -421,6 +445,9 @@ function tableauStats(exo, stats) {
   const config = EXOS_POINTS[exo];
   if (!stats) return `<p class="petit">Pas encore de ${config.nom} joué ici : tes moyennes apparaîtront après le premier tour.</p>`;
   const pluriel = stats.nombre > 1 ? "s" : "";
+  if (enJusqua(exo)) {
+    return `<p class="petit">${stats.nombre} tour${pluriel} · en moyenne ${virgule(stats.total)} balles pour en mettre ${virgule(stats.rentres)} ${motReussi(exo)} · meilleur : ${stats.meilleur} balles</p>`;
+  }
   if (enSerie(exo)) {
     return `<p class="petit">${stats.nombre} série${pluriel} · moyenne ${virgule(stats.rentres)} ${motReussi(exo)} · meilleure : ${stats.meilleur}${config.objectif ? ` · objectif : ${config.objectif}` : ""}</p>`;
   }
@@ -595,7 +622,7 @@ function afficherJeuSerie(tour) {
   const zone = document.getElementById("trefle-jeu");
   const config = EXOS_POINTS[tour.exo];
   const serie = tour.coups.length;   // en cours, tous les coups notés sont réussis
-  const r = resumeScores(lireScores()[config.idFiche]);   // scores.js
+  const r = resumeScores(lireScores()[config.idFiche], config.idFiche);   // scores.js
   const record = r ? r.record : 0;
   let schema = "";
   if (config.points.length) {
@@ -632,10 +659,54 @@ function afficherJeuSerie(tour) {
   zone.hidden = false;
 }
 
+// Mode « jusqu'à N » : on joue jusqu'à N balles réussies, on compte les balles jouées
+function afficherJeuJusqua(tour) {
+  const zone = document.getElementById("trefle-jeu");
+  const config = EXOS_POINTS[tour.exo];
+  const objectif = modeDuTour(tour).jusqua;
+  const reussies = tour.coups.filter((c) => c.rentre).length;
+  const jouees = tour.coups.length;
+  const r = resumeScores(lireScores()[config.idFiche], config.idFiche);   // scores.js
+  // Le record est battu tant qu'on a joué moins de balles que lui
+  const message = r
+    ? (jouees >= r.record ? `🏆 Record : ${r.record} balles (déjà dépassé, termine quand même)` : `🏆 Record : ${r.record} balles`)
+    : "Premier tour : il deviendra ton record.";
+  // Une pastille par balle jouée (vert = dans le couloir, rouge = hors couloir)
+  const pastilles = tour.coups.map((c, i) =>
+    `<span class="pastille-balle ${c.rentre ? "rentre" : "rate"}" title="balle ${i + 1}">${c.rentre ? "✓" : "✗"}</span>`).join("");
+  zone.innerHTML = `
+    <div class="trefle-contenu">
+      ${enteteJeu(config)}
+      ${config.consigne ? `<p class="petit">${echapper(config.consigne)}</p>` : ""}
+      <div class="trefle-choix">
+        <p class="compteur-serie" aria-live="polite">${reussies} / ${objectif}</p>
+        <p><strong>${echapper(motReussi(tour.exo))}</strong> · ${jouees} balle${jouees > 1 ? "s" : ""} jouée${jouees > 1 ? "s" : ""}</p>
+        <p class="petit">${echapper(message)}</p>
+        ${pastilles ? `<p class="pastilles-balles" aria-label="balles jouées">${pastilles}</p>` : ""}
+        ${boutonsResultat(config)}
+      </div>
+      <div class="actions">
+        ${jouees ? `<button type="button" class="bouton pleine-largeur" data-action="points-annuler">↶ Annuler la dernière balle</button>` : ""}
+        <button type="button" class="bouton pleine-largeur" data-action="points-abandonner">Abandonner (rien n'est compté)</button>
+      </div>
+    </div>`;
+  zone.hidden = false;
+}
+
+// Efface la dernière balle notée (erreur de bouton) : mode « jusqu'à N »
+function annulerDerniereBalle() {
+  const tour = exoAffiche ? tourEnCours(exoAffiche) : null;
+  if (!tour || !estJusqua(tour) || tour.coups.length === 0) return;
+  tour.coups.pop();
+  ecrireStockage(EXOS_POINTS[tour.exo].cleEnCours, tour, PREFIXE_SCORES);
+  afficherExoPoints();
+}
+
 function afficherExoPoints() {
   const zone = document.getElementById("trefle-jeu");
   const tour = exoAffiche ? tourEnCours(exoAffiche) : null;
   if (!tour) { zone.hidden = true; return; }
+  if (estJusqua(tour)) { afficherJeuJusqua(tour); return; }
   if (estDynamique(tour)) { afficherDynamique(tour); return; }
   if (estSerie(tour)) { afficherJeuSerie(tour); return; }
   const config = EXOS_POINTS[tour.exo];
@@ -695,7 +766,7 @@ function commencerExo(exo, mode) {
   const m = config.modes[mode];
   exoAffiche = exo;
   etapeChoisie = null;
-  if (m.serie) {
+  if (m.serie || m.jusqua) {
     ecrireStockage(config.cleEnCours, { exo, mode, debut: Date.now(), coups: [] }, PREFIXE_SCORES);
   } else if (m.dynamique) {
     ecrireStockage(config.cleEnCours, { exo, mode, debut: Date.now(), position: 0, coups: [] }, PREFIXE_SCORES);
@@ -713,7 +784,7 @@ function reprendreExo(exo) {
   const tour = tourEnCours(exo);
   if (!tour) return;
   exoAffiche = exo;
-  etapeChoisie = estDynamique(tour) || estSerie(tour) ? null : etapeSuivante(tour);
+  etapeChoisie = estDynamique(tour) || estSerie(tour) || estJusqua(tour) ? null : etapeSuivante(tour);
   afficherExoPoints();
 }
 
@@ -721,6 +792,14 @@ function noterEtape(rentre) {
   const tour = exoAffiche ? tourEnCours(exoAffiche) : null;
   if (!tour) return;
   const config = EXOS_POINTS[tour.exo];
+  if (estJusqua(tour)) {
+    tour.coups.push({ point: null, rentre });
+    ecrireStockage(config.cleEnCours, tour, PREFIXE_SCORES);
+    // Fini dès qu'on a le nombre de balles réussies demandé
+    if (tour.coups.filter((c) => c.rentre).length >= modeDuTour(tour).jusqua) { terminerExo(); return; }
+    afficherExoPoints();
+    return;
+  }
   if (estSerie(tour)) {
     const n = config.points.length;
     tour.coups.push({ point: n ? tour.coups.length % n : null, rentre });
@@ -757,7 +836,11 @@ function terminerExo() {
   const mode = modeDuTour(tour);
   // Liste des putts joués : [{ point, rentre }]
   let coups;
-  if (mode.dynamique || mode.serie) {
+  if (mode.jusqua) {
+    // Terminé seulement quand les N balles réussies sont atteintes
+    if (tour.coups.filter((c) => c.rentre).length < mode.jusqua) return;
+    coups = tour.coups;
+  } else if (mode.dynamique || mode.serie) {
     if (tour.coups.length === 0) return;
     coups = tour.coups;
   } else {
@@ -776,7 +859,7 @@ function terminerExo() {
   const rentres = coups.filter((c) => c.rentre).length;
   const dernierPoint = config.points.length - 1;
   const fini = !mode.dynamique || coups.some((c) => c.rentre && c.point === dernierPoint);
-  const ancienRecord = (resumeScores(lireScores()[config.idFiche]) || { record: 0 }).record;
+  const ancienRecord = (resumeScores(lireScores()[config.idFiche], config.idFiche) || { record: 0 }).record;
   const tours = toursDe(tour.exo);
   tours.push({ t: Date.now(), d: dateEnTexte(new Date()), mode: tour.mode, rentres, total: coups.length, fini, rates, tentes });
   ecrireStockage(config.cleTours, tours, PREFIXE_SCORES);
@@ -785,7 +868,8 @@ function terminerExo() {
   exoAffiche = null;
   document.getElementById("trefle-jeu").hidden = true;
 
-  const score = config.score === "pourcentage" ? Math.round((100 * rentres) / coups.length) : rentres;
+  // Score : pourcentage, balles jouées (« jusqu'à N », moins = mieux) ou réussites
+  const score = config.score === "pourcentage" ? Math.round((100 * rentres) / coups.length) : mode.jusqua ? coups.length : rentres;
   if (mode.sansScore) {
     // Pas de score (choix de l'utilisateur) : l'exo est juste coché « Fait » et les moyennes envoyées
     const jour = dateEnTexte(new Date());
@@ -798,9 +882,13 @@ function terminerExo() {
     // Score dans « Mon score » + exo coché « Fait » (scores.js)
     enregistrerScore(config.idFiche, score);
   }
-  const record = !mode.sansScore && ancienRecord > 0 && score > ancienRecord ? `\n🏆 Nouveau record (avant : ${texteScore(config.idFiche, ancienRecord)}) !` : "";
+  const record = !mode.sansScore && ancienRecord > 0 && meilleurQue(config.idFiche, score, ancienRecord) ? `\n🏆 Nouveau record (avant : ${texteScore(config.idFiche, ancienRecord)}) !` : "";
   if (mode.serie) {
     alert(`${config.nom} : série de ${rentres} ${motReussi(tour.exo)}.${record}`);
+    return;
+  }
+  if (mode.jusqua) {
+    alert(`${config.nom} terminé : ${coups.length} balles pour en mettre ${rentres} ${motReussi(tour.exo)}.${record}`);
     return;
   }
   const detail = distancesDe(tour.exo).filter((d) => rates[d] > 0).map((d) => `${rates[d]} à ${libelleDistance(tour.exo, d)}`).join(", ");
@@ -835,6 +923,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (action === "points-resultat") noterEtape(cible.dataset.valeur === "oui");
     if (action === "points-terminer") terminerExo();
     if (action === "points-abandonner") abandonnerExo();
+    if (action === "points-annuler") annulerDerniereBalle();
     if (action === "points-fermer") {
       // Le tour en cours est gardé : bouton « Reprendre » sur la carte
       const idFiche = exoAffiche ? EXOS_POINTS[exoAffiche].idFiche : null;
