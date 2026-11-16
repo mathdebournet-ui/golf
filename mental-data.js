@@ -4,6 +4,8 @@
    Exemples écrits par Claude (pas de source PDF/web), validés tels quels
    par l'utilisateur le 2026-11-16. Ne jamais changer un "id" existant
    (l'historique des exercices faits s'appuie dessus).
+   saisie (facultatif) : cases à remplir, gardées dans le 📓 Carnet :
+   {carnet: titre de la section, garder: "tout"|"dernier", ordre, champs:[{id, label, type: court|long|nombre, aide?}]}
    Minuteur : null | {type:"simple", secondes} |
    {type:"respiration", cycles, phases:[{label, secondes, action: in|out|hold}]}
    ========================================================= */
@@ -160,7 +162,32 @@ window.DONNEES_MENTAL = {
         "Répète-la à vide 10 fois dans ton salon, sans balle, en gardant le même rythme."
       ],
       "conseil": "Une bonne routine est courte et toujours identique. Ce n’est pas le moment de penser technique.",
-      "minuteur": null
+      "minuteur": null,
+      "saisie": {
+        "carnet": "Ma routine pré-coup",
+        "garder": "dernier",
+        "ordre": 3,
+        "champs": [
+          {
+            "id": "reflechir",
+            "label": "1. Réfléchir (derrière la balle)",
+            "type": "court",
+            "aide": "Ex. : lie, vent, cible, club, je décide"
+          },
+          {
+            "id": "ressentir",
+            "label": "2. Ressentir",
+            "type": "court",
+            "aide": "Ex. : un swing d'essai à la sensation"
+          },
+          {
+            "id": "jouer",
+            "label": "3. Jouer",
+            "type": "court",
+            "aide": "Ex. : un regard, je frappe"
+          }
+        ]
+      }
     },
     {
       "id": "routine-chrono",
@@ -177,7 +204,19 @@ window.DONNEES_MENTAL = {
         "Garde ce chiffre en tête : c’est ton tempo de référence pour le parcours."
       ],
       "conseil": "Sur le parcours, si une routine dure nettement plus longtemps que d’habitude, c’est souvent le signe que le doute s’est installé : recule et recommence.",
-      "minuteur": null
+      "minuteur": null,
+      "saisie": {
+        "carnet": "Mon tempo de routine",
+        "garder": "dernier",
+        "ordre": 4,
+        "champs": [
+          {
+            "id": "moyenne",
+            "label": "Ton temps moyen (secondes)",
+            "type": "nombre"
+          }
+        ]
+      }
     },
     {
       "id": "routine-ligne-decision",
@@ -211,7 +250,24 @@ window.DONNEES_MENTAL = {
         "Note ton score pour suivre ta progression d’une semaine à l’autre."
       ],
       "conseil": "Le but n’est pas de bien taper, c’est d’apprendre à jouer libéré même quand le résultat compte.",
-      "minuteur": null
+      "minuteur": null,
+      "saisie": {
+        "carnet": "Practice à conséquence",
+        "garder": "tout",
+        "ordre": 8,
+        "champs": [
+          {
+            "id": "score",
+            "label": "Réussites sur 9",
+            "type": "nombre"
+          },
+          {
+            "id": "objectif",
+            "label": "Ton objectif",
+            "type": "nombre"
+          }
+        ]
+      }
     },
     {
       "id": "pression-dernier-putt",
@@ -228,7 +284,19 @@ window.DONNEES_MENTAL = {
         "Arrête quand tu as réussi la série complète, ou après 15 minutes."
       ],
       "conseil": "Plus la série avance, plus la pression monte : c’est exactement la sensation que tu veux apprivoiser.",
-      "minuteur": null
+      "minuteur": null,
+      "saisie": {
+        "carnet": "Le dernier putt",
+        "garder": "tout",
+        "ordre": 9,
+        "champs": [
+          {
+            "id": "essais",
+            "label": "Nombre de départs pour réussir la série",
+            "type": "nombre"
+          }
+        ]
+      }
     },
     {
       "id": "pression-reinterpreter",
@@ -245,7 +313,32 @@ window.DONNEES_MENTAL = {
         "Termine par 3 expirations longues."
       ],
       "conseil": "Chercher à ne rien ressentir est impossible. Accepter la tension et lui donner un sens, c’est possible tout de suite.",
-      "minuteur": null
+      "minuteur": null,
+      "saisie": {
+        "carnet": "Stress → énergie",
+        "garder": "dernier",
+        "ordre": 5,
+        "champs": [
+          {
+            "id": "sensations",
+            "label": "Tes sensations de stress",
+            "type": "long",
+            "aide": "Cœur qui accélère, mains moites…"
+          },
+          {
+            "id": "energie",
+            "label": "Leur version « énergie »",
+            "type": "long",
+            "aide": "Mon cœur accélère pour envoyer de l'énergie à mes muscles…"
+          },
+          {
+            "id": "phrase",
+            "label": "Ta phrase pour la prochaine fois",
+            "type": "court",
+            "aide": "Je suis prêt, mon corps s'active"
+          }
+        ]
+      }
     },
     {
       "id": "visu-coup-ideal",
@@ -265,6 +358,19 @@ window.DONNEES_MENTAL = {
       "minuteur": {
         "type": "simple",
         "secondes": 300
+      },
+      "saisie": {
+        "carnet": "Mon coup idéal",
+        "garder": "dernier",
+        "ordre": 10,
+        "champs": [
+          {
+            "id": "coup",
+            "label": "Le coup que tu visualises",
+            "type": "court",
+            "aide": "Ex. : fer 7 au par 3 du 4"
+          }
+        ]
       }
     },
     {
@@ -305,6 +411,18 @@ window.DONNEES_MENTAL = {
       "minuteur": {
         "type": "simple",
         "secondes": 360
+      },
+      "saisie": {
+        "carnet": "La situation que je travaille",
+        "garder": "dernier",
+        "ordre": 7,
+        "champs": [
+          {
+            "id": "situation",
+            "label": "La situation qui te fait perdre tes moyens",
+            "type": "long"
+          }
+        ]
       }
     },
     {
@@ -359,7 +477,25 @@ window.DONNEES_MENTAL = {
         "Applique-le sur 9 trous et note combien de fois tu as réussi le reset."
       ],
       "conseil": "Le geste de reset doit toujours être le même : il devient un interrupteur pour ton cerveau.",
-      "minuteur": null
+      "minuteur": null,
+      "saisie": {
+        "carnet": "Mon reset",
+        "garder": "tout",
+        "ordre": 6,
+        "champs": [
+          {
+            "id": "geste",
+            "label": "Ton geste de reset",
+            "type": "court",
+            "aide": "Ex. : fermer le scratch du gant"
+          },
+          {
+            "id": "reussis",
+            "label": "Resets réussis sur 9 trous",
+            "type": "nombre"
+          }
+        ]
+      }
     },
     {
       "id": "conf-carnet-reussites",
@@ -373,10 +509,32 @@ window.DONNEES_MENTAL = {
         "Pour chacun, note ce que tu as bien fait (décision, routine, engagement).",
         "Ajoute une sensation dont tu te souviens (le contact, le bruit, ta respiration).",
         "Relis tout ton carnet la veille d’un tournoi.",
-        "Utilise la note ci-dessous pour garder une trace dans l’appli."
+        "Remplis les cases ci-dessous : tout est gardé dans ton 📓 Carnet."
       ],
       "conseil": "Ton cerveau retient naturellement le négatif. Ce carnet rééquilibre la balance.",
-      "minuteur": null
+      "minuteur": null,
+      "saisie": {
+        "carnet": "Mes réussites",
+        "garder": "tout",
+        "ordre": 2,
+        "champs": [
+          {
+            "id": "r1",
+            "label": "Réussite 1 (le coup + ce que tu as bien fait)",
+            "type": "long"
+          },
+          {
+            "id": "r2",
+            "label": "Réussite 2",
+            "type": "long"
+          },
+          {
+            "id": "r3",
+            "label": "Réussite 3",
+            "type": "long"
+          }
+        ]
+      }
     },
     {
       "id": "conf-coach-interieur",
@@ -393,7 +551,46 @@ window.DONNEES_MENTAL = {
         "Sur ta prochaine partie, remplace chaque phrase négative par sa nouvelle version."
       ],
       "conseil": "Le but n’est pas de te mentir (« c’était un super coup ») mais d’être juste et tourné vers la suite.",
-      "minuteur": null
+      "minuteur": null,
+      "saisie": {
+        "carnet": "Mon coach intérieur",
+        "garder": "dernier",
+        "ordre": 1,
+        "champs": [
+          {
+            "id": "n1",
+            "label": "Phrase négative 1",
+            "type": "court",
+            "aide": "Ex. : Nul, comme d'hab"
+          },
+          {
+            "id": "p1",
+            "label": "→ Ta nouvelle phrase 1",
+            "type": "court",
+            "aide": "Ex. : Mauvaise décision, prochain coup : cible plus large"
+          },
+          {
+            "id": "n2",
+            "label": "Phrase négative 2",
+            "type": "court"
+          },
+          {
+            "id": "p2",
+            "label": "→ Ta nouvelle phrase 2",
+            "type": "court"
+          },
+          {
+            "id": "n3",
+            "label": "Phrase négative 3",
+            "type": "court"
+          },
+          {
+            "id": "p3",
+            "label": "→ Ta nouvelle phrase 3",
+            "type": "court"
+          }
+        ]
+      }
     },
     {
       "id": "conf-mot-cle",
@@ -410,7 +607,26 @@ window.DONNEES_MENTAL = {
         "Utilise ce mot juste avant d’entrer dans ta routine sur les coups importants."
       ],
       "conseil": "Garde le même mot plusieurs semaines : c’est la répétition qui crée l’ancrage.",
-      "minuteur": null
+      "minuteur": null,
+      "saisie": {
+        "carnet": "Mon mot-clé",
+        "garder": "dernier",
+        "ordre": 0,
+        "champs": [
+          {
+            "id": "mot",
+            "label": "Ton mot-clé",
+            "type": "court",
+            "aide": "Fluide, Libre, Tranquille, Attaque…"
+          },
+          {
+            "id": "geste",
+            "label": "Ton geste d'ancrage",
+            "type": "court",
+            "aide": "Ex. : presser le grip"
+          }
+        ]
+      }
     },
     {
       "id": "ana-bilan-3-1",
@@ -424,10 +640,38 @@ window.DONNEES_MENTAL = {
         "Écris 3 choses positives, dont au moins une sur ton mental (routine tenue, bonne réaction…).",
         "Écris 1 seul axe de progrès, formulé en action : « Rester sur ma routine sur les putts de moins de 2 m ».",
         "Ferme ton carnet : la partie est terminée, tu n’y penses plus ce soir.",
-        "Garde la trace dans la note ci-dessous."
+        "Remplis les cases ci-dessous : tout est gardé dans ton 📓 Carnet."
       ],
       "conseil": "Un seul axe, pas cinq. On progresse plus en travaillant une chose à fond.",
-      "minuteur": null
+      "minuteur": null,
+      "saisie": {
+        "carnet": "Mes bilans",
+        "garder": "tout",
+        "ordre": 11,
+        "champs": [
+          {
+            "id": "p1",
+            "label": "Positif 1",
+            "type": "court"
+          },
+          {
+            "id": "p2",
+            "label": "Positif 2",
+            "type": "court"
+          },
+          {
+            "id": "p3",
+            "label": "Positif 3 (sur ton mental)",
+            "type": "court"
+          },
+          {
+            "id": "axe",
+            "label": "Ton seul axe de progrès (en action)",
+            "type": "court",
+            "aide": "Ex. : rester sur ma routine sur les putts de moins de 2 m"
+          }
+        ]
+      }
     },
     {
       "id": "ana-stats-mentales",
@@ -444,7 +688,29 @@ window.DONNEES_MENTAL = {
         "Compare avec ta partie précédente : c’est ce score que tu cherches à faire monter."
       ],
       "conseil": "Tu peux avoir un mauvais score et une excellente partie mentale. C’est elle qui prépare les bons scores.",
-      "minuteur": null
+      "minuteur": null,
+      "saisie": {
+        "carnet": "Mes stats mentales",
+        "garder": "tout",
+        "ordre": 12,
+        "champs": [
+          {
+            "id": "routine",
+            "label": "Trous avec routine respectée (sur 18)",
+            "type": "nombre"
+          },
+          {
+            "id": "reset",
+            "label": "Trous avec reset réussi (sur 18)",
+            "type": "nombre"
+          },
+          {
+            "id": "engage",
+            "label": "Trous engagé à 100 % (sur 18)",
+            "type": "nombre"
+          }
+        ]
+      }
     },
     {
       "id": "ana-coup-bascule",
@@ -461,7 +727,29 @@ window.DONNEES_MENTAL = {
         "Ferme les yeux et rejoue mentalement le coup avec cette nouvelle réponse."
       ],
       "conseil": "On ne refait pas le coup, on prépare le prochain. Sois curieux, pas sévère.",
-      "minuteur": null
+      "minuteur": null,
+      "saisie": {
+        "carnet": "Les coups qui ont tout fait basculer",
+        "garder": "tout",
+        "ordre": 13,
+        "champs": [
+          {
+            "id": "faits",
+            "label": "Les faits (situation, club, décision, résultat)",
+            "type": "long"
+          },
+          {
+            "id": "pensees",
+            "label": "Ce que tu pensais et ressentais juste avant",
+            "type": "long"
+          },
+          {
+            "id": "autrement",
+            "label": "Ce que tu aurais pu faire à la place",
+            "type": "long"
+          }
+        ]
+      }
     }
   ],
   "routinesPression": [

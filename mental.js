@@ -64,6 +64,30 @@ function mentalAnnulerFait(id) {
   mentalEnregistrer(mentalHistorique().filter((h) => !(h.date === mentalCleDate() && h.id === id)));
 }
 
+/* ---------- 📓 Carnet : réponses écrites dans les cases des exercices ----------
+   golf-mental-v1:carnet = [{ date, id, valeurs: {idChamp: texte}, t }]
+   Une entrée par exercice et par jour, enregistrée à chaque frappe (rien n'est perdu). */
+function mentalCarnet() { return lireStockage("carnet", [], PREFIXE_MENTAL); }
+function mentalReponsesDuJour(id) {
+  const entree = mentalCarnet().find((c) => c.date === mentalCleDate() && c.id === id);
+  return entree ? entree.valeurs : {};
+}
+function mentalEnregistrerChamp(id, champ, valeur) {
+  const carnet = mentalCarnet();
+  let entree = carnet.find((c) => c.date === mentalCleDate() && c.id === id);
+  if (!entree) { entree = { date: mentalCleDate(), id, valeurs: {}, t: Date.now() }; carnet.push(entree); }
+  entree.valeurs[champ] = valeur.slice(0, 1000);
+  entree.t = Date.now();
+  // Entrée entièrement vide : on la retire (pas de ligne vide dans le carnet)
+  const nettoye = carnet.filter((c) => Object.values(c.valeurs).some((v) => String(v).trim()));
+  return ecrireStockage("carnet", nettoye, PREFIXE_MENTAL);
+}
+/** Dernière valeur écrite pour un champ (ex. le mot-clé), ou "" */
+function mentalDerniereValeur(idExo, champ) {
+  const entrees = mentalCarnet().filter((c) => c.id === idExo && String(c.valeurs[champ] || "").trim()).sort((a, b) => b.t - a.t);
+  return entrees.length ? entrees[0].valeurs[champ].trim() : "";
+}
+
 /* ---------- Affichage de l'onglet ---------- */
 function afficherMental() {
   const zone = document.getElementById("mental");
@@ -72,7 +96,7 @@ function afficherMental() {
     zone.innerHTML = `<p class="erreur">Les exercices mentaux n'ont pas pu être chargés (fichier mental-data.js manquant ou mal écrit).</p>`;
     return;
   }
-  const sousVues = [["jour", "Du jour"], ["pression", "⚡ Pression"], ["liste", "Tous"]];
+  const sousVues = [["jour", "Du jour"], ["pression", "⚡ Pression"], ["liste", "Tous"], ["carnet", "📓 Carnet"]];
   zone.innerHTML = `
     <div class="filtres mt-sous-onglets">
       ${sousVues.map(([v, nom]) => `<button type="button" class="filtre ${v === mentalSousVue ? "actif" : ""}" data-mental-vue="${v}">${nom}</button>`).join("")}
@@ -81,7 +105,37 @@ function afficherMental() {
     <p class="mt-mention">${echapper(mentalDonnees().mention || "")}</p>`;
   if (mentalSousVue === "jour") mentalAfficherJour();
   else if (mentalSousVue === "pression") mentalAfficherPression();
+  else if (mentalSousVue === "carnet") mentalAfficherCarnet();
   else mentalAfficherListe();
+}
+
+/** 📓 Carnet : tout ce que tu as écrit, une section par exercice (ordre de exo.saisie.ordre).
+    « garder: dernier » = seule la dernière version compte (mot-clé, routine…). */
+function mentalAfficherCarnet() {
+  const carnet = mentalCarnet();
+  const exos = mentalDonnees().exercices.filter((e) => e.saisie).sort((a, b) => (a.saisie.ordre ?? 99) - (b.saisie.ordre ?? 99));
+  const dateCourte = (d) => { const [a, m, j] = d.split("-").map(Number); return new Date(a, m - 1, j).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" }); };
+  const sections = exos.map((exo) => {
+    let entrees = carnet.filter((c) => c.id === exo.id).sort((a, b) => b.t - a.t);
+    if (!entrees.length) return "";
+    if (exo.saisie.garder === "dernier") entrees = entrees.slice(0, 1);
+    return `
+      <article class="carte" style="--couleur-cat:${COULEURS_MENTAL[exo.categorie]}">
+        <h3 class="carte-titre">${echapper(exo.saisie.carnet)}</h3>
+        ${entrees.map((e) => `
+          <div class="mt-entree">
+            <p class="duree">${dateCourte(e.date)}</p>
+            <dl>${exo.saisie.champs.filter((c) => String(e.valeurs[c.id] || "").trim()).map((c) =>
+              `<dt>${echapper(c.label)}</dt><dd>${echapper(e.valeurs[c.id])}</dd>`).join("")}</dl>
+            <button type="button" class="lien-bouton mt-supprimer" data-mental-supprimer="${echapper(e.id)}|${echapper(e.date)}">Supprimer</button>
+          </div>`).join("")}
+        <button type="button" class="bouton pleine-largeur mt-refaire" data-mental-ouvrir-carnet="${echapper(exo.id)}">✏️ ${exo.saisie.garder === "dernier" ? "Modifier" : "Refaire l'exercice"}</button>
+      </article>`;
+  }).join("");
+  document.getElementById("mental-contenu").innerHTML = `
+    <h2 class="bloc-titre">📓 Mon carnet</h2>
+    <p class="bloc-info">Tout ce que tu as écrit dans les exercices. À relire la veille d'un tournoi.</p>
+    ${sections || `<p class="compte">Ton carnet est vide pour l'instant. Les exercices avec « À toi d'écrire » (mot-clé, réussites, bilans…) le remplissent automatiquement.</p>`}`;
 }
 
 function mentalDuree(m) {
@@ -89,6 +143,28 @@ function mentalDuree(m) {
   return m.type === "simple" ? m.secondes : m.cycles * m.phases.reduce((s, p) => s + p.secondes, 0);
 }
 function mentalFormatTemps(sec) { return `${Math.floor(sec / 60)}:${String(Math.round(sec % 60)).padStart(2, "0")}`; }
+
+/** Cases à remplir de l'exercice (exo.saisie), pré-remplies avec ce que tu as écrit aujourd'hui.
+    Enregistrement automatique à chaque frappe, dans le 📓 Carnet. */
+function mentalFormulaire(exo) {
+  if (!exo.saisie) return "";
+  const reponses = mentalReponsesDuJour(exo.id);
+  const champs = exo.saisie.champs.map((c) => {
+    const nom = `mt-${exo.id}-${c.id}`;
+    const valeur = echapper(reponses[c.id] || "");
+    const attributs = `id="${nom}" data-mental-champ="${echapper(exo.id)}" data-champ="${echapper(c.id)}" placeholder="${echapper(c.aide || "")}"`;
+    const saisie = c.type === "long"
+      ? `<textarea ${attributs} rows="3" maxlength="1000">${valeur}</textarea>`
+      : `<input ${attributs} type="text" ${c.type === "nombre" ? `inputmode="numeric" class="mt-nombre"` : ""} maxlength="${c.type === "nombre" ? 6 : 200}" value="${valeur}">`;
+    return `<label class="mt-champ" for="${nom}"><span>${echapper(c.label)}</span>${saisie}</label>`;
+  }).join("");
+  return `
+    <div class="mt-saisie">
+      <h4>À toi d'écrire</h4>
+      ${champs}
+      <p class="mt-enregistre" id="mt-etat-${echapper(exo.id)}">${Object.keys(reponses).length ? "✓ Gardé dans ton 📓 Carnet" : "Tout ce que tu écris est gardé dans ton 📓 Carnet."}</p>
+    </div>`;
+}
 
 /** Carte complète d'un exercice mental (même style que les fiches golf). */
 function mentalCarte(exo) {
@@ -106,6 +182,7 @@ function mentalCarte(exo) {
     <h4>Étapes</h4>
     <ol>${exo.etapes.map((e) => `<li>${echapper(e)}</li>`).join("")}</ol>
     ${exo.conseil ? `<div class="variante mt-conseil"><strong>Le conseil</strong>${echapper(exo.conseil)}</div>` : ""}
+    ${mentalFormulaire(exo)}
     ${fait && (fait.ressenti || fait.note) ? `<p class="mt-ma-note">${fait.ressenti ? RESSENTIS_MENTAL[fait.ressenti] : ""}${fait.note ? ` — « ${echapper(fait.note)} »` : ""}</p>` : ""}
     <div class="actions">
       ${m ? `<button type="button" class="bouton ${fait ? "" : "principal"} pleine-largeur" data-mental-minuteur="${echapper(exo.id)}">▶ Minuteur guidé · ${mentalFormatTemps(mentalDuree(m))}</button>` : ""}
@@ -373,12 +450,19 @@ function mentalMessage(texte) {
 
 /* ---------- Clics (un seul écouteur, délégation) ---------- */
 document.addEventListener("click", (ev) => {
-  const el = ev.target.closest("[data-mental-vue],[data-mental-filtre],[data-mental-ouvrir],[data-mental-retour],[data-mental-fait],[data-mental-note],[data-mental-minuteur],[data-mental-routine],[data-mental-min],[data-mental-feuille],#mt-ressentis .filtre,#mt-voile");
+  const el = ev.target.closest("[data-mental-vue],[data-mental-filtre],[data-mental-ouvrir],[data-mental-retour],[data-mental-fait],[data-mental-note],[data-mental-minuteur],[data-mental-routine],[data-mental-min],[data-mental-feuille],[data-mental-supprimer],[data-mental-ouvrir-carnet],#mt-ressentis .filtre,#mt-voile");
   if (!el) return;
   const d = el.dataset;
   if (d.mentalVue) { mentalSousVue = d.mentalVue; mentalOuvert = null; afficherMental(); }
   else if (d.mentalFiltre) { mentalFiltre = d.mentalFiltre; afficherMental(); }
   else if (d.mentalOuvrir) { mentalOuvert = d.mentalOuvrir; afficherMental(); window.scrollTo(0, 0); }
+  else if (d.mentalOuvrirCarnet) { mentalSousVue = "liste"; mentalOuvert = d.mentalOuvrirCarnet; afficherMental(); window.scrollTo(0, 0); }
+  else if (d.mentalSupprimer) {
+    const [id, date] = d.mentalSupprimer.split("|");
+    if (!confirm("Supprimer cette page de ton carnet ? C'est définitif.")) return;
+    ecrireStockage("carnet", mentalCarnet().filter((c) => !(c.id === id && c.date === date)), PREFIXE_MENTAL);
+    afficherMental();
+  }
   else if ("mentalRetour" in d) { mentalOuvert = null; afficherMental(); }
   else if (d.mentalFait) { mentalMarquerFait(d.mentalFait); mentalOuvrirNote(d.mentalFait); }
   else if (d.mentalNote) mentalOuvrirNote(d.mentalNote);
@@ -393,7 +477,10 @@ document.addEventListener("click", (ev) => {
   }
   else if (d.mentalRoutine) {
     const r = mentalDonnees().routinesPression.find((x) => x.id === d.mentalRoutine);
-    if (r) mentalOuvrirMinuteur(r.titre, r.etapes.map((e) => ({ titre: e.titre, texte: e.texte, secondes: e.secondes, phases: e.respiration || null })), null);
+    // Ton mot-clé (exercice « Ton mot-clé de confiance ») est rappelé dans les étapes qui en parlent
+    const motCle = mentalDerniereValeur("conf-mot-cle", "mot");
+    const avecMotCle = (texte) => (motCle && /mot-clé/i.test(texte) ? `${texte} Le tien : « ${motCle} ».` : texte);
+    if (r) mentalOuvrirMinuteur(r.titre, r.etapes.map((e) => ({ titre: e.titre, texte: avecMotCle(e.texte), secondes: e.secondes, phases: e.respiration || null })), null);
   }
   else if (d.mentalMin === "fermer") mentalFermerMinuteur();
   else if (d.mentalMin === "pause") mentalPause();
@@ -406,6 +493,15 @@ document.addEventListener("click", (ev) => {
     document.querySelectorAll("#mt-ressentis .filtre").forEach((b) => b.classList.remove("actif"));
     if (!deja) el.classList.add("actif");
   }
+});
+
+// Cases « À toi d'écrire » : enregistrement à chaque frappe dans le 📓 Carnet
+document.addEventListener("input", (ev) => {
+  const champ = ev.target.closest("[data-mental-champ]");
+  if (!champ) return;
+  const ok = mentalEnregistrerChamp(champ.dataset.mentalChamp, champ.dataset.champ, champ.value);
+  const etat = document.getElementById(`mt-etat-${champ.dataset.mentalChamp}`);
+  if (etat) etat.textContent = ok ? "✓ Gardé dans ton 📓 Carnet" : "⚠ Pas pu enregistrer : la mémoire du navigateur est indisponible (navigation privée ?).";
 });
 
 // Écran rallumé pendant le minuteur : on redemande à garder l'écran allumé

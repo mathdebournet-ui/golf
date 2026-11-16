@@ -426,8 +426,6 @@ details[open] > summary::before { transform: rotate(90deg); }
 /* =========================================================
    Onglet 🧠 Mental (mental.js) — classes préfixées « mt- »
    ========================================================= */
-.mt-sous-onglets { display: grid; grid-template-columns: repeat(3, 1fr); }
-.mt-sous-onglets .filtre { padding: 0 6px; }
 .mt-conseil { margin-top: 12px; }
 .mt-ma-note { margin-top: 10px; padding: 10px 12px; border-radius: 10px; background: var(--accent-doux); font-weight: 600; }
 .mt-mention { color: var(--texte-doux); font-size: 0.8rem; text-align: center; margin: 20px 8px 0; }
@@ -500,3 +498,25 @@ details[open] > summary::before { transform: rotate(90deg); }
 /* Onglet grisé (fonction pas encore prête, ex. Prépa en refonte) */
 .onglet:disabled { opacity: 0.5; border-style: dashed; cursor: not-allowed; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.1; }
 .onglet .bientot { display: block; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+
+/* Mental : cases « À toi d'écrire » et 📓 Carnet */
+.mt-sous-onglets { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.mt-sous-onglets .filtre { padding: 0 2px; font-size: 0.8rem; white-space: nowrap; }
+.mt-saisie { margin-top: 14px; padding: 12px; border-radius: 12px; background: var(--accent-doux); }
+.mt-saisie h4 { margin-top: 0; }
+.mt-champ { display: block; margin-bottom: 10px; }
+.mt-champ span { display: block; font-weight: 700; font-size: 0.95rem; margin-bottom: 4px; }
+.mt-champ input, .mt-champ textarea {
+  width: 100%; min-height: 48px; padding: 10px 12px; font: inherit;
+  border: 2px solid var(--bord); border-radius: 10px; background: var(--carte); color: var(--texte);
+}
+.mt-champ input:focus, .mt-champ textarea:focus { outline: none; border-color: var(--accent); }
+.mt-champ .mt-nombre { width: 7em; text-align: center; font-weight: 800; }
+.mt-enregistre { margin: 4px 0 0; font-size: 0.85rem; font-weight: 600; color: var(--texte-doux); }
+.mt-entree { padding: 8px 0; border-top: 1px solid var(--bord); }
+.mt-entree:first-of-type { border-top: none; }
+.mt-entree dl { margin: 4px 0 0; }
+.mt-entree dt { font-size: 0.85rem; font-weight: 700; color: var(--texte-doux); margin-top: 6px; }
+.mt-entree dd { margin: 0; white-space: pre-wrap; }
+.mt-supprimer { font-size: 0.85rem; margin-top: 6px; }
+.mt-refaire { margin-top: 10px; min-height: 48px; }
