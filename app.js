@@ -546,6 +546,7 @@ function changerVue(vue) {
   });
   if (vue === "biblio") afficherBibliotheque();
   if (vue === "prepa") afficherPrepa();             // dans prepa.js
+  if (vue === "mental") afficherMental();           // dans mental.js
   if (vue === "parcours") afficherParcours();       // dans parcours.js
   if (vue === "historique") afficherHistorique();   // dans parcours.js
   if (vue === "admin") ouvrirAdmin();               // dans serie.js

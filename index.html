@@ -37,6 +37,7 @@
   <nav class="onglets" aria-label="Vues">
     <button type="button" class="onglet actif" data-vue="jour" aria-pressed="true">Aujourd'hui</button>
     <button type="button" class="onglet" data-vue="prepa" aria-pressed="false">💪 Prépa</button>
+    <button type="button" class="onglet" data-vue="mental" aria-pressed="false">🧠 Mental</button>
     <button type="button" class="onglet" data-vue="parcours" aria-pressed="false">⛳ Parcours</button>
     <button type="button" class="onglet" data-vue="historique" aria-pressed="false">Historique</button>
     <button type="button" class="onglet" data-vue="biblio" aria-pressed="false">Bibliothèque</button>
@@ -66,6 +67,11 @@
     <!-- Prépa physique : « Qu'est-ce que tu veux faire ? » (prepa.js) -->
     <section id="vue-prepa" hidden>
       <div id="prepa"></div>
+    </section>
+
+    <!-- Entraînement mental (mental.js) -->
+    <section id="vue-mental" hidden>
+      <div id="mental"></div>
     </section>
 
     <!-- Vue 3 : noter une partie sur le parcours (parcours.js) -->
@@ -111,6 +117,8 @@
   <script src="compte.js"></script>
   <script src="chrono.js"></script>
   <script src="prepa.js"></script>
+  <script src="mental-data.js"></script>
+  <script src="mental.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
