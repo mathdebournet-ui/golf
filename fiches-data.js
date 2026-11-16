@@ -2,7 +2,7 @@
 // Copie de fiches.json, utilisée quand la page est ouverte sans serveur (double-clic).
 window.FICHES_SECOURS = {
   "version": 1,
-  "miseAJour": "2026-11-14",
+  "miseAJour": "2026-11-16",
   "fiches": [
     {
       "id": "2-feet-circle",
@@ -1228,7 +1228,8 @@ window.FICHES_SECOURS = {
         "nom": "Practical Golf – How to conquer the awkward wedge shot",
         "url": "https://practical-golf.com/how-to-conquer-the-awkward-wedge-shot"
       },
-      "statut": "valide"
+      "statut": "valide",
+      "trackman": "Le Trackman te donne le carry de chaque balle : note directement la moyenne de chaque case (7 h 30, 9 h, 10 h 30) pour chaque wedge."
     },
     {
       "id": "wedges-distances-aleatoires",
@@ -1258,7 +1259,8 @@ window.FICHES_SECOURS = {
         "nom": "Practical Golf – The foundations of effective wedge practice",
         "url": "https://practical-golf.com/effective-wedge-practice"
       },
-      "statut": "valide"
+      "statut": "valide",
+      "trackman": "Annonce la distance, joue, et lis le carry sur le Trackman : il te dit tout de suite si tu es dans la fenêtre de ± 10 %."
     },
     {
       "id": "neuf-trajectoires",
@@ -1346,7 +1348,8 @@ window.FICHES_SECOURS = {
         "nom": "Golf.com – Scott Munroe, fairway finder",
         "url": "https://golf.com/instruction/driving/how-to-hit-fairway-finder-scott-munroe/"
       },
-      "statut": "valide"
+      "statut": "valide",
+      "trackman": "Le Trackman affiche vitesse de club et distance de chaque drive : compare les 3 vitesses en chiffres."
     },
     {
       "id": "ligne-dans-le-sable",
@@ -2842,7 +2845,8 @@ window.FICHES_SECOURS = {
         "nom": "PGA of America – Three practice games to play better under pressure",
         "url": "https://www.pga.com/story/three-great-practice-games-to-help-you-play-better-golf-under-pressure"
       },
-      "statut": "valide"
+      "statut": "valide",
+      "trackman": "Pas besoin d'aller sur le parcours : joue 9 trous en parcours virtuel sur le Trackman (Virtual Golf), routine complète à chaque coup. Le Trackman compte fairways et greens touchés."
     },
     {
       "id": "echelle-de-wedges",
@@ -2872,7 +2876,8 @@ window.FICHES_SECOURS = {
         "nom": "Burnaby Mountain Golf – Short game wedge drills",
         "url": "https://www.golfburnaby.ca/blog/short-game-wedge-drills"
       },
-      "statut": "valide"
+      "statut": "valide",
+      "trackman": "Règle des cibles au Trackman (ou lis le carry de chaque balle) pour savoir si tu es à ± 5 m."
     },
     {
       "id": "squat-banc-developpe",
@@ -6337,7 +6342,8 @@ window.FICHES_SECOURS = {
         "url": "https://golfinsideruk.com/golf-insider-practice-system/"
       },
       "note": "La source ne donne pas les distances ni d'objectif chiffré : à toi de les choisir. Distances converties en mètres (8 pieds ≈ 2,4 m ; 21 pieds ≈ 6,4 m).",
-      "statut": "valide"
+      "statut": "valide",
+      "trackman": "Au Trackman, utilise les cibles (Target / Combine) : la distance au drapeau de chaque balle est mesurée, tu comptes les points sans deviner."
     },
     {
       "id": "jeu-hors-limites-drive",

@@ -203,6 +203,10 @@ function creneauxDuJour() {
   return CRENEAUX_GOLF;
 }
 
+// Interrupteur « 📡 Trackman » (Aujourd'hui) : sans Trackman, le tirage évite
+// les fiches marquées « trackman » dans fiches.json (choix de l'utilisateur, 16/11/2026)
+function aLeTrackman() { return lireStockage("trackman", false) === true; }
+
 // Choisit une fiche pour un créneau.
 //  - autres : les exercices déjà placés aujourd'hui ([{ creneau, fiche }])
 //  - idsRecents : exercices récents (évités si possible)
@@ -212,7 +216,7 @@ function creneauxDuJour() {
 function tirerPourCreneau(creneau, autres, idsRecents, exclus = new Set()) {
   const idsPris = new Set(autres.map((p) => p.fiche && p.fiche.id));
   let candidates = fichesValides.filter(
-    (f) => creneau.categories.includes(f.categorie) && !idsPris.has(f.id) && !exclus.has(f.id)
+    (f) => creneau.categories.includes(f.categorie) && !idsPris.has(f.id) && !exclus.has(f.id) && (!f.trackman || aLeTrackman())
   );
 
   // Practice : une catégorie différente de l'autre exercice du même bloc
@@ -296,6 +300,19 @@ function basculerFait(jour, idFiche) {
   ecrireJournee(jour, journee);
   noterExoFait(idFiche, fait);   // série de jours d'affilée (serie.js)
   afficherProgramme(jour);
+}
+
+function basculerTrackman(jour) {
+  const avec = !aLeTrackman();
+  ecrireStockage("trackman", avec);
+  if (!avec) {
+    const faits = lireJournee(jour).faits;
+    programmeCourant.forEach((p, position) => {
+      if (p.fiche && p.fiche.trackman && !faits.includes(p.fiche.id)) remplacerExercice(jour, position);
+    });
+  }
+  afficherProgramme(jour);
+  if (!document.getElementById("vue-biblio").hidden) afficherBibliotheque();
 }
 
 // « Autre exo » : remplace l'exercice à cette position par un autre qui
@@ -386,6 +403,7 @@ function carteFiche(fiche, options) {
       ${fiche.texteExtrait ? `<h4>Texte extrait du document</h4><p class="texte-extrait">${echapper(fiche.texteExtrait)}</p>` : ""}`;
   } else {
     contenu = `
+      ${fiche.trackman ? `<div class="bloc-trackman"><strong>📡 Au Trackman</strong>${echapper(fiche.trackman)}</div>` : ""}
       <h4>Matériel</h4>${liste(fiche.materiel, "ul")}
       <h4>Mise en place</h4>${liste(fiche.miseEnPlace, "ol")}
       <h4>Déroulé</h4>${liste(fiche.deroule, "ol")}
@@ -421,7 +439,7 @@ function carteFiche(fiche, options) {
 
   return `
     <article class="carte cat-${echapper(fiche.categorie)} ${options.fait ? "faite" : ""}">
-      <div class="carte-haut">${pastille}<span class="duree">⏱ ${Number(fiche.duree) || 0} min</span>${numero}</div>
+      <div class="carte-haut">${pastille}${fiche.trackman ? `<span class="pastille trackman">📡 Trackman</span>` : ""}<span class="duree">⏱ ${Number(fiche.duree) || 0} min</span>${numero}</div>
       <h3 class="carte-titre">${echapper(fiche.titre)}</h3>
       ${fiche.objectif ? `<p class="objectif">${echapper(fiche.objectif)}</p>` : ""}
       <details${options.ouvert ? " open" : ""}>
@@ -449,6 +467,7 @@ function afficherProgramme(jour) {
     <span class="resume-avancement">${nbFaits}/${presents.length} fait${nbFaits > 1 ? "s" : ""}</span>
     <p class="resume-detail">${PREPA_VISIBLE ? "Golf · le sport est dans l'onglet 💪 Prépa physique" : "Golf · prépa physique bientôt de retour"}</p>
     ${nbFaits === presents.length ? `<p class="resume-bravo">Journée terminée, bravo ! 🎉</p>` : ""}
+    <button type="button" class="interrupteur-trackman ${aLeTrackman() ? "actif" : ""}" data-action="trackman" aria-pressed="${aLeTrackman()}">📡 ${aLeTrackman() ? "J'ai le Trackman aujourd'hui" : "Pas de Trackman aujourd'hui"}</button>
     <button type="button" class="lien-bouton" data-action="nouveau-programme">🔄 Nouveau programme</button>`;
 
   // Un bloc par groupe (putting, chipping, practice) avec les exos pas encore faits ;
@@ -504,6 +523,7 @@ function afficherBibliotheque() {
     ...(PREPA_VISIBLE ? [["golf", "Golf"], ["physique", "Physique"]] : []),
     ...categoriesPresentes.map((c) => [c, NOMS_CATEGORIES[c]]),
   ];
+  if (fichesAffichees.some((f) => f.trackman)) filtres.push(["trackman", "📡 Trackman"]);
   if (fichesAffichees.some((f) => f.statut === "brouillon")) filtres.push(["brouillon", "À compléter"]);
 
   document.getElementById("filtres").innerHTML = filtres
@@ -515,6 +535,7 @@ function afficherBibliotheque() {
     .filter((f) => {
       if (filtreActif === "tous") return true;
       if (filtreActif === "brouillon") return f.statut === "brouillon";
+      if (filtreActif === "trackman") return !!f.trackman;
       if (filtreActif === "golf" || filtreActif === "physique") return f.type === filtreActif;
       return f.categorie === filtreActif;
     })
@@ -534,6 +555,7 @@ function afficherBibliotheque() {
   // Liste compacte : une ligne par fiche, un appui l'ouvre
   const outils = (f) => {
     if (f.statut === "brouillon") return "";
+    if (f.trackman) return " · 📡 Trackman";
     if (typeof exoDeLaFiche === "function" && exoDeLaFiche(f.id)) return " · 🎯 interactif";
     if (typeof avecCaseScore === "function" && avecCaseScore(f)) return " · 📝 score";
     return "";
@@ -672,6 +694,7 @@ async function demarrer() {
 
   document.getElementById("resume").addEventListener("click", (evenement) => {
     if (evenement.target.closest('button[data-action="nouveau-programme"]')) tirerNouveauProgramme(aujourdhui);
+    if (evenement.target.closest('button[data-action="trackman"]')) basculerTrackman(aujourdhui);
   });
 
   // Un seul écouteur pour tous les boutons des cartes (délégation)

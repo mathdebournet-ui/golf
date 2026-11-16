@@ -526,3 +526,11 @@ details[open] > summary::before { transform: rotate(90deg); }
 .ligne-fiche-titre { display: block; margin-top: 6px; font-weight: 800; font-size: 1.05rem; }
 .biblio-retour { margin-bottom: 10px; }
 #filtres[hidden] { display: none !important; }
+
+/* Trackman (v30) : pastille, encadré sur la fiche, interrupteur dans Aujourd'hui */
+.pastille.trackman { background: #3b4a5e; color: #fff; }
+.bloc-trackman { margin: 10px 0 4px; padding: 10px 12px; border-radius: 10px; background: color-mix(in srgb, #3b4a5e 12%, var(--carte)); border-left: 4px solid #3b4a5e; }
+.bloc-trackman strong { display: block; margin-bottom: 4px; }
+.interrupteur-trackman { font: inherit; font-weight: 700; cursor: pointer; padding: 8px 14px; border-radius: 999px; border: 2px dashed var(--bord); background: transparent; color: var(--texte-doux); }
+.interrupteur-trackman.actif { border-style: solid; border-color: #3b4a5e; background: #3b4a5e; color: #fff; }
+
