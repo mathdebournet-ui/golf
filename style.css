@@ -423,6 +423,7 @@ details[open] > summary::before { transform: rotate(90deg); }
 .cat-recuperation { --couleur-cat: #3a4f66; }
 .cat-a-classer { --couleur-cat: #555555; }
 
+<<<<<<< HEAD
 /* =========================================================
    Onglet 🧠 Mental (mental.js) — classes préfixées « mt- »
    ========================================================= */
@@ -487,3 +488,14 @@ details[open] > summary::before { transform: rotate(90deg); }
 @media (prefers-reduced-motion: reduce) { .mt-bulle, .mt-anneau { transition: none; } }
 /* « hidden » doit toujours gagner sur les display ci-dessus (minuteur, feuille, boutons) */
 .mt-minuteur[hidden], .mt-voile[hidden], .mt-feuille[hidden], .mt-minuteur [hidden] { display: none !important; }
+=======
+/* ---------- Exo « jusqu'à N » (couloir de précision) : une pastille par balle ---------- */
+.pastilles-balles { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin: 8px 0; }
+.pastille-balle {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border-radius: 50%;
+  font-weight: 700; font-size: 0.9rem;
+}
+.pastille-balle.rentre { background: var(--accent); color: var(--accent-texte); }
+.pastille-balle.rate { background: var(--erreur-fond); color: var(--erreur-texte); }
+>>>>>>> c4fef5e18ce45f38d33ff282238d46c09eb16bbf

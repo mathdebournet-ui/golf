@@ -83,6 +83,10 @@ Page web statique (GitHub Pages) qui propose chaque jour un programme golf + une
   - **Plus de case « Mon score » à remplir à la main** sur les exos de putting (demande utilisateur) : le score vient uniquement de l'exo interactif. La carte garde dernier score / record et « Effacer le dernier score ».
   - Testé en local en 375 px : chaque exo ouvert, putts notés, fin de tour (score, moyennes, exo coché Fait), séries avec raté, tableaux admin (données de test), badge 🔥 toujours OK. Pas d'envoi en ligne pendant le test. Cache `golf-seance-v25`.
 
+- **Couloir de précision (fers) interactif** (15/11/2026, demande utilisateur, premier exo interactif hors putting) : nouveau mode « jusqu'à N » dans `exos-points.js` (`jusqua: 5`) : ✅ Dans le couloir / ❌ Hors couloir, fin automatique à 5 balles réussies, bouton « Annuler la dernière balle », pastilles ✓/✗. Score = balles jouées, **moins = mieux** (`SCORES_PLUS_BAS_MIEUX` dans scores.js, record et « nouveau record » inversés). Case score aussi sur les exos interactifs hors putting (`avecCaseScore`). Espace admin : famille « 🏌️ Practice ». Testé en 375 px (2 tours, annulation, record). Cache `golf-seance-v26`.
+- **9 trajectoires (fers) interactif** (15/11/2026, demande utilisateur) : nouveau mode « progression » (`progression: true`) : grille 3 × 3 (Haut/Moyen/Bas × Fade/Droit/Draw), coups dans l'ordre de la fiche ; ✅ Réussi = coup suivant, ❌ Raté = on rejoue le même (« +N » sous le rond). Fin au 9e coup réussi, score = balles jouées (moins = mieux, `SCORES_PLUS_BAS_MIEUX`). « Annuler la dernière balle ». Carte : grille de réussite par coup. Admin : famille 🏌️ Practice. Variante difficile (ordre au hasard, une seule balle par coup) **non faite** : son score ne se compare pas au mode normal. Testé en 375 px.
+- [ ] Suite possible : rendre interactifs les autres exos de practice / chipping / bunker (liste proposée le 15/11/2026).
+
 ## Prochaines étapes
 - [x] Publier sur GitHub Pages.
 - Mises à jour : GitHub Desktop → message → **Commit to main** → **Push origin**.

@@ -350,7 +350,7 @@ function htmlPuttingAdmin() {
     .sort((a, b) => a.titre.localeCompare(b.titre, "fr"))
     .map((e) => {
       const dernier = e.liste[e.liste.length - 1];
-      const record = Math.max(...e.liste.map((x) => x.v));
+      const record = meilleurScore(e.idFiche, e.liste.map((x) => x.v));   // scores.js
       const recents = e.liste.slice(-5).map((x) => x.v).join(" · ");
       return `<tr>
         <td>${echapper(e.titre)}</td>
@@ -375,6 +375,21 @@ function htmlExoPointsAdmin(exo) {
     .map((s) => ({ joueur: s.joueur, stats: statsDe(exo, s.exosPoints[exo]) }))
     .sort((a, b) => b.stats.rentres - a.stats.rentres);
   if (lignes.length === 0) return `<p class="petit">Aucun ${config.nom} joué pour l'instant.</p>`;
+  if (enJusqua(exo) || enProgression(exo)) {
+    // Moins de balles = mieux : on trie dans l'autre sens
+    lignes.sort((a, b) => a.stats.total - b.stats.total);
+    const quoi = enJusqua(exo) ? `${config.modes[Object.keys(config.modes)[0]].jusqua} ${echapper(motReussi(exo))}` : `les ${config.points.length} coups`;
+    return `<p class="petit">Balles jouées pour ${quoi} (moins = mieux).</p>
+    <div class="tableau-defilant"><table class="tableau-admin">
+      <thead><tr><th>Joueur</th><th>Tours</th><th>Moyenne</th><th>Meilleur</th></tr></thead>
+      <tbody>${lignes.map((l) => `<tr>
+        <td>${echapper(l.joueur)}</td>
+        <td class="nombre">${l.stats.nombre}</td>
+        <td class="nombre">${virgule(l.stats.total)}</td>
+        <td class="nombre">${l.stats.meilleur}</td>
+      </tr>`).join("")}</tbody>
+    </table></div>`;
+  }
   if (enSerie(exo)) {
     return `<div class="tableau-defilant"><table class="tableau-admin">
       <thead><tr><th>Joueur</th><th>Séries</th><th>Moyenne</th><th>Meilleure</th></tr></thead>

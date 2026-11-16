@@ -3,7 +3,8 @@
    ---------------------------------------------------------
    - Sur chaque carte de putting d'« Aujourd'hui » : on tape son
      score, l'appli garde l'historique, le dernier score et le record.
-   - Pour tous ces exos, plus le score est haut, mieux c'est.
+   - Plus le score est haut, mieux c'est, SAUF pour les exos de
+     SCORES_PLUS_BAS_MIEUX (ex. couloir de précision : moins de balles = mieux).
    - Les scores sont envoyés en ligne (Firestore, collection
      « scores ») : SEUL l'administrateur peut les lire (Espace admin).
    Utilise : lireStockage / ecrireStockage / dateEnTexte / echapper (app.js),
@@ -32,7 +33,21 @@ const UNITES_SCORE = {
   "cercle-mickelson": "d'affilée",
   "echelle-de-dosage": "balles réussies",
   "echelle-inversee": "balles",
+  "couloir-precision-fers": "balles",
+  "neuf-trajectoires": "balles",
 };
+
+// Exos où le PLUS PETIT score est le meilleur (nombre de balles pour réussir)
+const SCORES_PLUS_BAS_MIEUX = new Set(["couloir-precision-fers", "neuf-trajectoires"]);
+
+// Meilleur score d'une liste de valeurs (le plus haut, ou le plus bas selon l'exo)
+function meilleurScore(idFiche, valeurs) {
+  return SCORES_PLUS_BAS_MIEUX.has(idFiche) ? Math.min(...valeurs) : Math.max(...valeurs);
+}
+// Vrai si « nouveau » bat « ancien »
+function meilleurQue(idFiche, nouveau, ancien) {
+  return SCORES_PLUS_BAS_MIEUX.has(idFiche) ? nouveau < ancien : nouveau > ancien;
+}
 
 function lireScores() {
   const scores = lireStockage("scores", {}, PREFIXE_SCORES);
@@ -40,7 +55,8 @@ function lireScores() {
 }
 function ecrireScores(scores) { return ecrireStockage("scores", scores, PREFIXE_SCORES); }
 
-function avecCaseScore(fiche) { return fiche.categorie === "putting"; }
+// Case score : exos de putting + exos interactifs des autres catégories (practice…)
+function avecCaseScore(fiche) { return fiche.categorie === "putting" || !!exoDeLaFiche(fiche.id); }
 
 // Texte d'un score avec son unité : « 9 / 12 », « 85 % », « 7 balles »
 function texteScore(idFiche, valeur) {
@@ -51,11 +67,11 @@ function texteScore(idFiche, valeur) {
 }
 
 // { dernier, record, nombre } pour un exo (null si aucun score)
-function resumeScores(liste) {
+function resumeScores(liste, idFiche) {
   if (!liste || liste.length === 0) return null;
   return {
     dernier: liste[liste.length - 1],
-    record: Math.max(...liste.map((s) => s.v)),
+    record: meilleurScore(idFiche, liste.map((s) => s.v)),
     nombre: liste.length,
   };
 }
@@ -65,7 +81,7 @@ function caseScore(fiche) {
   if (!avecCaseScore(fiche)) return "";
   const id = echapper(fiche.id);
   const unite = UNITES_SCORE[fiche.id] || "";
-  const r = resumeScores(lireScores()[fiche.id]);
+  const r = resumeScores(lireScores()[fiche.id], fiche.id);
   const resume = r
     ? `Dernier : <strong>${echapper(texteScore(fiche.id, r.dernier.v))}</strong> (${echapper(dateLisible(r.dernier.d))}) · 🏆 Record : <strong>${echapper(texteScore(fiche.id, r.record))}</strong> · ${r.nombre} score${r.nombre > 1 ? "s" : ""}`
     : "Pas encore de score : note le tien pour suivre tes progrès.";
