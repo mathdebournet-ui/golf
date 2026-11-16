@@ -56,7 +56,9 @@ function lireScores() {
 function ecrireScores(scores) { return ecrireStockage("scores", scores, PREFIXE_SCORES); }
 
 // Case score : exos de putting + exos interactifs des autres catégories (practice…)
-function avecCaseScore(fiche) { return fiche.categorie === "putting" || !!exoDeLaFiche(fiche.id); }
+function avecCaseScore(fiche) {
+  return fiche.categorie === "putting" || !!exoDeLaFiche(fiche.id) || (typeof jeuZonesDeLaFiche === "function" && !!jeuZonesDeLaFiche(fiche.id));
+}
 
 // Texte d'un score avec son unité : « 9 / 12 », « 85 % », « 7 balles »
 function texteScore(idFiche, valeur) {
@@ -85,6 +87,15 @@ function caseScore(fiche) {
   const resume = r
     ? `Dernier : <strong>${echapper(texteScore(fiche.id, r.dernier.v))}</strong> (${echapper(dateLisible(r.dernier.d))}) · 🏆 Record : <strong>${echapper(texteScore(fiche.id, r.record))}</strong> · ${r.nombre} score${r.nombre > 1 ? "s" : ""}`
     : "Pas encore de score : note le tien pour suivre tes progrès.";
+  // Jeux « une balle = un appui » (jeux-zones.js) : score seulement par le jeu
+  if (typeof jeuZonesDeLaFiche === "function" && jeuZonesDeLaFiche(fiche.id)) {
+    return `
+    <div class="score-exo" data-score-id="${id}">
+      ${zoneJeuZones(fiche.id)}
+      ${r ? `<p class="petit">${resume}</p>
+             <button type="button" class="lien-bouton" data-action="score-effacer" data-id="${id}">↶ Effacer le dernier score</button>` : ""}
+    </div>`;
+  }
   // Snail : pas de case score (choix de l'utilisateur), seulement le jeu et ses moyennes
   const exo = exoDeLaFiche(fiche.id);
   if (exo && sansScore(exo)) return `<div class="score-exo" data-score-id="${id}">${zoneExoPoints(fiche.id)}</div>`;

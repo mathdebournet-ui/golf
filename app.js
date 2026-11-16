@@ -417,7 +417,7 @@ function carteFiche(fiche, options) {
 
   // Exo de putting interactif (exos-points.js) : pas de bouton « Fait », il est
   // coché seulement en jouant l'exo (choix de l'utilisateur, 14/11/2026)
-  const boutonFait = exoDeLaFiche(fiche.id) ? "" : `
+  const boutonFait = exoDeLaFiche(fiche.id) || (typeof jeuZonesDeLaFiche === "function" && jeuZonesDeLaFiche(fiche.id)) ? "" : `
         <button type="button" class="bouton ${options.fait ? "fait" : "principal"}" data-action="fait" data-id="${echapper(fiche.id)}" aria-pressed="${options.fait}">
           ${options.fait ? "✓ Fait" : "Fait ✓"}
         </button>`;
@@ -555,8 +555,9 @@ function afficherBibliotheque() {
   // Liste compacte : une ligne par fiche, un appui l'ouvre
   const outils = (f) => {
     if (f.statut === "brouillon") return "";
-    if (f.trackman) return " · 📡 Trackman";
-    if (typeof exoDeLaFiche === "function" && exoDeLaFiche(f.id)) return " · 🎯 interactif";
+    const trackman = f.trackman ? " · 📡 Trackman" : "";
+    if ((typeof exoDeLaFiche === "function" && exoDeLaFiche(f.id)) || (typeof jeuZonesDeLaFiche === "function" && jeuZonesDeLaFiche(f.id))) return trackman + " · 🎯 interactif";
+    if (trackman) return trackman;
     if (typeof avecCaseScore === "function" && avecCaseScore(f)) return " · 📝 score";
     return "";
   };

@@ -534,3 +534,17 @@ details[open] > summary::before { transform: rotate(90deg); }
 .interrupteur-trackman { font: inherit; font-weight: 700; cursor: pointer; padding: 8px 14px; border-radius: 999px; border: 2px dashed var(--bord); background: transparent; color: var(--texte-doux); }
 .interrupteur-trackman.actif { border-style: solid; border-color: #3b4a5e; background: #3b4a5e; color: #fff; }
 
+/* Jeux « une balle = un appui » (jeux-zones.js, v31) */
+.jz-phase { margin: 12px 0 6px; font-size: 1.1rem; text-align: center; }
+.jz-balles { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin: 6px 0 10px; }
+.jz-balle { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--bord); background: transparent; }
+.jz-balle.jz-bon { background: var(--accent); border-color: var(--accent); }
+.jz-balle.jz-moyen { background: #c9a227; border-color: #c9a227; }
+.jz-balle.jz-mauvais { background: var(--erreur-texte); border-color: var(--erreur-texte); }
+.jz-zones { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 8px 0 16px; }
+.jz-zone { min-height: 72px; font-size: 1.05rem; white-space: normal; line-height: 1.2; }
+.jz-zone.jz-bon { grid-column: 1 / -1; background: var(--accent); border-color: var(--accent); color: var(--accent-texte); }
+.jz-zone.jz-mauvais { border-color: var(--erreur-texte); color: var(--erreur-texte); }
+.jz-bilan { margin: 12px 0; }
+.jz-bilan ul { margin: 6px 0 10px; }
+

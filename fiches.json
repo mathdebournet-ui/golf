@@ -6405,6 +6405,102 @@
       },
       "note": "Distances converties en mètres (30 yards ≈ 27 m ; 50 yards ≈ 46 m ; 3 pieds ≈ 90 cm ; 6 pieds ≈ 1,8 m). Barèmes de la source, sur green réceptif.",
       "statut": "valide"
+    },
+    {
+      "id": "green-imaginaire-points",
+      "titre": "Green imaginaire à points",
+      "type": "golf",
+      "categorie": "fers",
+      "duree": 20,
+      "objectif": "Jouer chaque coup de fer comme sur le parcours : viser le bon côté du green et éviter le coup qui coûte un double bogey.",
+      "materiel": [
+        "Fers moyens et longs",
+        "20 balles"
+      ],
+      "miseEnPlace": [
+        "Choisis un drapeau au practice et imagine un green autour (environ 25 m de large).",
+        "Imagine un danger d'un côté (bunker ou eau) : c'est le « mauvais côté ». L'autre côté est le « bon côté » (chip facile)."
+      ],
+      "deroule": [
+        "Joue 4 séries de 5 balles, routine complète à chaque balle.",
+        "Sur le green : +2. Raté du bon côté : +1. Raté ailleurs (court, long) : 0. Bunker, eau ou mauvais côté : −2.",
+        "Change de danger (gauche / droite) à chaque série.",
+        "Compte le score de chaque série de 5 balles."
+      ],
+      "reussite": "4 points par série = correct ; 6 points ou plus sur deux séries d'affilée = ton jeu de fers tient sous pression.",
+      "varianteFacile": "Green de 35 m, ou fer plus court.",
+      "varianteDifficile": "Green de 18 m, et −2 aussi pour une balle courte.",
+      "source": {
+        "type": "web",
+        "nom": "Golflink – Why 150 to 200 yards costs 15-handicappers so many shots",
+        "url": "https://golflink.com/instruction/improve-150-200-yard-play"
+      },
+      "note": "Barème inspiré de l'article (de +2 sur le green à −2 dans le danger), séries de 5 coups. Le +1 / 0 intermédiaire est une adaptation.",
+      "trackman": "En parcours virtuel ou sur une cible Trackman : le point de chute et l'arrêt de la balle sont mesurés, tu vois tout de suite si c'est green (+2), bon côté (+1), ailleurs (0) ou danger (−2).",
+      "statut": "valide"
+    },
+    {
+      "id": "duel-driver-bois-3",
+      "titre": "Duel driver contre bois 3",
+      "type": "golf",
+      "categorie": "drive",
+      "duree": 15,
+      "objectif": "Savoir avec des chiffres quel club prendre sur un départ serré : le driver est-il vraiment moins précis que le bois 3 ?",
+      "materiel": [
+        "Driver",
+        "Bois 3",
+        "20 balles"
+      ],
+      "miseEnPlace": [
+        "Choisis deux repères qui forment un fairway d'environ 30 m de large."
+      ],
+      "deroule": [
+        "Joue 10 drives au driver, routine complète à chaque balle.",
+        "Puis 10 balles au bois 3 vers le même fairway.",
+        "Pour chaque balle : fairway, ratée à gauche ou ratée à droite.",
+        "Compare les deux clubs : fairways touchés et côté des ratés."
+      ],
+      "reussite": "Connaître ton club de départ « sûr » : celui qui touche le plus de fairways. Note aussi de quel côté tu rates.",
+      "varianteFacile": "Fairway de 40 m.",
+      "varianteDifficile": "Fairway de 22 m, ou ajoute 10 balles avec ton fer de départ.",
+      "source": {
+        "type": "web",
+        "nom": "MyGolfSpy – Why can I hit driver on the range but not on the course?",
+        "url": "https://mygolfspy.com/news-opinion/why-can-i-hit-driver-on-the-range-but-not-on-the-course/"
+      },
+      "note": "Ne rejoue pas tout de suite une balle ratée : une balle = un départ, comme sur le parcours.",
+      "statut": "valide"
+    },
+    {
+      "id": "couloir-20-drives-3-criteres",
+      "titre": "Couloir 20 drives, 3 critères",
+      "type": "golf",
+      "categorie": "drive",
+      "duree": 20,
+      "objectif": "Des drives de qualité « parcours » : dans le couloir, bien centrés et avec la forme de balle voulue.",
+      "materiel": [
+        "Driver",
+        "20 balles"
+      ],
+      "miseEnPlace": [
+        "Choisis deux repères qui forment un couloir d'environ 37 m de large.",
+        "Choisis ta forme de balle du jour (fade ou draw) avant de commencer."
+      ],
+      "deroule": [
+        "Joue 20 drives, routine complète à chaque balle.",
+        "Un drive compte seulement s'il remplit les 3 critères : dans le couloir, frappe centrée (bon son, bonne sensation), forme de balle voulue.",
+        "Pour chaque balle, note : les 3 critères, dans le couloir mais un critère raté, hors couloir à gauche ou à droite."
+      ],
+      "reussite": "Au moins 12 drives sur 20 qui remplissent les 3 critères, et battre ton record.",
+      "varianteFacile": "Couloir de 45 m, forme de balle libre.",
+      "varianteDifficile": "Couloir de 27 m, en alternant fade et draw annoncés.",
+      "source": {
+        "type": "web",
+        "nom": "TopSpeed Golf – test de driving en couloir",
+        "url": "https://members.topspeedgolf.com/?p=112923"
+      },
+      "note": "40 yards ≈ 37 m. Critères détaillés adaptés à partir du principe du test (un drive ne compte que s'il remplit les 3 critères).",
+      "statut": "valide"
     }
   ],
   "fichiersAnalyses": {
