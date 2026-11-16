@@ -171,9 +171,9 @@ body.accueil-actif main > section[id^="vue-"] { display: none; }
 
 /* ---------- Onglets ---------- */
 /* Téléphone : 2 lignes de 3 onglets ; écran large : les 6 sur une ligne */
-.onglets { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
+.onglets { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 16px; }
 @media (min-width: 600px) {
-  .onglets { grid-template-columns: repeat(6, 1fr); }
+  .onglets { grid-template-columns: repeat(6, minmax(0, 1fr)); }
 }
 .onglet {
   min-height: 52px; padding: 0 2px; font-size: 0.85rem; white-space: nowrap;
@@ -423,7 +423,6 @@ details[open] > summary::before { transform: rotate(90deg); }
 .cat-recuperation { --couleur-cat: #3a4f66; }
 .cat-a-classer { --couleur-cat: #555555; }
 
-<<<<<<< HEAD
 /* =========================================================
    Onglet 🧠 Mental (mental.js) — classes préfixées « mt- »
    ========================================================= */
@@ -488,7 +487,6 @@ details[open] > summary::before { transform: rotate(90deg); }
 @media (prefers-reduced-motion: reduce) { .mt-bulle, .mt-anneau { transition: none; } }
 /* « hidden » doit toujours gagner sur les display ci-dessus (minuteur, feuille, boutons) */
 .mt-minuteur[hidden], .mt-voile[hidden], .mt-feuille[hidden], .mt-minuteur [hidden] { display: none !important; }
-=======
 /* ---------- Exo « jusqu'à N » (couloir de précision) : une pastille par balle ---------- */
 .pastilles-balles { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin: 8px 0; }
 .pastille-balle {
@@ -498,4 +496,7 @@ details[open] > summary::before { transform: rotate(90deg); }
 }
 .pastille-balle.rentre { background: var(--accent); color: var(--accent-texte); }
 .pastille-balle.rate { background: var(--erreur-fond); color: var(--erreur-texte); }
->>>>>>> c4fef5e18ce45f38d33ff282238d46c09eb16bbf
+
+/* Onglet grisé (fonction pas encore prête, ex. Prépa en refonte) */
+.onglet:disabled { opacity: 0.5; border-style: dashed; cursor: not-allowed; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.1; }
+.onglet .bientot { display: block; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }

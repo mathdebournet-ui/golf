@@ -18,6 +18,9 @@
 const JOURS_A_EVITER = 3;            // ne pas reproposer les exos des 3 derniers jours
 const PREFIXE_STOCKAGE = "golf-seance-v3:";
 const JOURS_CONSERVES = 30;          // on efface les données de plus de 30 jours
+// Prépa physique en cours de refonte (16/11/2026) : false = onglet 💪 Prépa grisé
+// « bientôt » et fiches physiques retirées de la Bibliothèque. Mettre true pour tout remettre.
+const PREPA_VISIBLE = false;
 
 // Programme golf : chaque ligne = 1 exercice (un « créneau »)
 const CRENEAUX_GOLF = [
@@ -443,7 +446,7 @@ function afficherProgramme(jour) {
   document.getElementById("resume").innerHTML = `
     <span class="resume-total">⏱ ${formaterDuree(duree(presents))}</span>
     <span class="resume-avancement">${nbFaits}/${presents.length} fait${nbFaits > 1 ? "s" : ""}</span>
-    <p class="resume-detail">Golf · le sport est dans l'onglet 💪 Prépa physique</p>
+    <p class="resume-detail">${PREPA_VISIBLE ? "Golf · le sport est dans l'onglet 💪 Prépa physique" : "Golf · prépa physique bientôt de retour"}</p>
     ${nbFaits === presents.length ? `<p class="resume-bravo">Journée terminée, bravo ! 🎉</p>` : ""}
     <button type="button" class="lien-bouton" data-action="nouveau-programme">🔄 Nouveau programme</button>`;
 
@@ -491,20 +494,23 @@ function blocTermines(cartes) {
 }
 
 function afficherBibliotheque() {
+  // Prépa en refonte : on ne montre que les fiches golf (voir PREPA_VISIBLE)
+  const fichesAffichees = PREPA_VISIBLE ? toutesLesFiches : toutesLesFiches.filter((f) => f.type !== "physique");
   // Boutons de filtre : Tous, Golf, Physique, chaque catégorie présente, À compléter
-  const categoriesPresentes = Object.keys(NOMS_CATEGORIES).filter((c) => toutesLesFiches.some((f) => f.categorie === c));
+  const categoriesPresentes = Object.keys(NOMS_CATEGORIES).filter((c) => fichesAffichees.some((f) => f.categorie === c));
   const filtres = [
-    ["tous", "Tous"], ["golf", "Golf"], ["physique", "Physique"],
+    ["tous", "Tous"],
+    ...(PREPA_VISIBLE ? [["golf", "Golf"], ["physique", "Physique"]] : []),
     ...categoriesPresentes.map((c) => [c, NOMS_CATEGORIES[c]]),
   ];
-  if (toutesLesFiches.some((f) => f.statut === "brouillon")) filtres.push(["brouillon", "À compléter"]);
+  if (fichesAffichees.some((f) => f.statut === "brouillon")) filtres.push(["brouillon", "À compléter"]);
 
   document.getElementById("filtres").innerHTML = filtres
     .map(([valeur, nom]) =>
       `<button type="button" class="filtre ${valeur === filtreActif ? "actif" : ""}" data-filtre="${valeur}" aria-pressed="${valeur === filtreActif}">${echapper(nom)}</button>`)
     .join("");
 
-  const visibles = toutesLesFiches
+  const visibles = fichesAffichees
     .filter((f) => {
       if (filtreActif === "tous") return true;
       if (filtreActif === "brouillon") return f.statut === "brouillon";
@@ -536,6 +542,7 @@ function afficherErreur(code, complement = "") {
 
 // Affiche une vue (jour, biblio, parcours, historique) et cache les autres
 function changerVue(vue) {
+  if (vue === "prepa" && !PREPA_VISIBLE) vue = "jour";   // Prépa en refonte
   document.querySelectorAll("main > section[id^='vue-']").forEach((section) => {
     section.hidden = section.id !== "vue-" + vue;
   });
@@ -587,6 +594,13 @@ async function demarrer() {
   const memoireOk = stockageDisponible();
   nettoyerVieuxJours();
 
+  // Prépa en refonte : onglet visible mais grisé, avec la mention « bientôt »
+  if (!PREPA_VISIBLE) {
+    const ongletPrepa = document.querySelector(".onglet[data-vue='prepa']");
+    ongletPrepa.disabled = true;
+    ongletPrepa.innerHTML = `💪 Prépa <small class="bientot">bientôt</small>`;
+    ongletPrepa.title = "La prépa physique revient bientôt";
+  }
   // Onglets branchés tout de suite : « Parcours » marche même sans les fiches
   document.querySelectorAll(".onglet").forEach((bouton) => {
     bouton.addEventListener("click", () => changerVue(bouton.dataset.vue));
@@ -630,7 +644,7 @@ async function demarrer() {
   }
   afficherProgramme(aujourdhui);
   // Onglet Prépa ouvert avant la fin du chargement : on l'affiche maintenant
-  if (!document.getElementById("vue-prepa").hidden) afficherPrepa();
+  if (PREPA_VISIBLE && !document.getElementById("vue-prepa").hidden) afficherPrepa();
 
   document.getElementById("resume").addEventListener("click", (evenement) => {
     if (evenement.target.closest('button[data-action="nouveau-programme"]')) tirerNouveauProgramme(aujourdhui);
