@@ -520,3 +520,9 @@ details[open] > summary::before { transform: rotate(90deg); }
 .mt-entree dd { margin: 0; white-space: pre-wrap; }
 .mt-supprimer { font-size: 0.85rem; margin-top: 6px; }
 .mt-refaire { margin-top: 10px; min-height: 48px; }
+
+/* Bibliothèque golf compacte (v29) : une ligne par fiche, un appui l'ouvre */
+.ligne-fiche { display: block; width: 100%; text-align: left; font: inherit; color: var(--texte); cursor: pointer; margin-bottom: 10px; padding: 12px 14px; }
+.ligne-fiche-titre { display: block; margin-top: 6px; font-weight: 800; font-size: 1.05rem; }
+.biblio-retour { margin-bottom: 10px; }
+#filtres[hidden] { display: none !important; }

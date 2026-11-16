@@ -115,9 +115,10 @@ function caseScore(fiche) {
 }
 
 function rafraichirCaseScore(idFiche) {
-  const zone = document.querySelector(`.score-exo[data-score-id="${CSS.escape(idFiche)}"]`);
+  // La même fiche peut être affichée deux fois (programme du jour + bibliothèque)
   const fiche = fichesValides.find((f) => f.id === idFiche);
-  if (zone && fiche) zone.outerHTML = caseScore(fiche);
+  if (!fiche) return;
+  document.querySelectorAll(`.score-exo[data-score-id="${CSS.escape(idFiche)}"]`).forEach((zone) => { zone.outerHTML = caseScore(fiche); });
 }
 
 function enregistrerScore(idFiche, valeur) {

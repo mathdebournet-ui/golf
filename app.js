@@ -80,6 +80,7 @@ let toutesLesFiches = [];   // toutes les fiches (y compris brouillons)
 let fichesValides = [];     // seulement celles utilisables dans le programme
 let programmeCourant = [];  // programme affiché : [{ creneau, fiche }]
 let filtreActif = "tous";   // filtre de la bibliothèque
+let ficheOuverte = null;    // fiche ouverte dans la bibliothèque (null = liste compacte)
 
 
 /* =========================================================
@@ -369,7 +370,7 @@ function texteSource(fiche) {
 }
 
 // Construit le HTML d'une carte d'exercice
-// options : { position, numero, fait, avecActions }
+// options : { position, numero, fait, avecActions, avecScore, ouvert }
 function carteFiche(fiche, options) {
   const brouillon = fiche.statut === "brouillon";
   const nomCategorie = NOMS_CATEGORIES[fiche.categorie] || fiche.categorie;
@@ -416,14 +417,14 @@ function carteFiche(fiche, options) {
 
   // Chrono (chrono.js) et case score du putting (scores.js)
   const chronos = brouillon ? "" : boutonsChrono(fiche);
-  const score = options.avecActions && !brouillon ? caseScore(fiche) : "";
+  const score = (options.avecActions || options.avecScore) && !brouillon ? caseScore(fiche) : "";
 
   return `
     <article class="carte cat-${echapper(fiche.categorie)} ${options.fait ? "faite" : ""}">
       <div class="carte-haut">${pastille}<span class="duree">⏱ ${Number(fiche.duree) || 0} min</span>${numero}</div>
       <h3 class="carte-titre">${echapper(fiche.titre)}</h3>
       ${fiche.objectif ? `<p class="objectif">${echapper(fiche.objectif)}</p>` : ""}
-      <details>
+      <details${options.ouvert ? " open" : ""}>
         <summary>${brouillon ? "Voir le brouillon" : "Comment faire"}</summary>
         ${contenu}
         <p class="source">${texteSource(fiche)}</p>
@@ -519,9 +520,32 @@ function afficherBibliotheque() {
     })
     .sort((a, b) => a.type.localeCompare(b.type) || a.categorie.localeCompare(b.categorie) || a.titre.localeCompare(b.titre, "fr"));
 
+  // Fiche ouverte : explication dépliée + jeu / score / chrono, comme dans le programme du jour
+  const ouverte = fichesAffichees.find((f) => f.id === ficheOuverte);
+  if (ouverte) {
+    document.getElementById("filtres").hidden = true;
+    document.getElementById("liste").innerHTML = `
+      <button type="button" class="lien-bouton biblio-retour" data-biblio-retour>← Toutes les fiches</button>
+      ${carteFiche(ouverte, { avecActions: false, avecScore: true, ouvert: true })}`;
+    return;
+  }
+  document.getElementById("filtres").hidden = false;
+
+  // Liste compacte : une ligne par fiche, un appui l'ouvre
+  const outils = (f) => {
+    if (f.statut === "brouillon") return "";
+    if (typeof exoDeLaFiche === "function" && exoDeLaFiche(f.id)) return " · 🎯 interactif";
+    if (typeof avecCaseScore === "function" && avecCaseScore(f)) return " · 📝 score";
+    return "";
+  };
   document.getElementById("liste").innerHTML =
     `<p class="compte">${visibles.length} fiche${visibles.length > 1 ? "s" : ""}</p>` +
-    visibles.map((f) => carteFiche(f, { avecActions: false })).join("");
+    visibles.map((f) => `
+      <button type="button" class="carte ligne-fiche cat-${echapper(f.categorie)}" data-biblio-ouvrir="${echapper(f.id)}">
+        <span class="carte-haut">${f.statut === "brouillon" ? `<span class="pastille brouillon">À compléter</span>` : `<span class="pastille">${echapper(NOMS_CATEGORIES[f.categorie] || f.categorie)}</span>`}
+          <span class="duree">⏱ ${Number(f.duree) || 0} min${outils(f)}</span></span>
+        <span class="ligne-fiche-titre">${echapper(f.titre)} ›</span>
+      </button>`).join("");
 }
 
 function afficherBadges(nombreBrouillons, memoireOk) {
@@ -551,7 +575,7 @@ function changerVue(vue) {
     bouton.classList.toggle("actif", actif);
     bouton.setAttribute("aria-pressed", String(actif));
   });
-  if (vue === "biblio") afficherBibliotheque();
+  if (vue === "biblio") { ficheOuverte = null; afficherBibliotheque(); }
   if (vue === "prepa") afficherPrepa();             // dans prepa.js
   if (vue === "mental") afficherMental();           // dans mental.js
   if (vue === "parcours") afficherParcours();       // dans parcours.js
@@ -656,6 +680,16 @@ async function demarrer() {
     if (!bouton) return;
     if (bouton.dataset.action === "fait") basculerFait(aujourdhui, bouton.dataset.id);
     if (bouton.dataset.action === "autre") remplacerExercice(aujourdhui, Number(bouton.dataset.position));
+  });
+
+  // Bibliothèque : ouvrir une fiche / revenir à la liste
+  document.getElementById("liste").addEventListener("click", (evenement) => {
+    const ouvrir = evenement.target.closest("[data-biblio-ouvrir]");
+    const retour = evenement.target.closest("[data-biblio-retour]");
+    if (!ouvrir && !retour) return;
+    ficheOuverte = ouvrir ? ouvrir.dataset.biblioOuvrir : null;
+    afficherBibliotheque();
+    window.scrollTo(0, 0);
   });
 
   document.getElementById("filtres").addEventListener("click", (evenement) => {
