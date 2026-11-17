@@ -1,0 +1,1603 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2f9e5b">
+<title>Fairway Tycoon</title>
+<style>
+/* =====================================================================
+   STYLES
+   ===================================================================== */
+:root {
+  --vert: #2f9e5b;
+  --vert-fonce: #1f7a43;
+  --vert-clair: #e3f6e8;
+  --or: #f5b919;
+  --texte: #1f3436;
+  --doux: #5f7477;
+  --carte: #ffffff;
+  --rouge: #e0533f;
+  --ombre: 0 6px 20px rgba(20, 60, 40, .12);
+}
+* { box-sizing: border-box; }
+/* [hidden] doit toujours gagner, même sur un élément qui fixe display */
+[hidden] { display: none !important; }
+html, body { margin: 0; }
+body {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: var(--texte);
+  background: linear-gradient(180deg, #bfe6ff 0, #eaf7df 420px) fixed;
+  background-color: #eaf7df;
+  min-height: 100vh;
+  -webkit-tap-highlight-color: transparent;
+}
+button { font: inherit; color: inherit; cursor: pointer; }
+
+/* ---------- Pièce dessinée en CSS ---------- */
+.piece-mini {
+  display: inline-block; width: 1em; height: 1em; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fff6b0 0, #f7c928 45%, #c98a00 100%);
+  box-shadow: inset 0 0 0 .12em #e0a800;
+  vertical-align: -.15em;
+}
+.piece-volante {
+  position: fixed; left: 0; top: 0; width: 24px; height: 24px; margin: -12px 0 0 -12px;
+  border-radius: 50%; z-index: 1000; pointer-events: none;
+  background: radial-gradient(circle at 35% 30%, #fff6b0 0, #f7c928 45%, #c98a00 100%);
+  box-shadow: inset 0 0 0 3px #e0a800, 0 2px 6px rgba(0,0,0,.25);
+}
+.texte-flottant {
+  position: fixed; z-index: 1001; pointer-events: none; font-weight: 800; font-size: 20px;
+  color: #c98a00; text-shadow: 0 1px 0 #fff, 0 0 8px #fff;
+}
+
+/* ---------- En-tête ---------- */
+.entete {
+  position: sticky; top: 0; z-index: 50;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px;
+  padding: calc(8px + env(safe-area-inset-top)) 16px 8px;
+  background: rgba(255,255,255,.88);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 2px 10px rgba(0,0,0,.06);
+}
+.entete-jour { flex: 1 1 auto; min-width: 0; }
+.jour { font-weight: 900; font-size: 24px; letter-spacing: .04em; color: var(--vert-fonce); line-height: 1; }
+.date { font-size: 13px; color: var(--doux); margin-top: 3px; text-transform: capitalize; }
+.entete-stats { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.chip {
+  display: inline-flex; align-items: center; gap: 5px; padding: 6px 10px;
+  border-radius: 999px; background: #fff; border: 1px solid #e1ece4; font-size: 15px;
+  white-space: nowrap;
+}
+.chip b { font-weight: 800; }
+.chip.pieces { background: #fff8dc; border-color: #f3df9a; font-size: 17px; }
+.chip.pieces .piece-mini { font-size: 18px; }
+.chip.niveau { flex-direction: column; align-items: stretch; gap: 3px; padding: 4px 10px; }
+.chip.niveau .ligne { display: flex; gap: 5px; align-items: center; }
+.barre { display: block; height: 5px; background: #e5ece7; border-radius: 9px; overflow: hidden; }
+.barre i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #f5b919, #f08a24); transition: width .6s; }
+.bouton-son { border: 1px solid #e1ece4; padding: 6px 9px; }
+.pulse { animation: pulse .35s ease-out; }
+@keyframes pulse { 50% { transform: scale(1.18); } }
+.secoue { animation: secoue .4s; }
+@keyframes secoue { 20%,60% { transform: translateX(-5px); } 40%,80% { transform: translateX(5px); } }
+
+/* ---------- Mise en page ---------- */
+main { max-width: 1200px; margin: 0 auto; padding: 14px 16px 96px; }
+.panneau {
+  display: none; background: var(--carte); border-radius: 20px; box-shadow: var(--ombre);
+  padding: 16px; margin-bottom: 16px;
+}
+.panneau.actif { display: block; }
+.titre-panneau { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+.titre-panneau h2 { margin: 0; font-size: 19px; }
+.aide { color: var(--doux); font-size: 13px; }
+.serie { font-size: 14px; font-weight: 700; color: #d9622b; background: #fff1e6; padding: 4px 10px; border-radius: 999px; }
+
+@media (min-width: 900px) {
+  main {
+    display: grid; grid-template-columns: 390px 1fr; gap: 16px;
+    grid-template-areas: "hab parc" "cal parc"; align-items: start;
+  }
+  .panneau { display: block; margin: 0; }
+  #p-habitudes { grid-area: hab; }
+  #p-calendrier { grid-area: cal; }
+  #p-parcours { grid-area: parc; position: sticky; top: 84px; }
+  .onglets { display: none !important; }
+  .carte-conteneur { height: calc(100vh - 290px) !important; min-height: 420px; }
+}
+
+/* ---------- Habitudes ---------- */
+.progression-jour { font-size: 13px; color: var(--doux); margin: -4px 0 10px; }
+.habitude {
+  display: flex; align-items: center; gap: 12px; padding: 10px 10px 10px 12px;
+  border-radius: 16px; background: #f6faf7; border: 2px solid transparent; margin-bottom: 8px;
+  transition: background .25s, border-color .25s;
+}
+.habitude.faite { background: var(--vert-clair); border-color: #bfe6cb; }
+.h-icone { font-size: 26px; width: 42px; height: 42px; display: grid; place-items: center; background: #fff; border-radius: 12px; flex: none; }
+.h-texte { flex: 1; min-width: 0; }
+.h-nom { font-weight: 700; font-size: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.habitude.faite .h-nom { color: var(--vert-fonce); }
+.h-gain { font-size: 13px; color: var(--doux); margin-top: 2px; }
+.h-gain b { color: #b07800; }
+.h-gain em { font-style: normal; color: #d9622b; font-weight: 700; }
+.h-edit { border: none; background: none; font-size: 18px; color: #9aaba6; padding: 8px; }
+.h-check {
+  width: 50px; height: 50px; border-radius: 50%; flex: none;
+  border: 3px solid #c8ddcf; background: #fff; font-size: 26px; font-weight: 900; color: #fff;
+  display: grid; place-items: center; transition: transform .15s, background .2s, border-color .2s;
+}
+.h-check:active { transform: scale(.9); }
+.habitude.faite .h-check { background: var(--vert); border-color: var(--vert); animation: pop .4s; }
+@keyframes pop { 40% { transform: scale(1.25); } }
+.vide { text-align: center; color: var(--doux); padding: 18px 8px; }
+.btn-ajout {
+  width: 100%; padding: 13px; border-radius: 14px; border: 2px dashed #b9d8c2;
+  background: #fff; color: var(--vert-fonce); font-weight: 700; font-size: 15px; margin-top: 4px;
+}
+
+/* ---------- Carte ---------- */
+.carte-conteneur {
+  position: relative; height: clamp(280px, 52vh, 620px); border-radius: 16px; overflow: hidden;
+  background: radial-gradient(ellipse at 50% 110%, #d8f2c8 0, #bfe6ff 70%);
+  touch-action: none; user-select: none; -webkit-user-select: none;
+}
+#carte { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; }
+#carte.outil-actif { cursor: crosshair; }
+.zoom { position: absolute; right: 10px; bottom: 10px; display: flex; flex-direction: column; gap: 6px; }
+.zoom button {
+  width: 40px; height: 40px; border-radius: 12px; border: none; background: rgba(255,255,255,.92);
+  box-shadow: 0 2px 8px rgba(0,0,0,.15); font-size: 20px; font-weight: 700;
+}
+.bandeau-jaune {
+  position: absolute; left: 10px; right: 10px; top: 10px; padding: 8px 12px; border-radius: 12px;
+  background: rgba(255, 244, 200, .95); color: #7a5a00; font-size: 13px; font-weight: 600;
+  box-shadow: 0 2px 8px rgba(0,0,0,.1); text-align: center;
+}
+.consigne { font-size: 13px; color: var(--doux); margin: 10px 2px; min-height: 2.6em; }
+.boutique { display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 8px; scroll-snap-type: x proximity; }
+.article {
+  flex: none; width: 82px; padding: 6px 4px 8px; border-radius: 14px; border: 2px solid #e3ece6;
+  background: #fff; display: flex; flex-direction: column; align-items: center; gap: 2px;
+  scroll-snap-align: start; position: relative; transition: transform .12s, border-color .2s, background .2s;
+}
+.article:active { transform: scale(.94); }
+.article canvas { width: 60px; height: 60px; }
+.article .a-icone { font-size: 34px; height: 60px; display: grid; place-items: center; }
+.a-nom { font-size: 12px; font-weight: 700; }
+.a-prix { font-size: 12px; font-weight: 700; color: #a06e00; display: inline-flex; gap: 3px; align-items: center; }
+.article.choisi { border-color: var(--vert); background: var(--vert-clair); box-shadow: 0 0 0 3px rgba(47,158,91,.2); }
+.article.trop-cher .a-prix { color: var(--rouge); }
+.article.verrouille { background: #f3f4f4; }
+.article.verrouille canvas { filter: grayscale(1) opacity(.45); }
+.article.verrouille .a-prix { color: #8a9597; }
+
+/* ---------- Calendrier (heatmap) ---------- */
+.heatmap { display: grid; grid-template-columns: 14px repeat(26, 1fr); gap: 3px; }
+.hm-col { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.hm-mois { height: 14px; font-size: 10px; color: var(--doux); white-space: nowrap; overflow: visible; }
+/* les libellés s'étirent pour suivre exactement la hauteur des cases */
+.hm-lib { font-size: 9px; color: var(--doux); flex: 1 1 0; height: 0; min-height: 0; display: flex; align-items: center; overflow: visible; }
+.hm-case { aspect-ratio: 1; border-radius: 3px; background: #ebefec; border: none; padding: 0; }
+.hm-case.l1 { background: #b7e4c0; }
+.hm-case.l2 { background: #74c98a; }
+.hm-case.l3 { background: #3ba55c; }
+.hm-case.l4 { background: #1f6f3c; }
+.hm-case.futur { background: transparent; }
+.hm-case.aujourdhui { outline: 2px solid var(--or); outline-offset: 1px; }
+.hm-case.choisie { outline: 2px solid var(--texte); outline-offset: 1px; }
+.legende { display: flex; align-items: center; justify-content: flex-end; gap: 3px; font-size: 11px; color: var(--doux); margin-top: 8px; }
+.legende .hm-case { width: 11px; }
+.stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 12px; }
+.stat { background: #f6faf7; border-radius: 14px; padding: 10px 12px; }
+.stat b { display: block; font-size: 22px; color: var(--vert-fonce); }
+.stat span { font-size: 12px; color: var(--doux); }
+.lien-danger { margin-top: 14px; border: none; background: none; color: #b3423a; font-size: 12px; text-decoration: underline; padding: 4px 0; }
+
+/* ---------- Onglets (téléphone) ---------- */
+.onglets {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 60; display: flex;
+  background: rgba(255,255,255,.95); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 -2px 12px rgba(0,0,0,.08); padding-bottom: env(safe-area-inset-bottom);
+}
+.onglet {
+  flex: 1; border: none; background: none; padding: 9px 4px 10px; font-size: 12px; font-weight: 600;
+  color: var(--doux); display: flex; flex-direction: column; align-items: center; gap: 2px;
+}
+.onglet span { font-size: 22px; }
+.onglet.actif { color: var(--vert-fonce); }
+
+/* ---------- Toast, fenêtre modale, niveau ---------- */
+#toast {
+  position: fixed; left: 50%; bottom: 92px; transform: translateX(-50%) translateY(20px);
+  background: #1f3436; color: #fff; padding: 10px 16px; border-radius: 12px; font-size: 14px;
+  opacity: 0; pointer-events: none; transition: opacity .25s, transform .25s; z-index: 1100;
+  max-width: calc(100vw - 32px); text-align: center;
+}
+#toast.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+.modale {
+  position: fixed; inset: 0; z-index: 1200; background: rgba(15,30,25,.45);
+  display: flex; align-items: flex-end; justify-content: center;
+}
+.modale-boite {
+  background: #fff; width: 100%; max-width: 480px; border-radius: 22px 22px 0 0;
+  padding: 18px 16px calc(18px + env(safe-area-inset-bottom)); max-height: 92vh; overflow-y: auto;
+  animation: monte .25s ease-out;
+}
+@media (min-width: 600px) { .modale { align-items: center; } .modale-boite { border-radius: 22px; } }
+@keyframes monte { from { transform: translateY(40px); opacity: 0; } }
+.modale-boite h3 { margin: 0 0 12px; }
+.modale-boite label, .f-label { display: block; font-size: 13px; font-weight: 700; color: var(--doux); margin: 12px 0 6px; }
+.modale-boite input[type=text] {
+  width: 100%; padding: 12px; font-size: 16px; border-radius: 12px; border: 2px solid #dbe7df; margin-top: 6px;
+}
+.modale-boite input[type=text]:focus { outline: none; border-color: var(--vert); }
+.grille-icones { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; }
+.grille-icones button { aspect-ratio: 1; border-radius: 10px; border: 2px solid #e3ece6; background: #fff; font-size: 20px; padding: 0; }
+.grille-icones button.choisi { border-color: var(--vert); background: var(--vert-clair); }
+.segments { display: flex; gap: 8px; }
+.segments button {
+  flex: 1; padding: 10px; border-radius: 12px; border: 2px solid #e3ece6; background: #fff;
+  font-weight: 800; display: inline-flex; justify-content: center; align-items: center; gap: 5px;
+}
+.segments button.choisi { border-color: var(--or); background: #fff8dc; }
+.modale-actions { display: flex; gap: 8px; margin-top: 18px; }
+.modale-actions .espace { flex: 1; }
+.btn-prim { padding: 12px 18px; border-radius: 12px; border: none; background: var(--vert); color: #fff; font-weight: 800; }
+.btn-sec { padding: 12px 14px; border-radius: 12px; border: 2px solid #e3ece6; background: #fff; font-weight: 700; }
+.btn-sec.danger { color: #b3423a; border-color: #f2d3cf; }
+.niveau-pop {
+  position: fixed; inset: 0; z-index: 1300; display: grid; place-items: center; pointer-events: auto;
+  background: rgba(15,30,25,.35);
+}
+.niveau-pop > div {
+  background: #fff; border-radius: 24px; padding: 22px 26px; text-align: center; max-width: 320px;
+  box-shadow: 0 10px 40px rgba(0,0,0,.25); animation: popin .45s cubic-bezier(.2,1.6,.4,1);
+}
+.niveau-pop .grand { font-size: 44px; }
+.niveau-pop h3 { margin: 6px 0; font-size: 24px; color: var(--vert-fonce); }
+@keyframes popin { from { transform: scale(.4); opacity: 0; } }
+.confetti { position: fixed; top: -12px; width: 9px; height: 14px; z-index: 1350; pointer-events: none; border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<!-- ===================== EN-TÊTE ===================== -->
+<header class="entete">
+  <div class="entete-jour">
+    <div class="jour" id="txt-jour">JOUR 1</div>
+    <div class="date" id="txt-date"></div>
+  </div>
+  <div class="entete-stats">
+    <div class="chip" title="Habitudes complétées au total"><span>✅</span><b id="txt-total">0</b></div>
+    <div class="chip niveau" title="Niveau (un palier toutes les 25 habitudes)">
+      <div class="ligne"><span>⭐</span><b id="txt-niveau">Niv. 1</b></div>
+      <i class="barre"><i id="barre-niveau"></i></i>
+    </div>
+    <div class="chip pieces" id="compteur-pieces" title="Pièces"><span class="piece-mini"></span><b id="txt-pieces">0</b></div>
+    <button class="chip bouton-son" id="btn-son" aria-label="Activer ou couper le son">🔊</button>
+  </div>
+</header>
+
+<main>
+  <!-- ===================== HABITUDES ===================== -->
+  <section class="panneau actif" id="p-habitudes">
+    <div class="titre-panneau">
+      <h2>Mes habitudes</h2>
+      <span class="serie" id="txt-serie"></span>
+    </div>
+    <div class="progression-jour" id="txt-progression"></div>
+    <div id="liste-habitudes"></div>
+    <button class="btn-ajout" id="btn-ajout">＋ Nouvelle habitude</button>
+  </section>
+
+  <!-- ===================== PARCOURS (CARTE + BOUTIQUE) ===================== -->
+  <section class="panneau" id="p-parcours">
+    <div class="titre-panneau">
+      <h2>Mon parcours</h2>
+      <span class="aide" id="txt-cases"></span>
+    </div>
+    <div class="carte-conteneur" id="carte-conteneur">
+      <canvas id="carte"></canvas>
+      <div class="bandeau-jaune" id="bandeau-jaune" hidden>🍂 Le gazon jaunit… Cochez une habitude pour le faire reverdir !</div>
+      <div class="zoom">
+        <button id="z-plus" aria-label="Zoomer">＋</button>
+        <button id="z-moins" aria-label="Dézoomer">－</button>
+        <button id="z-centrer" aria-label="Recentrer">⤢</button>
+      </div>
+    </div>
+    <p class="consigne" id="consigne"></p>
+    <div class="boutique" id="boutique"></div>
+  </section>
+
+  <!-- ===================== CALENDRIER ===================== -->
+  <section class="panneau" id="p-calendrier">
+    <div class="titre-panneau">
+      <h2>6 derniers mois</h2>
+      <span class="aide">Touchez un jour pour le détail</span>
+    </div>
+    <div class="heatmap" id="heatmap"></div>
+    <div class="legende">Moins
+      <span class="hm-case"></span><span class="hm-case l1"></span><span class="hm-case l2"></span>
+      <span class="hm-case l3"></span><span class="hm-case l4"></span> Plus
+    </div>
+    <p class="aide" id="info-jour">&nbsp;</p>
+    <div class="stats" id="stats"></div>
+    <button class="lien-danger" id="btn-reset">Tout effacer et recommencer</button>
+  </section>
+</main>
+
+<!-- Onglets du bas (téléphone uniquement) -->
+<nav class="onglets">
+  <button class="onglet actif" data-cible="p-habitudes"><span>✅</span>Habitudes</button>
+  <button class="onglet" data-cible="p-parcours"><span>⛳</span>Parcours</button>
+  <button class="onglet" data-cible="p-calendrier"><span>📅</span>Calendrier</button>
+</nav>
+
+<div id="toast"></div>
+
+<!-- Fenêtre d'ajout / modification d'une habitude -->
+<div class="modale" id="modale" hidden>
+  <form class="modale-boite" id="form-habitude" autocomplete="off">
+    <h3 id="modale-titre">Nouvelle habitude</h3>
+    <label>Nom
+      <input type="text" id="f-nom" maxlength="40" required placeholder="Ex. : 50 putts à 1 m">
+    </label>
+    <div class="f-label">Icône</div>
+    <div class="grille-icones" id="f-icones"></div>
+    <div class="f-label">Récompense (petite · moyenne · grosse tâche)</div>
+    <div class="segments" id="f-recompense">
+      <button type="button" data-v="10"><span class="piece-mini"></span>10</button>
+      <button type="button" data-v="25"><span class="piece-mini"></span>25</button>
+      <button type="button" data-v="50"><span class="piece-mini"></span>50</button>
+    </div>
+    <div class="modale-actions">
+      <button type="button" class="btn-sec danger" id="f-supprimer" hidden>Supprimer</button>
+      <span class="espace"></span>
+      <button type="button" class="btn-sec" id="f-annuler">Annuler</button>
+      <button type="submit" class="btn-prim">Enregistrer</button>
+    </div>
+  </form>
+</div>
+
+<script>
+'use strict';
+
+/* =====================================================================
+   1. UTILITAIRES (dates, échappement, stockage)
+   ===================================================================== */
+
+const $ = (s) => document.querySelector(s);
+
+// Clé d'un jour au format AAAA-MM-JJ (heure locale)
+function cleJour(d = new Date()) {
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+// Date (à midi, pour éviter les soucis de changement d'heure) à partir d'une clé
+function dateDe(cle) {
+  const [a, m, j] = cle.split('-').map(Number);
+  return new Date(a, m - 1, j, 12);
+}
+// Décale une clé de n jours
+function decaler(cle, n) {
+  const d = dateDe(cle);
+  d.setDate(d.getDate() + n);
+  return cleJour(d);
+}
+// Nombre de jours entre deux clés
+function joursEntre(a, b) {
+  return Math.round((dateDe(b) - dateDe(a)) / 864e5);
+}
+// Échappe le texte saisi par l'utilisateur avant de l'insérer en HTML
+function esc(t) {
+  return String(t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+// --- Sauvegarde : tout accès à localStorage est protégé par try/catch ---
+const CLE_STOCKAGE = 'fairway-tycoon-v1';
+function lireStockage() {
+  try {
+    const texte = localStorage.getItem(CLE_STOCKAGE);
+    return texte ? JSON.parse(texte) : null;
+  } catch (e) {
+    return null;
+  }
+}
+function ecrireStockage(donnees) {
+  try {
+    localStorage.setItem(CLE_STOCKAGE, JSON.stringify(donnees));
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+/* =====================================================================
+   2. ÉTAT DU JEU
+   ===================================================================== */
+
+// Éléments de la boutique.
+// plat = dessiné au niveau du sol ; haut = a une partie en hauteur (arbre, drapeau, bâtiment)
+const ELEMENTS = {
+  gazon:     { nom: 'Gazon',      prix: 5,   niveau: 1, plat: true,  haut: false, couleur: '#5cc246' },
+  fairway:   { nom: 'Fairway',    prix: 10,  niveau: 1, plat: true,  haut: false, couleur: '#86e06a' },
+  bunker:    { nom: 'Bunker',     prix: 15,  niveau: 1, plat: true,  haut: false, couleur: '#f2dc9b' },
+  arbre:     { nom: 'Arbre',      prix: 20,  niveau: 1, plat: false, haut: true,  couleur: '#3fae4f' },
+  lac:       { nom: 'Lac',        prix: 40,  niveau: 2, plat: true,  haut: false, couleur: '#7fd0ff' },
+  green:     { nom: 'Green',      prix: 60,  niveau: 3, plat: true,  haut: true,  couleur: '#62e07c' },
+  practice:  { nom: 'Practice',   prix: 150, niveau: 4, plat: false, haut: true,  couleur: '#ffffff' },
+  clubhouse: { nom: 'Club-house', prix: 300, niveau: 5, plat: false, haut: true,  couleur: '#e05a4a' },
+};
+const ICONES = ['⛳', '🏌️', '🎯', '💪', '🏃', '🚶', '🧘', '🧠', '📚', '✍️', '💧', '🥗', '🍎', '😴', '🎸', '🧹'];
+const PALIER_NIVEAU = 25;   // un niveau toutes les 25 habitudes complétées
+const BONUS_PAR_JOUR = 10;  // +10 % par jour consécutif
+const BONUS_MAX = 100;      // plafonné à +100 %
+
+function etatInitial() {
+  return {
+    version: 1,
+    debut: cleJour(),     // premier jour de jeu (pour « JOUR X »)
+    pieces: 20,           // petit capital de départ pour poser ses premières cases
+    totalFaits: 0,        // nombre total d'habitudes complétées
+    son: true,
+    habitudes: [
+      { id: 'h1', nom: 'Putting 15 minutes', icone: '⛳', recompense: 25 },
+      { id: 'h2', nom: 'Boire 2 L d\'eau', icone: '💧', recompense: 10 },
+      { id: 'h3', nom: 'Séance de sport', icone: '💪', recompense: 50 },
+    ],
+    journal: {},  // { 'AAAA-MM-JJ': { idHabitude: piècesGagnées } }
+    carte: {},    // { 'x,y': typeElement }
+  };
+}
+
+// Charge la sauvegarde en vérifiant chaque champ (données abîmées = valeurs par défaut)
+function chargerEtat() {
+  const d = lireStockage();
+  const base = etatInitial();
+  if (!d || typeof d !== 'object') return base;
+  const e = {
+    version: 1,
+    debut: typeof d.debut === 'string' && /^\d{4}-\d\d-\d\d$/.test(d.debut) ? d.debut : base.debut,
+    pieces: Number.isFinite(d.pieces) ? Math.max(0, Math.floor(d.pieces)) : base.pieces,
+    totalFaits: Number.isFinite(d.totalFaits) ? Math.max(0, Math.floor(d.totalFaits)) : 0,
+    son: d.son !== false,
+    habitudes: Array.isArray(d.habitudes) ? d.habitudes.filter((h) => h && h.id && h.nom) : base.habitudes,
+    journal: d.journal && typeof d.journal === 'object' ? d.journal : {},
+    carte: {},
+  };
+  if (d.carte && typeof d.carte === 'object') {
+    for (const [cle, type] of Object.entries(d.carte)) if (ELEMENTS[type]) e.carte[cle] = type;
+  }
+  return e;
+}
+
+let etat = chargerEtat();
+let alerteSauvegardeMontree = false;
+
+function sauvegarder() {
+  if (!ecrireStockage(etat) && !alerteSauvegardeMontree) {
+    alerteSauvegardeMontree = true;
+    toast('⚠️ Sauvegarde impossible sur ce navigateur (navigation privée ?)');
+  }
+}
+
+// --- Calculs dérivés de l'état ---
+function nbJour(cle) {
+  return Object.keys(etat.journal[cle] || {}).length;
+}
+function niveau() {
+  return Math.floor(etat.totalFaits / PALIER_NIVEAU) + 1;
+}
+// Jours consécutifs AVANT aujourd'hui avec au moins une habitude cochée
+function joursConsecutifsAvant() {
+  let n = 0;
+  let cle = decaler(cleJour(), -1);
+  while (nbJour(cle) > 0 && n < 1000) { n++; cle = decaler(cle, -1); }
+  return n;
+}
+// Série affichée : jours d'affilée, aujourd'hui compris s'il est déjà coché
+function serieActuelle() {
+  return joursConsecutifsAvant() + (nbJour(cleJour()) > 0 ? 1 : 0);
+}
+// Bonus de série en % (+10 % par jour consécutif précédent, max +100 %)
+function bonusSerie() {
+  return Math.min(joursConsecutifsAvant() * BONUS_PAR_JOUR, BONUS_MAX);
+}
+function gainPour(habitude, bonus) {
+  return Math.round(habitude.recompense * (1 + bonus / 100));
+}
+function meilleureSerie() {
+  const jours = Object.keys(etat.journal).filter((c) => nbJour(c) > 0).sort();
+  let meilleure = 0, courante = 0, prec = null;
+  for (const c of jours) {
+    courante = prec && decaler(prec, 1) === c ? courante + 1 : 1;
+    meilleure = Math.max(meilleure, courante);
+    prec = c;
+  }
+  return meilleure;
+}
+// Gazon jauni : rien de coché hier ET rien encore aujourd'hui (jamais le premier jour)
+function gazonJaune() {
+  const auj = cleJour();
+  if (nbJour(auj) > 0) return false;
+  if (etat.debut >= auj) return false;
+  return nbJour(decaler(auj, -1)) === 0;
+}
+
+/* =====================================================================
+   3. SONS (Web Audio, générés en code)
+   ===================================================================== */
+
+let audio = null;
+function ctxAudio() {
+  if (!audio) {
+    try { audio = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return null; }
+  }
+  if (audio.state === 'suspended') audio.resume();
+  return audio;
+}
+// Joue une note simple (fréquence, départ, durée, forme, volume, fréquence finale)
+function note(freq, debut, duree, forme = 'sine', vol = 0.15, freqFin = null) {
+  const a = ctxAudio();
+  if (!a) return;
+  const t = a.currentTime + debut;
+  const o = a.createOscillator();
+  const g = a.createGain();
+  o.type = forme;
+  o.frequency.setValueAtTime(freq, t);
+  if (freqFin) o.frequency.exponentialRampToValueAtTime(freqFin, t + duree);
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(vol, t + 0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + duree);
+  o.connect(g);
+  g.connect(a.destination);
+  o.start(t);
+  o.stop(t + duree + 0.05);
+}
+// Petit bruit filtré (effet « poum » de la pose)
+function bruit(duree, vol) {
+  const a = ctxAudio();
+  if (!a) return;
+  const n = Math.floor(a.sampleRate * duree);
+  const buf = a.createBuffer(1, n, a.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let k = 0; k < n; k++) d[k] = (Math.random() * 2 - 1) * (1 - k / n);
+  const s = a.createBufferSource();
+  s.buffer = buf;
+  const f = a.createBiquadFilter();
+  f.type = 'lowpass';
+  f.frequency.value = 800;
+  const g = a.createGain();
+  g.gain.value = vol;
+  s.connect(f); f.connect(g); g.connect(a.destination);
+  s.start();
+}
+function son(nom, i = 0) {
+  if (!etat.son) return;
+  switch (nom) {
+    case 'check':   note(660, 0, .12, 'triangle', .2); note(990, .08, .2, 'triangle', .2); break;
+    case 'piece':   note(1300 + i * 80, 0, .08, 'square', .04); note(1950 + i * 120, .03, .14, 'sine', .07); break;
+    case 'pose':    note(170, 0, .2, 'sine', .35, 55); note(600, 0, .05, 'triangle', .06); bruit(.14, .25); break;
+    case 'retirer': note(420, 0, .18, 'sawtooth', .05, 110); bruit(.1, .12); break;
+    case 'erreur':  note(170, 0, .14, 'square', .06); note(130, .11, .18, 'square', .06); break;
+    case 'decoche': note(520, 0, .14, 'sine', .1, 260); break;
+    case 'clic':    note(880, 0, .04, 'triangle', .06); break;
+    case 'niveau':  [523, 659, 784, 1047, 1319].forEach((f, k) => note(f, k * .1, .3, 'triangle', .15)); break;
+    case 'reverdit': [392, 523, 659].forEach((f, k) => note(f, k * .09, .25, 'sine', .12)); break;
+  }
+}
+
+/* =====================================================================
+   4. HABITUDES (liste, cocher / décocher, ajout / modification)
+   ===================================================================== */
+
+function rendreHabitudes() {
+  const liste = $('#liste-habitudes');
+  liste.innerHTML = '';
+  const auj = cleJour();
+  const faits = etat.journal[auj] || {};
+  const bonus = bonusSerie();
+
+  const serie = serieActuelle();
+  $('#txt-serie').textContent = `🔥 ${serie} j · bonus +${bonus} %`;
+
+  if (!etat.habitudes.length) {
+    liste.innerHTML = '<p class="vide">Aucune habitude pour l\'instant.<br>Créez-en une pour gagner vos premières pièces !</p>';
+  }
+  const nbFaitesListe = etat.habitudes.filter((h) => faits[h.id] != null).length;
+  $('#txt-progression').textContent = etat.habitudes.length
+    ? `Aujourd'hui : ${nbFaitesListe} / ${etat.habitudes.length} faites`
+    : '';
+
+  for (const h of etat.habitudes) {
+    const ok = faits[h.id] != null;
+    const gain = ok ? faits[h.id] : gainPour(h, bonus);
+    const ligne = document.createElement('div');
+    ligne.className = 'habitude' + (ok ? ' faite' : '');
+    ligne.innerHTML = `
+      <span class="h-icone">${esc(h.icone)}</span>
+      <div class="h-texte">
+        <div class="h-nom">${esc(h.nom)}</div>
+        <div class="h-gain">${ok ? 'Gagné' : 'Rapporte'} <b>${gain}</b> <span class="piece-mini"></span>
+          ${!ok && bonus ? `<em>(+${bonus} % série)</em>` : ''}</div>
+      </div>
+      <button class="h-edit" aria-label="Modifier">✎</button>
+      <button class="h-check" aria-label="${ok ? 'Annuler' : 'Cocher'} ${esc(h.nom)}">${ok ? '✓' : ''}</button>`;
+    ligne.querySelector('.h-check').addEventListener('click', (ev) => basculerHabitude(h.id, ev.currentTarget));
+    ligne.querySelector('.h-edit').addEventListener('click', () => ouvrirModale(h.id));
+    liste.appendChild(ligne);
+  }
+}
+
+function basculerHabitude(id, bouton) {
+  const h = etat.habitudes.find((x) => x.id === id);
+  if (!h) return;
+  const auj = cleJour();
+  const jour = etat.journal[auj] || (etat.journal[auj] = {});
+
+  // --- Décocher (correction d'une erreur) : on reprend les pièces gagnées ---
+  if (jour[id] != null) {
+    const gain = jour[id];
+    if (etat.pieces < gain) {
+      son('erreur');
+      secouer($('#compteur-pieces'));
+      toast(`Impossible d'annuler : les ${gain} pièces ont déjà été dépensées.`);
+      return;
+    }
+    etat.pieces -= gain;
+    etat.totalFaits = Math.max(0, etat.totalFaits - 1);
+    delete jour[id];
+    if (!Object.keys(jour).length) delete etat.journal[auj];
+    sauvegarder();
+    son('decoche');
+    toutRendre();
+    animerPieces();
+    return;
+  }
+
+  // --- Cocher : gain de pièces avec bonus de série ---
+  const etaitJaune = gazonJaune();
+  const ancienNiveau = niveau();
+  const gain = gainPour(h, bonusSerie());
+  jour[id] = gain;
+  etat.pieces += gain;
+  etat.totalFaits += 1;
+  sauvegarder();
+
+  son('check');
+  texteFlottant(bouton, '+' + gain);
+  const nbPieces = Math.min(12, 3 + Math.round(gain / 8));
+  volerPieces(bouton, nbPieces, () => animerPieces());
+
+  toutRendre(false); // l'affichage des pièces suivra l'arrivée des pièces volantes
+
+  if (etaitJaune) {
+    fjCible = 0;
+    setTimeout(() => { son('reverdit'); toast('🌱 Le gazon reverdit !'); }, 500);
+  }
+  if (niveau() > ancienNiveau) setTimeout(() => montrerNiveau(niveau()), 900);
+}
+
+// --- Fenêtre d'ajout / modification ---
+let habitudeEditee = null;     // id en cours de modification, null = nouvelle
+let iconeChoisie = ICONES[0];
+let recompenseChoisie = 25;
+
+function ouvrirModale(id = null) {
+  habitudeEditee = id;
+  const h = id ? etat.habitudes.find((x) => x.id === id) : null;
+  $('#modale-titre').textContent = h ? 'Modifier l\'habitude' : 'Nouvelle habitude';
+  $('#f-nom').value = h ? h.nom : '';
+  iconeChoisie = h ? h.icone : ICONES[0];
+  recompenseChoisie = h ? h.recompense : 25;
+  $('#f-supprimer').hidden = !h;
+  majChoixModale();
+  $('#modale').hidden = false;
+  setTimeout(() => $('#f-nom').focus(), 50);
+}
+function fermerModale() {
+  $('#modale').hidden = true;
+}
+function majChoixModale() {
+  document.querySelectorAll('#f-icones button').forEach((b) => b.classList.toggle('choisi', b.dataset.i === iconeChoisie));
+  document.querySelectorAll('#f-recompense button').forEach((b) => b.classList.toggle('choisi', Number(b.dataset.v) === recompenseChoisie));
+}
+function initModale() {
+  const grille = $('#f-icones');
+  for (const ic of ICONES) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.dataset.i = ic;
+    b.textContent = ic;
+    b.addEventListener('click', () => { iconeChoisie = ic; majChoixModale(); son('clic'); });
+    grille.appendChild(b);
+  }
+  document.querySelectorAll('#f-recompense button').forEach((b) =>
+    b.addEventListener('click', () => { recompenseChoisie = Number(b.dataset.v); majChoixModale(); son('clic'); }));
+
+  $('#form-habitude').addEventListener('submit', (ev) => {
+    ev.preventDefault();
+    const nom = $('#f-nom').value.trim();
+    if (!nom) return;
+    if (habitudeEditee) {
+      const h = etat.habitudes.find((x) => x.id === habitudeEditee);
+      if (h) Object.assign(h, { nom, icone: iconeChoisie, recompense: recompenseChoisie });
+    } else {
+      const id = 'h' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+      etat.habitudes.push({ id, nom, icone: iconeChoisie, recompense: recompenseChoisie });
+    }
+    sauvegarder();
+    fermerModale();
+    son('clic');
+    rendreHabitudes();
+  });
+  $('#f-annuler').addEventListener('click', fermerModale);
+  $('#modale').addEventListener('click', (ev) => { if (ev.target.id === 'modale') fermerModale(); });
+  $('#f-supprimer').addEventListener('click', () => {
+    const h = etat.habitudes.find((x) => x.id === habitudeEditee);
+    if (!h || !confirm(`Supprimer « ${h.nom} » ? (l'historique du calendrier est conservé)`)) return;
+    etat.habitudes = etat.habitudes.filter((x) => x.id !== habitudeEditee);
+    sauvegarder();
+    fermerModale();
+    rendreHabitudes();
+  });
+}
+
+/* =====================================================================
+   5. RENDU DE LA CARTE ISOMÉTRIQUE (Canvas)
+   ===================================================================== */
+
+const N = 20;                 // grille 20 x 20
+const TW = 64, TH = 32;       // taille d'une case (losange) en unités « monde »
+const OX = 640, OY = 90;      // position du coin haut de la case (0,0)
+const EPAIS = 16;             // épaisseur du socle de terre
+const MONDE_L = N * TW;       // 1280
+const MONDE_H = OY + N * TH + EPAIS + 20;
+
+const canvas = $('#carte');
+const ctx = canvas.getContext('2d');
+const vue = { z: 1, x: 0, y: 0, l: 0, h: 0, dpr: 1, pret: false };   // caméra
+let outil = null;             // null | 'retirer' | type d'élément choisi
+let survol = null;            // case sous la souris {x, y}
+let animations = [];          // poses en cours {cle, type, t0, duree, poussiere}
+let particules = [];          // poussière / étincelles
+let besoinRendu = true;
+let fj = gazonJaune() ? 1 : 0; // facteur « jaune » affiché (0 = vert, 1 = jaune), animé
+let fjCible = fj;
+let fjDessin = fj;            // facteur utilisé par les fonctions de dessin
+
+// Position écran (monde) du coin haut d'une case
+function coinCase(x, y) {
+  return { sx: OX + (x - y) * TW / 2, sy: OY + (x + y) * TH / 2 };
+}
+// Case sous un point du monde (inverse de coinCase)
+function caseDepuisMonde(wx, wy) {
+  const px = wx - OX, py = wy - OY;
+  const fx = (px / (TW / 2) + py / (TH / 2)) / 2;
+  const fy = (py / (TH / 2) - px / (TW / 2)) / 2;
+  return { x: Math.floor(fx), y: Math.floor(fy) };
+}
+
+// --- Couleurs : mélange vert -> jaune selon fjDessin ---
+const cacheHex = new Map();
+function hexVersRgb(c) {
+  if (!cacheHex.has(c)) {
+    const n = parseInt(c.slice(1), 16);
+    cacheHex.set(c, [n >> 16 & 255, n >> 8 & 255, n & 255]);
+  }
+  return cacheHex.get(c);
+}
+function herbe(vert, jaune) {
+  if (fjDessin <= 0) return vert;
+  const A = hexVersRgb(vert), B = hexVersRgb(jaune);
+  return 'rgb(' + A.map((v, i) => Math.round(v + (B[i] - v) * fjDessin)).join(',') + ')';
+}
+
+// --- Primitives de dessin ---
+function poly(c, pts, couleur) {
+  c.beginPath();
+  c.moveTo(pts[0][0], pts[0][1]);
+  for (let i = 1; i < pts.length; i++) c.lineTo(pts[i][0], pts[i][1]);
+  c.closePath();
+  c.fillStyle = couleur;
+  c.fill();
+}
+// Losange d'une case (k = taille relative autour du centre)
+function losange(c, sx, sy, k, couleur, contour) {
+  const cy = sy + TH / 2, w = TW / 2 * k, h = TH / 2 * k;
+  c.beginPath();
+  c.moveTo(sx, cy - h); c.lineTo(sx + w, cy); c.lineTo(sx, cy + h); c.lineTo(sx - w, cy);
+  c.closePath();
+  if (couleur) { c.fillStyle = couleur; c.fill(); }
+  if (contour) { c.strokeStyle = contour; c.lineWidth = 1; c.stroke(); }
+}
+// Point d'une case en coordonnées (u, v) de 0 à 1
+function pt(sx, sy, u, v) {
+  return [sx + (u - v) * TW / 2, sy + (u + v) * TH / 2];
+}
+function ovale(c, x, y, rx, ry, couleur) {
+  c.beginPath();
+  c.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
+  c.fillStyle = couleur;
+  c.fill();
+}
+function rond(c, x, y, r, couleur) { ovale(c, x, y, r, r, couleur); }
+// Boîte isométrique posée au sol (X, Y = centre au sol ; a, b = demi-diagonales ; h = hauteur)
+function boite(c, X, Y, a, b, h, dessus, gauche, droite) {
+  poly(c, [[X - a, Y], [X, Y + b], [X, Y + b - h], [X - a, Y - h]], gauche);
+  poly(c, [[X, Y + b], [X + a, Y], [X + a, Y - h], [X, Y + b - h]], droite);
+  if (dessus) poly(c, [[X, Y - b - h], [X + a, Y - h], [X, Y + b - h], [X - a, Y - h]], dessus);
+}
+// Rectangle dessiné sur la face gauche / droite d'une boîte (s = position horizontale, t = hauteur, 0 à 1)
+function surFaceG(c, X, Y, a, b, h, s1, s2, t1, t2, couleur) {
+  const P = (s, t) => [X - a + s * a, Y + s * b - t * h];
+  poly(c, [P(s1, t1), P(s2, t1), P(s2, t2), P(s1, t2)], couleur);
+}
+function surFaceD(c, X, Y, a, b, h, s1, s2, t1, t2, couleur) {
+  const P = (s, t) => [X + s * a, Y + b - s * b - t * h];
+  poly(c, [P(s1, t1), P(s2, t1), P(s2, t2), P(s1, t2)], couleur);
+}
+
+// --- Dessin du sol d'une case (herbe de base + élément plat) ---
+function dessinerHerbe(c, sx, sy, x, y) {
+  const pair = (x + y) % 2 === 0;
+  losange(c, sx, sy, 1, pair ? herbe('#8fd16a', '#ddd27a') : herbe('#84c860', '#d2c66c'));
+}
+function dessinerSol(c, type, sx, sy, x, y) {
+  const X = sx, Y = sy + TH / 2;
+  switch (type) {
+    case 'gazon':
+      losange(c, sx, sy, 1, herbe('#4cae3a', '#c2b046'));
+      losange(c, sx, sy, .62, herbe('#5cc246', '#cdbb52'));
+      break;
+    case 'fairway':
+      losange(c, sx, sy, 1, herbe('#6fcf55', '#cfc25c'));
+      for (let i = 0; i < 4; i += 2) {   // bandes de tonte
+        poly(c, [pt(sx, sy, i / 4, 0), pt(sx, sy, (i + 1) / 4, 0), pt(sx, sy, (i + 1) / 4, 1), pt(sx, sy, i / 4, 1)], herbe('#88e26c', '#ddd172'));
+      }
+      break;
+    case 'bunker':
+      dessinerHerbe(c, sx, sy, x, y);
+      ovale(c, X, Y + 1, TW * .33, TH * .33, '#d6b866');
+      ovale(c, X, Y, TW * .3, TH * .29, '#f3dd9e');
+      ovale(c, X - 5, Y - 2, TW * .12, TH * .1, '#fbedc4');
+      break;
+    case 'lac':
+      losange(c, sx, sy, 1, '#2d86cf');
+      losange(c, sx, sy, .84, '#4aaef0');
+      c.strokeStyle = 'rgba(255,255,255,.7)';
+      c.lineWidth = 1.5;
+      c.beginPath();
+      c.moveTo(X - 12, Y - 2); c.quadraticCurveTo(X - 8, Y - 5, X - 4, Y - 2);
+      c.moveTo(X + 3, Y + 4); c.quadraticCurveTo(X + 7, Y + 1, X + 11, Y + 4);
+      c.stroke();
+      break;
+    case 'green':
+      dessinerHerbe(c, sx, sy, x, y);
+      ovale(c, X, Y + 1, TW * .38, TH * .38, herbe('#3fb85a', '#bdb04a'));
+      ovale(c, X, Y, TW * .34, TH * .33, herbe('#66e57f', '#d9d070'));
+      ovale(c, X + 3, Y + 1, 2.6, 1.4, '#1d2b22');   // le trou
+      break;
+    default:
+      dessinerHerbe(c, sx, sy, x, y);
+  }
+}
+
+// --- Dessin des parties en hauteur (dy = décalage vertical pendant l'animation de chute) ---
+function ombre(c, X, Y, rx, ry, dy) {
+  const k = Math.max(.3, 1 + dy / 200);
+  ovale(c, X + 4, Y + 2, rx * k, ry * k, 'rgba(0,0,0,.18)');
+}
+function dessinerObjet(c, type, sx, sy, x, y, dy = 0) {
+  const X = sx, Y = sy + TH / 2;
+  switch (type) {
+    case 'arbre': {
+      ombre(c, X, Y, 15, 6, dy);
+      c.save(); c.translate(0, dy);
+      if ((x * 7 + y * 3) % 3 === 0) {
+        // Sapin
+        c.fillStyle = '#7a4a24'; c.fillRect(X - 2, Y - 10, 4, 10);
+        const etages = [[14, -8, -30, '#2f7f45'], [11, -20, -41, '#3a9b52'], [7, -31, -50, '#48b562']];
+        for (const [w, base, sommet, coul] of etages) {
+          poly(c, [[X - w, Y + base], [X + w, Y + base], [X, Y + sommet]], coul);
+          poly(c, [[X, Y + sommet], [X + w, Y + base], [X, Y + base]], 'rgba(0,0,0,.13)');
+        }
+      } else {
+        // Feuillu
+        c.fillStyle = '#7a4a24'; c.fillRect(X - 2.5, Y - 16, 5, 16);
+        rond(c, X, Y - 22, 13, '#2e8b3e');
+        rond(c, X + 5, Y - 24, 10, '#287a36');
+        rond(c, X - 5, Y - 28, 9, '#3fae4f');
+        rond(c, X + 3, Y - 33, 8, '#4cc35c');
+        rond(c, X - 3, Y - 34, 4, '#7ee08a');
+      }
+      c.restore();
+      break;
+    }
+    case 'green': {
+      // Drapeau planté dans le trou
+      const hx = X + 3, hy = Y + 1;
+      c.save(); c.translate(0, dy);
+      c.strokeStyle = '#f4f4f4'; c.lineWidth = 2;
+      c.beginPath(); c.moveTo(hx, hy); c.lineTo(hx, hy - 36); c.stroke();
+      poly(c, [[hx, hy - 36], [hx + 15, hy - 31], [hx, hy - 25]], '#e8433a');
+      poly(c, [[hx, hy - 31], [hx + 15, hy - 31], [hx, hy - 25]], 'rgba(0,0,0,.12)');
+      c.restore();
+      break;
+    }
+    case 'practice': {
+      ombre(c, X, Y, 24, 10, dy);
+      c.save(); c.translate(0, dy);
+      const a = 23, b = 11.5, h = 15;
+      boite(c, X, Y - 2, a, b, h, null, '#efe4cb', '#d3c19c');
+      surFaceD(c, X, Y - 2, a, b, h, .12, .88, .05, .82, '#4b3d2c');   // ouverture côté terrain
+      for (let k = 0; k < 4; k++) rond(c, X + 6 + k * 4, Y + 4 - k * 2 - h * .15, 1.6, '#ffffff');
+      boite(c, X, Y - 2 - h, a + 4, b + 2, 4, '#3fb070', '#2f8f58', '#257447');     // toit
+      surFaceG(c, X, Y - 2, a, b, h, .3, .7, .45, .75, '#2f8f58');     // panneau
+      c.restore();
+      // Balles et seau devant
+      rond(c, X + 12, Y + 7, 2, '#ffffff');
+      rond(c, X + 16, Y + 5, 2, '#ffffff');
+      rond(c, X + 9, Y + 10, 2, '#ffffff');
+      boite(c, X - 12, Y + 7, 3, 1.5, 5, '#ff8a6a', '#e0533f', '#b9402f');
+      break;
+    }
+    case 'clubhouse': {
+      ombre(c, X, Y, 28, 12, dy);
+      c.save(); c.translate(0, dy);
+      const a = 25, b = 12.5, h = 24;
+      boite(c, X, Y, a, b, h, null, '#f8eedb', '#dcc8a3');
+      surFaceG(c, X, Y, a, b, h, .14, .36, .38, .72, '#7cc6f2');   // fenêtres
+      surFaceG(c, X, Y, a, b, h, .58, .8, .38, .72, '#7cc6f2');
+      surFaceD(c, X, Y, a, b, h, .4, .62, 0, .62, '#8a5a2b');      // porte
+      surFaceD(c, X, Y, a, b, h, .12, .28, .4, .7, '#5aa8d6');     // petite fenêtre
+      const sommet = [X, Y - h - 22];
+      poly(c, [[X - a - 3, Y - h + 1], [X, Y + b - h + 2], sommet], '#e35d4c');   // toit
+      poly(c, [[X, Y + b - h + 2], [X + a + 3, Y - h + 1], sommet], '#b8402f');
+      // Petit drapeau sur le toit
+      c.strokeStyle = '#ffffff'; c.lineWidth = 1.5;
+      c.beginPath(); c.moveTo(sommet[0], sommet[1]); c.lineTo(sommet[0], sommet[1] - 12); c.stroke();
+      poly(c, [[sommet[0], sommet[1] - 12], [sommet[0] + 8, sommet[1] - 9.5], [sommet[0], sommet[1] - 7]], '#ffd23f');
+      c.restore();
+      break;
+    }
+  }
+}
+
+// --- Courbes d'animation ---
+function easeOutBack(p) { const s = 1.70158; return 1 + (s + 1) * Math.pow(p - 1, 3) + s * Math.pow(p - 1, 2); }
+function easeOutBounce(p) {
+  const n = 7.5625, d = 2.75;
+  if (p < 1 / d) return n * p * p;
+  if (p < 2 / d) return n * (p -= 1.5 / d) * p + .75;
+  if (p < 2.5 / d) return n * (p -= 2.25 / d) * p + .9375;
+  return n * (p -= 2.625 / d) * p + .984375;
+}
+
+// Nuage de poussière + étincelles dorées au centre d'une case
+function lancerParticules(x, y, couleur) {
+  const { sx, sy } = coinCase(x, y);
+  const X = sx, Y = sy + TH / 2;
+  for (let i = 0; i < 18; i++) {
+    const ang = Math.random() * Math.PI * 2;
+    const v = 40 + Math.random() * 90;
+    particules.push({
+      x: X, y: Y, vx: Math.cos(ang) * v, vy: Math.sin(ang) * v * .5 - 50,
+      vie: .7, max: .7, r: 2 + Math.random() * 2.5, couleur: i % 3 === 0 ? '#ffd23f' : couleur,
+    });
+  }
+}
+
+// Dessine toute la carte
+function dessinerCarte(t) {
+  const c = ctx;
+  c.setTransform(1, 0, 0, 1, 0, 0);
+  c.clearRect(0, 0, canvas.width, canvas.height);
+  c.setTransform(vue.dpr * vue.z, 0, 0, vue.dpr * vue.z, vue.dpr * vue.x, vue.dpr * vue.y);
+  fjDessin = fj;
+
+  // Socle de terre sous le terrain
+  const gauche = [0, OY + N * TH / 2], bas = [OX, OY + N * TH], droite = [MONDE_L, OY + N * TH / 2];
+  poly(c, [gauche, bas, [bas[0], bas[1] + EPAIS], [gauche[0], gauche[1] + EPAIS]], '#9a6a3a');
+  poly(c, [bas, droite, [droite[0], droite[1] + EPAIS], [bas[0], bas[1] + EPAIS]], '#7d5430');
+
+  // Animations en cours (indexées par case)
+  const anim = {};
+  animations = animations.filter((a) => t - a.t0 < a.duree);
+  for (const a of animations) anim[a.cle] = Math.min(1, Math.max(0, (t - a.t0) / a.duree));
+
+  // 1er passage : le sol
+  for (let y = 0; y < N; y++) {
+    for (let x = 0; x < N; x++) {
+      const cle = x + ',' + y;
+      const type = etat.carte[cle];
+      const { sx, sy } = coinCase(x, y);
+      if (type && ELEMENTS[type].plat && anim[cle] != null) {
+        dessinerHerbe(c, sx, sy, x, y);
+        const s = Math.max(.01, easeOutBack(anim[cle]));
+        c.save();
+        c.translate(sx, sy + TH / 2); c.scale(s, s); c.translate(-sx, -(sy + TH / 2));
+        dessinerSol(c, type, sx, sy, x, y);
+        c.restore();
+      } else {
+        dessinerSol(c, type && ELEMENTS[type].plat ? type : null, sx, sy, x, y);
+      }
+      if (outil) losange(c, sx, sy, 1, null, 'rgba(0,0,0,.08)');   // quadrillage d'aide
+    }
+  }
+
+  // 2e passage : les objets en hauteur, de l'arrière vers l'avant
+  for (let s = 0; s <= 2 * (N - 1); s++) {
+    for (let x = Math.max(0, s - N + 1); x <= Math.min(s, N - 1); x++) {
+      const y = s - x;
+      const cle = x + ',' + y;
+      const type = etat.carte[cle];
+      if (!type || !ELEMENTS[type].haut) continue;
+      const { sx, sy } = coinCase(x, y);
+      let dy = 0;
+      if (anim[cle] != null) dy = -(1 - easeOutBounce(anim[cle])) * 150;
+      dessinerObjet(c, type, sx, sy, x, y, dy);
+    }
+  }
+
+  // Aperçu de la case survolée (souris)
+  if (survol && outil) {
+    const { sx, sy } = coinCase(survol.x, survol.y);
+    const occupe = etat.carte[survol.x + ',' + survol.y];
+    if (outil === 'retirer') {
+      losange(c, sx, sy, 1, occupe ? 'rgba(224,83,63,.35)' : 'rgba(255,255,255,.25)', '#ffffff');
+    } else {
+      const ok = !occupe && etat.pieces >= ELEMENTS[outil].prix;
+      c.save();
+      c.globalAlpha = .6;
+      if (!occupe) {
+        if (ELEMENTS[outil].plat) dessinerSol(c, outil, sx, sy, survol.x, survol.y);
+        if (ELEMENTS[outil].haut) dessinerObjet(c, outil, sx, sy, survol.x, survol.y);
+      }
+      c.restore();
+      losange(c, sx, sy, 1, ok ? 'rgba(255,255,255,.2)' : 'rgba(224,83,63,.35)', ok ? '#ffffff' : '#e0533f');
+    }
+  }
+
+  // Particules
+  for (const p of particules) {
+    c.globalAlpha = Math.max(0, p.vie / p.max);
+    rond(c, p.x, p.y, p.r, p.couleur);
+  }
+  c.globalAlpha = 1;
+}
+
+// Boucle d'affichage : ne redessine que si quelque chose bouge
+let tPrec = performance.now();
+function boucle(t) {
+  const dt = Math.min(.05, (t - tPrec) / 1000);
+  tPrec = t;
+  // Transition vert <-> jaune
+  if (fj !== fjCible) {
+    fj = fjCible > fj ? Math.min(fjCible, fj + dt / .9) : Math.max(fjCible, fj - dt / .9);
+    besoinRendu = true;
+  }
+  // Animations de pose : poussière + son au moment de l'impact
+  for (const a of animations) {
+    const p = (t - a.t0) / a.duree;
+    if (!a.poussiere && p >= a.impact) {
+      a.poussiere = true;
+      const [x, y] = a.cle.split(',').map(Number);
+      lancerParticules(x, y, ELEMENTS[a.type].couleur);
+      son('pose');
+    }
+  }
+  // Particules
+  if (particules.length) {
+    for (const p of particules) { p.vie -= dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 160 * dt; }
+    particules = particules.filter((p) => p.vie > 0);
+    besoinRendu = true;
+  }
+  if (besoinRendu || animations.length) {
+    besoinRendu = false;
+    if (vue.l > 0) dessinerCarte(t);
+  }
+  requestAnimationFrame(boucle);
+}
+
+// --- Caméra : taille, centrage, zoom, déplacement ---
+function zoomAjuste() {
+  return Math.min(vue.l / (MONDE_L + 40), vue.h / (MONDE_H + 20));
+}
+function centrer() {
+  const fit = zoomAjuste();
+  vue.z = vue.l < 700 ? Math.max(fit, .4) : fit;   // sur téléphone, un peu plus gros pour viser
+  vue.x = (vue.l - MONDE_L * vue.z) / 2;
+  vue.y = (vue.h - MONDE_H * vue.z) / 2;
+  borner();
+  besoinRendu = true;
+}
+function borner() {
+  // Le centre du terrain doit rester visible à l'écran
+  const cxs = vue.x + MONDE_L / 2 * vue.z, cys = vue.y + MONDE_H / 2 * vue.z;
+  if (cxs < 0) vue.x -= cxs; if (cxs > vue.l) vue.x -= cxs - vue.l;
+  if (cys < 0) vue.y -= cys; if (cys > vue.h) vue.y -= cys - vue.h;
+}
+function zoomAutour(facteur, sx, sy) {
+  const zMin = zoomAjuste() * .8, zMax = 3;
+  const nz = Math.min(zMax, Math.max(zMin, vue.z * facteur));
+  const wx = (sx - vue.x) / vue.z, wy = (sy - vue.y) / vue.z;
+  vue.z = nz;
+  vue.x = sx - wx * nz;
+  vue.y = sy - wy * nz;
+  borner();
+  besoinRendu = true;
+}
+function redimensionner() {
+  const r = $('#carte-conteneur').getBoundingClientRect();
+  if (r.width < 10 || r.height < 10) return;   // onglet caché
+  const ancienL = vue.l, ancienH = vue.h;
+  vue.l = r.width; vue.h = r.height;
+  vue.dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+  canvas.width = Math.round(r.width * vue.dpr);
+  canvas.height = Math.round(r.height * vue.dpr);
+  if (!vue.pret) { centrer(); vue.pret = true; }
+  else { vue.x += (vue.l - ancienL) / 2; vue.y += (vue.h - ancienH) / 2; borner(); }
+  besoinRendu = true;
+  dessinerCarte(performance.now());
+}
+// Case sous un point de l'écran
+function caseSousPointeur(clientX, clientY) {
+  const r = canvas.getBoundingClientRect();
+  const wx = (clientX - r.left - vue.x) / vue.z;
+  const wy = (clientY - r.top - vue.y) / vue.z;
+  const cs = caseDepuisMonde(wx, wy);
+  return cs.x >= 0 && cs.y >= 0 && cs.x < N && cs.y < N ? cs : null;
+}
+
+// --- Gestes : glisser = déplacer, pincer / molette = zoomer, toucher = poser ---
+const pointeurs = new Map();
+let geste = null;
+function initGestes() {
+  canvas.addEventListener('pointerdown', (e) => {
+    canvas.setPointerCapture(e.pointerId);
+    pointeurs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pointeurs.size === 1) geste = { x0: e.clientX, y0: e.clientY, bouge: false };
+    else if (geste) geste.bouge = true;   // deux doigts : jamais un « toucher »
+  });
+  canvas.addEventListener('pointermove', (e) => {
+    const p = pointeurs.get(e.pointerId);
+    if (e.pointerType === 'mouse') {
+      const cs = caseSousPointeur(e.clientX, e.clientY);
+      if ((cs && (!survol || cs.x !== survol.x || cs.y !== survol.y)) || (!cs && survol)) { survol = cs; besoinRendu = true; }
+    }
+    if (!p) return;
+    if (pointeurs.size === 1) {
+      if (geste && !geste.bouge && Math.hypot(e.clientX - geste.x0, e.clientY - geste.y0) > 8) geste.bouge = true;
+      if (geste && geste.bouge) {
+        vue.x += e.clientX - p.x; vue.y += e.clientY - p.y;
+        borner(); besoinRendu = true;
+      }
+    } else if (pointeurs.size === 2) {
+      const [a, b] = [...pointeurs.values()];
+      const d0 = Math.hypot(a.x - b.x, a.y - b.y), m0 = [(a.x + b.x) / 2, (a.y + b.y) / 2];
+      p.x = e.clientX; p.y = e.clientY;
+      const d1 = Math.hypot(a.x - b.x, a.y - b.y), m1 = [(a.x + b.x) / 2, (a.y + b.y) / 2];
+      const r = canvas.getBoundingClientRect();
+      vue.x += m1[0] - m0[0]; vue.y += m1[1] - m0[1];
+      if (d0 > 0) zoomAutour(d1 / d0, m1[0] - r.left, m1[1] - r.top);
+      besoinRendu = true;
+    }
+    p.x = e.clientX; p.y = e.clientY;
+  });
+  const fin = (e) => {
+    const seul = pointeurs.size === 1;
+    pointeurs.delete(e.pointerId);
+    if (seul && geste && !geste.bouge && e.type === 'pointerup') toucherCarte(e.clientX, e.clientY);
+    if (pointeurs.size === 0) geste = null;
+  };
+  canvas.addEventListener('pointerup', fin);
+  canvas.addEventListener('pointercancel', fin);
+  canvas.addEventListener('pointerleave', () => { if (survol) { survol = null; besoinRendu = true; } });
+  canvas.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const r = canvas.getBoundingClientRect();
+    zoomAutour(Math.exp(-e.deltaY * .0015), e.clientX - r.left, e.clientY - r.top);
+  }, { passive: false });
+
+  const centreEcran = () => [vue.l / 2, vue.h / 2];
+  $('#z-plus').addEventListener('click', () => zoomAutour(1.35, ...centreEcran()));
+  $('#z-moins').addEventListener('click', () => zoomAutour(1 / 1.35, ...centreEcran()));
+  $('#z-centrer').addEventListener('click', centrer);
+  new ResizeObserver(redimensionner).observe($('#carte-conteneur'));
+}
+
+// Action quand on touche une case
+function toucherCarte(clientX, clientY) {
+  const cs = caseSousPointeur(clientX, clientY);
+  if (!cs) return;
+  const cle = cs.x + ',' + cs.y;
+  const present = etat.carte[cle];
+
+  if (!outil) {
+    if (present) toast(ELEMENTS[present].nom);
+    else toast('Choisissez un élément dans la boutique ci-dessous 👇');
+    return;
+  }
+  if (outil === 'retirer') {
+    if (!present) return;
+    const rembourse = Math.floor(ELEMENTS[present].prix / 2);
+    delete etat.carte[cle];
+    etat.pieces += rembourse;
+    sauvegarder();
+    lancerParticules(cs.x, cs.y, ELEMENTS[present].couleur);
+    son('retirer');
+    if (rembourse) toast(`${ELEMENTS[present].nom} retiré : +${rembourse} pièces`);
+    animerPieces();
+    majApresAchat();
+    return;
+  }
+  // Poser un élément
+  const el = ELEMENTS[outil];
+  if (present) {
+    son('erreur');
+    toast('Case occupée — utilisez 🧹 Retirer d\'abord');
+    return;
+  }
+  if (etat.pieces < el.prix) {
+    son('erreur');
+    secouer($('#compteur-pieces'));
+    toast(`Il manque ${el.prix - etat.pieces} pièces. Cochez une habitude !`);
+    return;
+  }
+  etat.pieces -= el.prix;
+  etat.carte[cle] = outil;
+  sauvegarder();
+  // Plat = apparition « pop » ; en hauteur = chute avec rebond
+  animations.push({
+    cle, type: outil, t0: performance.now(),
+    duree: el.haut ? 650 : 380, impact: el.haut ? .36 : 0, poussiere: false,
+  });
+  if (navigator.vibrate) { try { navigator.vibrate(15); } catch (e) { /* rien */ } }
+  besoinRendu = true;
+  animerPieces();
+  majApresAchat();
+}
+
+/* =====================================================================
+   6. BOUTIQUE
+   ===================================================================== */
+
+// Petit dessin d'un élément pour son bouton
+function dessinerMini(cv, type) {
+  const dpr = Math.min(window.devicePixelRatio || 1, 3);
+  cv.width = 60 * dpr; cv.height = 60 * dpr;
+  const c = cv.getContext('2d');
+  const k = 60 / 72;
+  c.setTransform(dpr * k, 0, 0, dpr * k, dpr * (60 - 64 * k) / 2 + dpr * 32 * k, dpr * 2);
+  const ancien = fjDessin;
+  fjDessin = 0;
+  // la case est dessinée avec son coin haut en (0, 38)
+  dessinerSol(c, ELEMENTS[type].plat ? type : null, 0, 38, 0, 1);
+  if (ELEMENTS[type].haut) dessinerObjet(c, type, 0, 38, 1, 0);
+  fjDessin = ancien;
+}
+
+function initBoutique() {
+  const b = $('#boutique');
+  for (const [type, el] of Object.entries(ELEMENTS)) {
+    const btn = document.createElement('button');
+    btn.className = 'article';
+    btn.dataset.type = type;
+    const mini = document.createElement('canvas');
+    dessinerMini(mini, type);
+    btn.appendChild(mini);
+    btn.insertAdjacentHTML('beforeend', `<span class="a-nom">${el.nom}</span><span class="a-prix"></span>`);
+    btn.addEventListener('click', () => choisirOutil(type));
+    b.appendChild(btn);
+  }
+  const ret = document.createElement('button');
+  ret.className = 'article';
+  ret.dataset.type = 'retirer';
+  ret.innerHTML = '<span class="a-icone">🧹</span><span class="a-nom">Retirer</span><span class="a-prix">50 % rendu</span>';
+  ret.addEventListener('click', () => choisirOutil('retirer'));
+  b.appendChild(ret);
+}
+
+function majBoutique() {
+  const niv = niveau();
+  document.querySelectorAll('.article').forEach((btn) => {
+    const type = btn.dataset.type;
+    btn.classList.toggle('choisi', outil === type);
+    if (type === 'retirer') return;
+    const el = ELEMENTS[type];
+    const verrou = niv < el.niveau;
+    btn.classList.toggle('verrouille', verrou);
+    btn.classList.toggle('trop-cher', !verrou && etat.pieces < el.prix);
+    btn.querySelector('.a-prix').innerHTML = verrou
+      ? `🔒 Niv. ${el.niveau}`
+      : `<span class="piece-mini"></span>${el.prix}`;
+  });
+  // Consigne
+  let txt;
+  if (!outil) txt = 'Choisissez un élément, puis touchez une case de la carte. Glissez pour vous déplacer, pincez pour zoomer.';
+  else if (outil === 'retirer') txt = 'Touchez un élément de la carte pour le retirer (la moitié du prix est rendue).';
+  else txt = `Touchez une case vide pour poser : ${ELEMENTS[outil].nom} (${ELEMENTS[outil].prix} pièces). Touchez l'élément à nouveau pour arrêter.`;
+  $('#consigne').textContent = txt;
+  canvas.classList.toggle('outil-actif', !!outil);
+  $('#txt-cases').textContent = `${Object.keys(etat.carte).length} / ${N * N} cases aménagées`;
+}
+
+function choisirOutil(type) {
+  if (type !== 'retirer') {
+    const el = ELEMENTS[type];
+    if (niveau() < el.niveau) {
+      son('erreur');
+      const manque = (el.niveau - 1) * PALIER_NIVEAU - etat.totalFaits;
+      toast(`🔒 ${el.nom} se débloque au niveau ${el.niveau} (encore ${manque} habitude${manque > 1 ? 's' : ''})`);
+      return;
+    }
+  }
+  outil = outil === type ? null : type;
+  son('clic');
+  majBoutique();
+  besoinRendu = true;
+}
+
+function majApresAchat() {
+  majBoutique();
+  besoinRendu = true;
+}
+
+/* =====================================================================
+   7. CALENDRIER (heatmap 6 mois)
+   ===================================================================== */
+
+const MOIS = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+const SEMAINES = 26;
+
+function rendreCalendrier() {
+  const hm = $('#heatmap');
+  hm.innerHTML = '';
+  const auj = cleJour();
+  const jourSemaine = (dateDe(auj).getDay() + 6) % 7;   // 0 = lundi
+  const premierLundi = decaler(auj, -jourSemaine - (SEMAINES - 1) * 7);
+
+  // Colonne des noms de jours
+  const colJ = document.createElement('div');
+  colJ.className = 'hm-col';
+  colJ.innerHTML = '<span class="hm-mois"></span>' + ['L', '', 'M', '', 'V', '', 'D'].map((l) => `<span class="hm-lib">${l}</span>`).join('');
+  hm.appendChild(colJ);
+
+  for (let s = 0; s < SEMAINES; s++) {
+    const lundi = decaler(premierLundi, s * 7);
+    const col = document.createElement('div');
+    col.className = 'hm-col';
+    // Nom du mois sur la semaine qui contient le 1er du mois
+    let libelle = '';
+    for (let k = 0; k < 7; k++) {
+      const d = dateDe(decaler(lundi, k));
+      if (d.getDate() === 1) { libelle = MOIS[d.getMonth()]; break; }
+    }
+    if (s === 0 && !libelle && dateDe(lundi).getDate() < 20) libelle = MOIS[dateDe(lundi).getMonth()];
+    col.innerHTML = `<span class="hm-mois">${libelle}</span>`;
+
+    for (let k = 0; k < 7; k++) {
+      const cle = decaler(lundi, k);
+      const caseJ = document.createElement('button');
+      caseJ.className = 'hm-case';
+      if (cle > auj) {
+        caseJ.classList.add('futur');
+        caseJ.disabled = true;
+      } else {
+        const n = nbJour(cle);
+        if (n) caseJ.classList.add('l' + Math.min(n, 4));
+        if (cle === auj) caseJ.classList.add('aujourdhui');
+        const libelleDate = dateDe(cle).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+        caseJ.title = `${libelleDate} : ${n} habitude${n > 1 ? 's' : ''}`;
+        caseJ.addEventListener('click', () => {
+          document.querySelectorAll('.hm-case.choisie').forEach((x) => x.classList.remove('choisie'));
+          caseJ.classList.add('choisie');
+          const noms = Object.keys(etat.journal[cle] || {})
+            .map((id) => etat.habitudes.find((h) => h.id === id))
+            .filter(Boolean).map((h) => h.icone + ' ' + h.nom);
+          $('#info-jour').textContent = `${libelleDate} : ${n} habitude${n > 1 ? 's' : ''}` + (noms.length ? ' — ' + noms.join(', ') : '');
+        });
+      }
+      col.appendChild(caseJ);
+    }
+    hm.appendChild(col);
+  }
+
+  // Statistiques
+  let actifs = 0;
+  for (let i = 0; i < SEMAINES * 7; i++) if (nbJour(decaler(auj, -i)) > 0) actifs++;
+  const gagne = Object.values(etat.journal).reduce((s, j) => s + Object.values(j).reduce((a, b) => a + b, 0), 0);
+  $('#stats').innerHTML = `
+    <div class="stat"><b>${serieActuelle()} j</b><span>Série actuelle</span></div>
+    <div class="stat"><b>${meilleureSerie()} j</b><span>Meilleure série</span></div>
+    <div class="stat"><b>${actifs}</b><span>Jours actifs (6 mois)</span></div>
+    <div class="stat"><b>${gagne}</b><span>Pièces gagnées au total</span></div>`;
+}
+
+/* =====================================================================
+   8. EFFETS (pièces volantes, textes, toasts, niveau, confettis)
+   ===================================================================== */
+
+// Pièces qui volent du bouton jusqu'au compteur de l'en-tête
+function volerPieces(depuis, nb, auBout) {
+  const a = depuis.getBoundingClientRect();
+  const b = $('#compteur-pieces').getBoundingClientRect();
+  const x0 = a.left + a.width / 2, y0 = a.top + a.height / 2;
+  const x1 = b.left + 18, y1 = b.top + b.height / 2;
+  let arrivees = 0;
+  for (let i = 0; i < nb; i++) {
+    const p = document.createElement('div');
+    p.className = 'piece-volante';
+    document.body.appendChild(p);
+    // Point de passage : un petit jaillissement au hasard autour du bouton
+    const mx = x0 + (Math.random() - .5) * 120, my = y0 - 40 - Math.random() * 70;
+    const anim = p.animate([
+      { transform: `translate(${x0}px, ${y0}px) scale(.4)`, opacity: 1 },
+      { transform: `translate(${mx}px, ${my}px) scale(1.15)`, opacity: 1, offset: .35 },
+      { transform: `translate(${x1}px, ${y1}px) scale(.6)`, opacity: .9 },
+    ], { duration: 750, delay: i * 55, easing: 'cubic-bezier(.45,0,.55,1)', fill: 'backwards' });
+    anim.onfinish = () => {
+      p.remove();
+      son('piece', arrivees);
+      arrivees++;
+      const compteur = $('#compteur-pieces');
+      compteur.classList.remove('pulse'); void compteur.offsetWidth; compteur.classList.add('pulse');
+      if (arrivees === nb && auBout) auBout();
+    };
+  }
+}
+
+// Le compteur de pièces défile jusqu'à la nouvelle valeur
+let piecesAffichees = etat.pieces;
+let jetonPieces = 0;
+function animerPieces() {
+  const jeton = ++jetonPieces;
+  const depart = piecesAffichees, fin = etat.pieces, t0 = performance.now(), duree = 450;
+  const pas = (t) => {
+    if (jeton !== jetonPieces) return;
+    const p = Math.min(1, (t - t0) / duree);
+    piecesAffichees = Math.round(depart + (fin - depart) * p);
+    $('#txt-pieces').textContent = piecesAffichees;
+    if (p < 1) requestAnimationFrame(pas);
+  };
+  requestAnimationFrame(pas);
+  majBoutique();
+}
+
+function texteFlottant(depuis, texte) {
+  const r = depuis.getBoundingClientRect();
+  const el = document.createElement('div');
+  el.className = 'texte-flottant';
+  el.innerHTML = esc(texte) + ' <span class="piece-mini"></span>';
+  el.style.left = (r.left + r.width / 2 - 24) + 'px';
+  el.style.top = (r.top - 6) + 'px';
+  document.body.appendChild(el);
+  el.animate([
+    { transform: 'translateY(0) scale(.6)', opacity: 0 },
+    { transform: 'translateY(-14px) scale(1.15)', opacity: 1, offset: .25 },
+    { transform: 'translateY(-50px) scale(1)', opacity: 0 },
+  ], { duration: 1000, easing: 'ease-out' }).onfinish = () => el.remove();
+}
+
+let minuteurToast = null;
+function toast(msg) {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.classList.add('visible');
+  clearTimeout(minuteurToast);
+  minuteurToast = setTimeout(() => t.classList.remove('visible'), 2600);
+}
+
+function secouer(el) {
+  el.classList.remove('secoue'); void el.offsetWidth; el.classList.add('secoue');
+}
+
+function confettis() {
+  const couleurs = ['#f5b919', '#2f9e5b', '#e0533f', '#4aaef0', '#ffffff', '#86e06a'];
+  for (let i = 0; i < 60; i++) {
+    const c = document.createElement('div');
+    c.className = 'confetti';
+    c.style.left = Math.random() * 100 + 'vw';
+    c.style.background = couleurs[i % couleurs.length];
+    document.body.appendChild(c);
+    const dx = (Math.random() - .5) * 200;
+    c.animate([
+      { transform: 'translate(0,0) rotate(0)' },
+      { transform: `translate(${dx}px, ${window.innerHeight + 40}px) rotate(${Math.random() * 900}deg)` },
+    ], { duration: 1600 + Math.random() * 1400, delay: Math.random() * 300, easing: 'cubic-bezier(.2,.6,.4,1)' })
+      .onfinish = () => c.remove();
+  }
+}
+
+function montrerNiveau(n) {
+  son('niveau');
+  confettis();
+  const debloques = Object.values(ELEMENTS).filter((e) => e.niveau === n).map((e) => e.nom);
+  const pop = document.createElement('div');
+  pop.className = 'niveau-pop';
+  pop.innerHTML = `<div><div class="grand">🏆</div><h3>Niveau ${n} !</h3>
+    <p>${debloques.length ? 'Débloqué : <b>' + debloques.map(esc).join(', ') + '</b>' : 'Continuez comme ça !'}</p>
+    <button class="btn-prim">Super !</button></div>`;
+  const fermer = () => pop.remove();
+  pop.addEventListener('click', fermer);
+  document.body.appendChild(pop);
+  majBoutique();
+}
+
+/* =====================================================================
+   9. EN-TÊTE, ONGLETS ET DÉMARRAGE
+   ===================================================================== */
+
+function rendreEnTete(avecPieces = true) {
+  const auj = cleJour();
+  $('#txt-jour').textContent = 'JOUR ' + (joursEntre(etat.debut, auj) + 1);
+  $('#txt-date').textContent = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  $('#txt-total').textContent = etat.totalFaits;
+  $('#txt-niveau').textContent = 'Niv. ' + niveau();
+  $('#barre-niveau').style.width = (etat.totalFaits % PALIER_NIVEAU) / PALIER_NIVEAU * 100 + '%';
+  if (avecPieces) { piecesAffichees = etat.pieces; $('#txt-pieces').textContent = etat.pieces; }
+  $('#btn-son').textContent = etat.son ? '🔊' : '🔇';
+}
+
+// Redessine toute l'interface
+function toutRendre(avecPieces = true) {
+  rendreEnTete(avecPieces);
+  rendreHabitudes();
+  rendreCalendrier();
+  majBoutique();
+  fjCible = gazonJaune() ? 1 : 0;
+  $('#bandeau-jaune').hidden = fjCible === 0;
+  besoinRendu = true;
+}
+
+function initOnglets() {
+  document.querySelectorAll('.onglet').forEach((o) => o.addEventListener('click', () => {
+    document.querySelectorAll('.onglet').forEach((x) => x.classList.toggle('actif', x === o));
+    document.querySelectorAll('.panneau').forEach((p) => p.classList.toggle('actif', p.id === o.dataset.cible));
+    son('clic');
+    window.scrollTo({ top: 0 });
+    if (o.dataset.cible === 'p-parcours') redimensionner();
+  }));
+}
+
+function demarrer() {
+  initModale();
+  initBoutique();
+  initGestes();
+  initOnglets();
+
+  $('#btn-ajout').addEventListener('click', () => ouvrirModale());
+  $('#btn-son').addEventListener('click', () => {
+    etat.son = !etat.son;
+    sauvegarder();
+    rendreEnTete();
+    son('clic');
+  });
+  $('#btn-reset').addEventListener('click', () => {
+    if (!confirm('Tout effacer : habitudes, pièces, parcours et historique ?')) return;
+    if (!confirm('Vraiment ? Cette action est définitive.')) return;
+    etat = etatInitial();
+    sauvegarder();
+    location.reload();
+  });
+
+  // Changement de jour pendant que l'appli est ouverte (minuit, retour sur l'onglet…)
+  let jourAffiche = cleJour();
+  const verifierJour = () => {
+    if (cleJour() !== jourAffiche) { jourAffiche = cleJour(); toutRendre(); }
+  };
+  setInterval(verifierJour, 30000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) verifierJour(); });
+
+  sauvegarder();      // crée la sauvegarde dès la première ouverture
+  toutRendre();
+  requestAnimationFrame(boucle);
+}
+
+demarrer();
+</script>
+</body>
+</html>

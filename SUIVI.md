@@ -118,3 +118,7 @@ Page web statique (GitHub Pages) qui propose chaque jour un programme golf + une
 - Interprétations à confirmer : Leap Frog, Snail, Lowry Putt, Start Line, Speed Drill (voir notes des fiches).
 - Toute modification de la liste des fiches change les tirages (y compris celui du jour).
 - Les PDF et le .docx seront publics une fois en ligne.
+
+## Fairway Tycoon (17/11/2026)
+
+- Prototype séparé `fairway-tycoon/index.html` (fichier unique, sans lien avec le site golf) : habit tracker + parcours isométrique 20x20, sauvegarde localStorage `fairway-tycoon-v1`.
