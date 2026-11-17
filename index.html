@@ -32,6 +32,8 @@
     <div id="serie" class="badges"></div>
     <!-- Sauvegarde Google (compte.js) -->
     <div id="compte" class="badges"></div>
+    <!-- Pièces du Tycoon (tycoon.js) : un appui ouvre l'onglet -->
+    <div id="tycoon-badge" class="badges"></div>
   </header>
 
   <nav class="onglets" aria-label="Vues">
@@ -41,6 +43,7 @@
     <button type="button" class="onglet" data-vue="parcours" aria-pressed="false">⛳ Parcours</button>
     <button type="button" class="onglet" data-vue="historique" aria-pressed="false">Historique</button>
     <button type="button" class="onglet" data-vue="biblio" aria-pressed="false">Bibliothèque</button>
+    <button type="button" class="onglet onglet-tycoon" data-vue="tycoon" aria-pressed="false">🏗️ Tycoon : construis ton parcours</button>
   </nav>
 
   <main>
@@ -84,6 +87,11 @@
       <div id="historique"></div>
     </section>
 
+    <!-- Tycoon : les pièces gagnées à l'entraînement construisent un parcours (tycoon.js) -->
+    <section id="vue-tycoon" hidden>
+      <div id="tycoon"></div>
+    </section>
+
     <!-- Espace admin : séries de tous les joueurs (serie.js), sans onglet -->
     <section id="vue-admin" hidden>
       <div id="admin"></div>
@@ -120,6 +128,7 @@
   <script src="prepa.js"></script>
   <script src="mental-data.js"></script>
   <script src="mental.js"></script>
+  <script src="tycoon.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

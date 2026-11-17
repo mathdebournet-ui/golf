@@ -289,7 +289,8 @@ function enregistrerProgramme(jour, journee) {
    5. Actions des boutons
    ========================================================= */
 
-function basculerFait(jour, idFiche) {
+// source = bouton appuyé (les pièces du Tycoon partent de là)
+function basculerFait(jour, idFiche, source) {
   const journee = lireJournee(jour);
   const fait = !journee.faits.includes(idFiche);
   if (fait) {
@@ -299,6 +300,7 @@ function basculerFait(jour, idFiche) {
   }
   ecrireJournee(jour, journee);
   noterExoFait(idFiche, fait);   // série de jours d'affilée (serie.js)
+  if (typeof tycoonSynchroniser === "function") tycoonSynchroniser(source);   // pièces (tycoon.js)
   afficherProgramme(jour);
 }
 
@@ -604,6 +606,7 @@ function changerVue(vue) {
   if (vue === "parcours") afficherParcours();       // dans parcours.js
   if (vue === "historique") afficherHistorique();   // dans parcours.js
   if (vue === "admin") ouvrirAdmin();               // dans serie.js
+  if (vue === "tycoon") afficherTycoon();           // dans tycoon.js
   window.scrollTo(0, 0);
 }
 
@@ -702,7 +705,7 @@ async function demarrer() {
   document.getElementById("programme").addEventListener("click", (evenement) => {
     const bouton = evenement.target.closest("button[data-action]");
     if (!bouton) return;
-    if (bouton.dataset.action === "fait") basculerFait(aujourdhui, bouton.dataset.id);
+    if (bouton.dataset.action === "fait") basculerFait(aujourdhui, bouton.dataset.id, bouton);
     if (bouton.dataset.action === "autre") remplacerExercice(aujourdhui, Number(bouton.dataset.position));
   });
 

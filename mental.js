@@ -59,9 +59,11 @@ function mentalMarquerFait(id) {
     liste.push({ date: mentalCleDate(), id, ressenti: null, note: "", t: Date.now() });
     if (!mentalEnregistrer(liste)) mentalMessage("Pas pu enregistrer : la mémoire du navigateur est indisponible (navigation privée ?).");
   }
+  if (typeof tycoonSynchroniser === "function") tycoonSynchroniser(document.activeElement);   // pièces (tycoon.js)
 }
 function mentalAnnulerFait(id) {
   mentalEnregistrer(mentalHistorique().filter((h) => !(h.date === mentalCleDate() && h.id === id)));
+  if (typeof tycoonSynchroniser === "function") tycoonSynchroniser(null);   // reprend les pièces (tycoon.js)
 }
 
 /* ---------- 📓 Carnet : réponses écrites dans les cases des exercices ----------

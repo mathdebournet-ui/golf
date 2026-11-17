@@ -548,3 +548,180 @@ details[open] > summary::before { transform: rotate(90deg); }
 .jz-bilan { margin: 12px 0; }
 .jz-bilan ul { margin: 6px 0 10px; }
 
+
+/* =========================================================
+   🏗️ Tycoon (tycoon.js) — toutes les classes commencent par « ty- »
+   ========================================================= */
+.onglet-tycoon { grid-column: 1 / -1; min-height: 46px; }
+.ty-piece {
+  display: inline-block; width: 1em; height: 1em; border-radius: 50%; vertical-align: -0.15em;
+  background: radial-gradient(circle at 35% 30%, #fff6b0 0, #f7c928 45%, #c98a00 100%);
+  box-shadow: inset 0 0 0 .12em #e0a800;
+}
+#tycoon-badge { margin-top: -6px; }
+#tycoon-badge:empty { display: none; }
+.ty-badge { background: #fff4d1; border-color: #efd48a; color: #5a4100; }
+@media (prefers-color-scheme: dark) { .ty-badge { background: #3a300c; border-color: #7a6420; color: #ffe08a; } }
+.ty-piece-volante {
+  position: fixed; left: 0; top: 0; width: 24px; height: 24px; margin: -12px 0 0 -12px; border-radius: 50%;
+  z-index: 1000; pointer-events: none;
+  background: radial-gradient(circle at 35% 30%, #fff6b0 0, #f7c928 45%, #c98a00 100%);
+  box-shadow: inset 0 0 0 3px #e0a800, 0 2px 6px rgba(0,0,0,.25);
+}
+.ty-texte-flottant { position: fixed; z-index: 1001; pointer-events: none; font-weight: 900; font-size: 1.2rem; color: #c98a00; text-shadow: 0 1px 0 #fff, 0 0 8px #fff; }
+.ty-pastille {
+  position: fixed; top: max(12px, env(safe-area-inset-top)); right: 12px; z-index: 999;
+  display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 999px;
+  font: inherit; font-size: 1.1rem; font-weight: 800; cursor: pointer;
+  background: #fff8dc; color: #5a4100; border: 2px solid #f3df9a; box-shadow: 0 4px 14px rgba(0,0,0,.2);
+}
+.ty-pastille[hidden] { display: none !important; }
+.ty-pulse { animation: ty-pulse .35s ease-out; }
+@keyframes ty-pulse { 50% { transform: scale(1.18); } }
+.ty-secoue { animation: ty-secoue .4s; }
+@keyframes ty-secoue { 20%,60% { transform: translateX(-5px); } 40%,80% { transform: translateX(5px); } }
+.ty-toast {
+  position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(20px); z-index: 1100;
+  background: #1f3436; color: #fff; padding: 10px 16px; border-radius: 12px; font-size: .9rem;
+  opacity: 0; pointer-events: none; transition: opacity .25s, transform .25s; max-width: calc(100vw - 32px); text-align: center;
+}
+.ty-toast.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+.ty-confetti { position: fixed; top: -12px; width: 9px; height: 14px; z-index: 1350; pointer-events: none; border-radius: 2px; }
+.ty-niveau-pop { position: fixed; inset: 0; z-index: 1300; display: grid; place-items: center; background: rgba(15,30,25,.4); }
+.ty-niveau-pop > div {
+  background: var(--carte); color: var(--texte); border-radius: 22px; padding: 22px 26px; text-align: center; max-width: 320px;
+  box-shadow: 0 10px 40px rgba(0,0,0,.3); animation: ty-popin .45s cubic-bezier(.2,1.6,.4,1);
+}
+.ty-niveau-pop h3 { margin: 6px 0; font-size: 1.5rem; color: var(--accent); }
+.ty-grand { font-size: 2.6rem; }
+@keyframes ty-popin { from { transform: scale(.4); opacity: 0; } }
+
+/* Blocs de la vue */
+.ty-carte-info, .ty-bloc {
+  background: var(--carte); border: 1px solid var(--bord); border-radius: 14px; padding: 14px; margin-bottom: 16px; box-shadow: var(--ombre);
+}
+.ty-jour { font-weight: 900; font-size: 1.6rem; letter-spacing: .04em; color: var(--accent); line-height: 1.1; }
+.ty-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 10px; }
+.ty-chip {
+  display: inline-flex; align-items: center; gap: 5px; padding: 5px 11px; border-radius: 999px;
+  border: 1px solid var(--bord); background: var(--fond); color: var(--texte); font: inherit; font-size: .9rem;
+}
+button.ty-chip { cursor: pointer; }
+.ty-niveau { flex-direction: column; align-items: stretch; gap: 2px; border-radius: 12px; padding: 3px 11px; min-width: 76px; }
+.ty-niveau .ty-ligne { display: flex; gap: 5px; align-items: center; }
+.ty-barre { display: block; height: 5px; background: var(--bord); border-radius: 9px; overflow: hidden; }
+.ty-barre i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #f5b919, #f08a24); transition: width .6s; }
+.ty-pieces { background: #fff8dc; border-color: #f3df9a; color: #5a4100; font-weight: 800; font-size: 1.05rem; }
+.ty-bonus { margin: 10px 0 0; font-size: .85rem; font-weight: 700; color: #b5501c; }
+@media (prefers-color-scheme: dark) { .ty-bonus { color: #ffb27a; } }
+.ty-titre { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+.ty-titre h2 { margin: 0; font-size: 1.15rem; }
+
+/* Carte isométrique */
+.ty-carte-zone {
+  position: relative; height: clamp(280px, 55vh, 520px); border-radius: 12px; overflow: hidden;
+  background: radial-gradient(ellipse at 50% 110%, #d8f2c8 0, #bfe6ff 70%);
+  touch-action: none; user-select: none; -webkit-user-select: none;
+}
+@media (prefers-color-scheme: dark) { .ty-carte-zone { background: radial-gradient(ellipse at 50% 110%, #1f3a2a 0, #0f2235 70%); } }
+#ty-canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; }
+#ty-canvas.outil-actif { cursor: crosshair; }
+.ty-zoom { position: absolute; right: 10px; bottom: 10px; display: flex; flex-direction: column; gap: 6px; }
+.ty-zoom button {
+  width: 42px; height: 42px; border-radius: 12px; border: none; background: rgba(255,255,255,.92); color: #0b1a10;
+  box-shadow: 0 2px 8px rgba(0,0,0,.18); font: inherit; font-size: 1.2rem; font-weight: 800; cursor: pointer;
+}
+.ty-bandeau {
+  position: absolute; left: 10px; right: 10px; top: 10px; padding: 8px 12px; border-radius: 12px; text-align: center;
+  background: rgba(255,244,200,.95); color: #6b4f00; font-size: .8rem; font-weight: 700;
+}
+.ty-bandeau[hidden] { display: none !important; }
+.ty-consigne { font-size: .82rem; color: var(--texte-doux); margin: 10px 2px; min-height: 2.6em; }
+.ty-boutique { display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 8px; scroll-snap-type: x proximity; }
+.ty-article {
+  flex: none; width: 82px; padding: 6px 4px 8px; border-radius: 12px; border: 2px solid var(--bord);
+  background: var(--carte); color: var(--texte); font: inherit; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; gap: 2px; scroll-snap-align: start;
+}
+.ty-article:active { transform: scale(.94); }
+.ty-article canvas { width: 60px; height: 60px; }
+.ty-icone { font-size: 2rem; height: 60px; display: grid; place-items: center; }
+.ty-nom { font-size: .72rem; font-weight: 800; line-height: 1.2; }
+.ty-prix { font-size: .72rem; font-weight: 800; color: #a06e00; display: inline-flex; gap: 3px; align-items: center; line-height: 1.2; }
+@media (prefers-color-scheme: dark) { .ty-prix { color: #ffd060; } }
+.ty-article.choisi { border-color: var(--accent); background: var(--accent-doux); }
+.ty-article.trop-cher .ty-prix { color: #d0402c; }
+.ty-article.verrouille { opacity: .75; }
+.ty-article.verrouille canvas { filter: grayscale(1) opacity(.5); }
+.ty-article.verrouille .ty-prix { color: var(--texte-doux); }
+
+/* Gains du jour et habitudes perso */
+.ty-gains { list-style: none; margin: 0 0 8px; padding: 0; }
+.ty-gains li { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--bord); }
+.ty-gains li:last-child { border-bottom: none; }
+.ty-gain-nom { flex: 1; min-width: 0; }
+.ty-gains b { color: #a06e00; white-space: nowrap; }
+@media (prefers-color-scheme: dark) { .ty-gains b { color: #ffd060; } }
+.ty-vide { color: var(--texte-doux); font-size: .9rem; }
+.ty-habitude {
+  display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 10px; border-radius: 14px;
+  background: var(--fond); border: 2px solid transparent; margin-bottom: 8px;
+}
+.ty-habitude.faite { background: var(--accent-doux); border-color: var(--accent); }
+.ty-h-icone { font-size: 1.5rem; width: 42px; height: 42px; display: grid; place-items: center; background: var(--carte); border-radius: 12px; flex: none; }
+.ty-h-texte { flex: 1; min-width: 0; }
+.ty-h-nom { font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ty-h-gain { font-size: .8rem; color: var(--texte-doux); }
+.ty-h-edit { border: none; background: none; font: inherit; font-size: 1.1rem; color: var(--texte-doux); padding: 8px; cursor: pointer; }
+.ty-h-check {
+  width: 50px; height: 50px; border-radius: 50%; flex: none; cursor: pointer;
+  border: 3px solid var(--bord); background: var(--carte); font: inherit; font-size: 1.5rem; font-weight: 900; color: #fff;
+  display: grid; place-items: center;
+}
+.ty-habitude.faite .ty-h-check { background: var(--accent); border-color: var(--accent); color: var(--accent-texte); animation: ty-pulse .4s; }
+
+/* Fenêtre habitude */
+.ty-modale { position: fixed; inset: 0; z-index: 1200; background: rgba(15,30,25,.5); display: flex; align-items: flex-end; justify-content: center; }
+.ty-modale[hidden] { display: none !important; }
+.ty-modale-boite {
+  background: var(--carte); color: var(--texte); width: 100%; max-width: 480px; border-radius: 20px 20px 0 0;
+  padding: 18px 16px max(18px, env(safe-area-inset-bottom)); max-height: 92vh; overflow-y: auto;
+}
+@media (min-width: 600px) { .ty-modale { align-items: center; } .ty-modale-boite { border-radius: 20px; } }
+.ty-modale-boite h3 { margin: 0 0 8px; }
+.ty-label { display: block; font-size: .8rem; font-weight: 800; color: var(--texte-doux); margin: 12px 0 6px; }
+.ty-label .champ { margin-top: 6px; }
+.ty-icones { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; }
+.ty-icones button, .ty-segments button {
+  border-radius: 10px; border: 2px solid var(--bord); background: var(--carte); color: var(--texte); font: inherit; cursor: pointer;
+}
+.ty-icones button { aspect-ratio: 1; font-size: 1.1rem; padding: 0; }
+.ty-segments { display: flex; gap: 8px; }
+.ty-segments button { flex: 1; min-height: 46px; font-weight: 800; display: inline-flex; justify-content: center; align-items: center; gap: 5px; }
+.ty-icones button.choisi, .ty-segments button.choisi { border-color: var(--accent); background: var(--accent-doux); }
+.ty-modale-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+.ty-modale-actions .bouton { min-height: 48px; }
+.ty-espace { flex: 1; }
+#ty-f-supprimer { color: #c0392b; border-color: #e3a8a0; }
+#ty-f-supprimer[hidden] { display: none !important; }
+
+/* Calendrier (heatmap 6 mois) */
+.ty-heatmap { display: grid; grid-template-columns: 14px repeat(26, 1fr); gap: 3px; }
+.ty-hm-col { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.ty-hm-mois { height: 14px; font-size: 10px; line-height: 14px; color: var(--texte-doux); white-space: nowrap; overflow: visible; }
+.ty-hm-lib { font-size: 9px; color: var(--texte-doux); flex: 1 1 0; height: 0; min-height: 0; display: flex; align-items: center; overflow: visible; }
+.ty-hm-case { display: block; aspect-ratio: 1; border-radius: 3px; background: var(--bord); border: none; padding: 0; cursor: pointer; }
+.ty-hm-case.l1 { background: #b7e4c0; }
+.ty-hm-case.l2 { background: #74c98a; }
+.ty-hm-case.l3 { background: #3ba55c; }
+.ty-hm-case.l4 { background: #1f6f3c; }
+.ty-hm-case.futur { background: transparent; cursor: default; }
+.ty-hm-case.aujourdhui { outline: 2px solid #f5b919; outline-offset: 1px; }
+.ty-hm-case.choisie { outline: 2px solid var(--texte); outline-offset: 1px; }
+.ty-legende { display: flex; align-items: center; justify-content: flex-end; gap: 3px; font-size: 11px; color: var(--texte-doux); margin-top: 8px; }
+.ty-legende .ty-hm-case { width: 11px; cursor: default; }
+.ty-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 10px 0; }
+#ty-ajout { width: 100%; }
+.ty-stat { background: var(--fond); border-radius: 12px; padding: 10px 12px; }
+.ty-stat b { display: block; font-size: 1.3rem; color: var(--accent); }
+.ty-stat span { font-size: .75rem; color: var(--texte-doux); }

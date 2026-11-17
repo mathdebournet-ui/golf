@@ -306,6 +306,7 @@ function terminerPartie() {
   parties.push(aGarder);
   ecrireParcours("parties", parties);
   synchroniserPartage();
+  if (typeof tycoonSynchroniser === "function") tycoonSynchroniser(null);   // +50 pièces (tycoon.js)
 
   // Date de la dernière partie : les parcours les plus joués remontent en premier
   const tous = mesParcours();
