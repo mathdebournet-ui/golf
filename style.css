@@ -772,3 +772,4 @@ button.ty-chip { cursor: pointer; }
 .ty-classement li { padding: 4px 0; }
 .ty-classement li span { margin-right: 8px; }
 .ty-classement li.moi { color: var(--accent); font-weight: 800; }
+.ty-bloc[hidden] { display: none !important; }

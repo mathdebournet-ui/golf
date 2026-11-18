@@ -2150,6 +2150,10 @@
        « scoresTycoon ». Les données reçues sont vérifiées et échappées.
      ======================================================= */
 
+  // Partie en ligne (publier / jouer chez les autres) : désactivée tant que les règles
+  // Firestore (outils/regles-firestore.txt) n'ont pas été recollées dans la console
+  // Firebase — choix de l'utilisateur, « on fera plus tard ». Mettre true pour l'activer.
+  const TYCOON_EN_LIGNE = false;
   const COLLECTION_PARCOURS_TY = "parcoursTycoon";
   const COLLECTION_SCORES_TY = "scoresTycoon";
   const METRES_PAR_CASE = 28;
@@ -2533,7 +2537,7 @@
         <div id="ty-mes-trous"></div>
         <button type="button" class="bouton pleine-largeur" id="ty-jouer-mien">▶ Jouer mon parcours (entraînement)</button>
       </div>
-      <div class="ty-bloc">
+      <div class="ty-bloc" ${TYCOON_EN_LIGNE ? "" : "hidden"}>
         <div class="ty-titre"><h2>🌍 Parcours des autres</h2></div>
         <p class="petit">Publie ton parcours pour que les autres viennent le jouer, et va jouer le leur : ton golfeur fait le score tout seul, trou par trou. Une partie officielle par jour et par parcours, avec un classement.</p>
         <label class="ty-label">Nom de mon golf <input type="text" class="champ" id="ty-nom-golf" maxlength="40" placeholder="Ex. : Golf des Pins"></label>
