@@ -134,8 +134,24 @@
       habitudes: DEFIS_DE_DEPART.map(defiDuCatalogue),   // = les défis golf actifs
       journal: {},          // { "AAAA-MM-JJ": { cle: { g: gain, l: libellé, i: icône } } }
       carte: {},            // { "x,y": typeElement }
-      taille: 20,           // terrain de taille x taille cases
+      parcelles: parcellesDeDepart(),   // ["px,py", …] : parcelles de 5 x 5 cases achetées
     };
+  }
+  // Parcelles de départ : 4 x 4 parcelles de 5 x 5 cases = le terrain 20 x 20 d'origine
+  function parcellesDeDepart(cote = 4) {
+    const liste = [];
+    for (let py = 0; py < cote; py++) for (let px = 0; px < cote; px++) liste.push(px + "," + py);
+    return liste;
+  }
+  function lireParcelles(d) {
+    if (Array.isArray(d.parcelles)) {
+      const ok = d.parcelles.filter((p) => typeof p === "string" && /^-?\d+,-?\d+$/.test(p) &&
+        p.split(",").every((v) => Number(v) >= -8 && Number(v) <= 11));
+      if (ok.length) return [...new Set(ok)];
+    }
+    // Ancienne version (terrain carré « taille ») : on la convertit en parcelles
+    if ([20, 30, 40, 50].includes(d.taille)) return parcellesDeDepart(d.taille / 5);
+    return parcellesDeDepart();
   }
   function chargerEtat() {
     const d = lireStockage("etat", null, PREFIXE_TYCOON);
@@ -150,7 +166,7 @@
       habitudes: Array.isArray(d.habitudes) ? d.habitudes.filter((h) => h && h.id && h.nom) : base.habitudes,
       journal: d.journal && typeof d.journal === "object" ? d.journal : {},
       carte: {},
-      taille: [20, 30, 40, 50].includes(d.taille) ? d.taille : 20,
+      parcelles: lireParcelles(d),
     };
     // Anciennes habitudes de départ (boire, dormir) jamais modifiées : remplacées par les défis golf
     const anciennes = ["Boire 2 L d'eau", "Dormir 8 h"];
@@ -510,24 +526,52 @@
      5. RENDU DE LA CARTE ISOMÉTRIQUE (Canvas)
      ======================================================= */
 
-  // Taille du terrain : 20 x 20 au départ, agrandissable avec des pièces
-  // (pour avoir la place de faire un 18 trous). Ces valeurs changent avec appliquerTaille().
-  let N = 20;
   const TW = 64, TH = 32;     // taille d'une case (losange), en unités « monde »
-  let OX = 640;               // coin haut de la case (0,0), au milieu du monde
-  const OY = 90;
+  const OX = 640, OY = 90;    // position « monde » du coin haut de la case (0,0)
   const EPAIS = 16;           // épaisseur du socle de terre
-  let MONDE_L = N * TW;
-  let MONDE_H = OY + N * TH + EPAIS + 20;
-  function appliquerTaille() {
-    N = etat.taille;
-    MONDE_L = N * TW;
-    OX = MONDE_L / 2;
-    MONDE_H = OY + N * TH + EPAIS + 20;
+
+  /* ---------- Terrain en PARCELLES ----------
+     Le terrain est fait de parcelles de 5 x 5 cases (au départ 4 x 4 parcelles = 20 x 20).
+     On achète d'autres parcelles collées au terrain, dans la direction qu'on veut
+     (de quoi faire un 18 trous). Les cases peuvent avoir des coordonnées négatives. */
+  const PARCELLE = 5;
+  const PARCELLE_MIN = -8, PARCELLE_MAX = 11;   // limite du monde : 20 x 20 parcelles = 100 x 100 cases
+  const PARCELLES_DEPART = 16;
+  // Prix d'une parcelle : 50 pièces, +5 à chaque achat (au plus 300)
+  function prixParcelle() { return Math.min(300, 50 + 5 * Math.max(0, etat.parcelles.length - PARCELLES_DEPART)); }
+  let parcellesPossedees = new Set();
+  const bornes = { minX: 0, maxX: 19, minY: 0, maxY: 19 };   // cases extrêmes possédées
+  function majTerrain() {
+    parcellesPossedees = new Set(etat.parcelles);
+    const pts = etat.parcelles.map((p) => p.split(",").map(Number));
+    bornes.minX = Math.min(...pts.map((p) => p[0])) * PARCELLE;
+    bornes.maxX = (Math.max(...pts.map((p) => p[0])) + 1) * PARCELLE - 1;
+    bornes.minY = Math.min(...pts.map((p) => p[1])) * PARCELLE;
+    bornes.maxY = (Math.max(...pts.map((p) => p[1])) + 1) * PARCELLE - 1;
   }
-  // Agrandissements possibles : taille actuelle -> { nouvelle taille, prix }.
-  // Le terrain grandit vers l'avant : ce qui est déjà posé ne bouge pas.
-  const AGRANDISSEMENTS = { 20: { vers: 30, prix: 400 }, 30: { vers: 40, prix: 800 }, 40: { vers: 50, prix: 1500 } };
+  function parcelleDe(x, y) { return Math.floor(x / PARCELLE) + "," + Math.floor(y / PARCELLE); }
+  function possedee(x, y) { return parcellesPossedees.has(parcelleDe(x, y)); }
+  // Parcelles qu'on peut acheter : collées (par un côté) à une parcelle possédée
+  function parcellesAchetables() {
+    const res = new Set();
+    for (const p of parcellesPossedees) {
+      const [px, py] = p.split(",").map(Number);
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const qx = px + dx, qy = py + dy, q = qx + "," + qy;
+        if (qx < PARCELLE_MIN || qx > PARCELLE_MAX || qy < PARCELLE_MIN || qy > PARCELLE_MAX) continue;
+        if (!parcellesPossedees.has(q)) res.add(q);
+      }
+    }
+    return res;
+  }
+  // Cadre « monde » du terrain (+ marge en cases), pour la caméra
+  function cadreMonde(marge = 0) {
+    const x0 = bornes.minX - marge, x1 = bornes.maxX + 1 + marge, y0 = bornes.minY - marge, y1 = bornes.maxY + 1 + marge;
+    return {
+      gauche: OX + (x0 - y1) * TW / 2, droite: OX + (x1 - y0) * TW / 2,
+      haut: OY + (x0 + y0) * TH / 2 - 60, bas: OY + (x1 + y1) * TH / 2 + EPAIS,
+    };
+  }
 
   let canvas = null, ctx = null;
   const vue = { z: 1, x: 0, y: 0, l: 0, h: 0, dpr: 1, pret: false };
@@ -677,7 +721,13 @@
     return v && v.startsWith("@") ? v.slice(1) : cle;
   }
   // Case ancre quand on touche (x, y) pour poser le club-house (reste dans la grille)
-  function ancrePose(x, y) { return { x: Math.min(x, N - 2), y: Math.min(y, N - 2) }; }
+  function ancrePose(x, y) {
+    for (const [dx, dy] of [[0, 0], [-1, 0], [0, -1], [-1, -1]]) {
+      const a = { x: x + dx, y: y + dy };
+      if (casesClubHouse(a.x, a.y).every(([i, j]) => possedee(i, j))) return a;
+    }
+    return { x, y };
+  }
 
   // X, Y = centre des 4 cases ; dy = décalage pendant la chute
   function dessinerGrandClubHouse(c, X, Y, dy = 0) {
@@ -884,21 +934,47 @@
     c.setTransform(vue.dpr * vue.z, 0, 0, vue.dpr * vue.z, vue.dpr * vue.x, vue.dpr * vue.y);
     fjDessin = fj;
 
-    // Socle de terre
-    const gauche = [0, OY + N * TH / 2], bas = [OX, OY + N * TH], droite = [MONDE_L, OY + N * TH / 2];
-    poly(c, [gauche, bas, [bas[0], bas[1] + EPAIS], [gauche[0], gauche[1] + EPAIS]], "#9a6a3a");
-    poly(c, [bas, droite, [droite[0], droite[1] + EPAIS], [bas[0], bas[1] + EPAIS]], "#7d5430");
+    // Mode « Terrain » : parcelles à acheter en pointillés, avec leur prix
+    if (outil === "terrain") {
+      const prix = prixParcelle();
+      for (const q of parcellesAchetables()) {
+        const [px, py] = q.split(",").map(Number);
+        const x0 = px * PARCELLE, y0 = py * PARCELLE, x1 = x0 + PARCELLE, y1 = y0 + PARCELLE;
+        const pts = [coinCase(x0, y0), coinCase(x1, y0), coinCase(x1, y1), coinCase(x0, y1)].map((p) => [p.sx, p.sy]);
+        poly(c, pts, etat.pieces >= prix ? "rgba(255,255,255,.5)" : "rgba(255,255,255,.25)");
+        c.setLineDash([10, 8]);
+        c.strokeStyle = "#2f8a5c"; c.lineWidth = 3;
+        c.beginPath(); c.moveTo(...pts[0]); pts.slice(1).forEach((p) => c.lineTo(...p)); c.closePath(); c.stroke();
+        c.setLineDash([]);
+        const m = coinCase(x0 + PARCELLE / 2, y0 + PARCELLE / 2);
+        // Texte assez gros pour rester lisible quand on a dézoomé (≈ 12 px à l'écran au minimum)
+        const t = Math.min(40, Math.max(22, 12 / vue.z));
+        c.fillStyle = "#1f6b43";
+        c.font = `bold ${Math.round(t * 1.5)}px system-ui, sans-serif`;
+        c.textAlign = "center"; c.textBaseline = "middle";
+        c.fillText("＋", m.sx, m.sy - t * .75);
+        c.font = `bold ${Math.round(t)}px system-ui, sans-serif`;
+        c.fillStyle = etat.pieces >= prix ? "#8a5d00" : "#b3423a";
+        c.fillText(prix + " 🪙", m.sx, m.sy + t * .6);
+      }
+    }
 
     const anim = {};
     animations = animations.filter((a) => t - a.t0 < a.duree);
     for (const a of animations) anim[a.cle] = Math.min(1, Math.max(0, (t - a.t0) / a.duree));
 
-    // 1er passage : le sol
-    for (let y = 0; y < N; y++) {
-      for (let x = 0; x < N; x++) {
+    // 1er passage : le sol (de l'arrière vers l'avant), avec les bords de terre
+    const { minX, maxX, minY, maxY } = bornes;
+    for (let s = minX + minY; s <= maxX + maxY; s++) {
+      for (let x = Math.max(minX, s - maxY); x <= Math.min(maxX, s - minY); x++) {
+        const y = s - x;
+        if (!possedee(x, y)) continue;
         const cle = x + "," + y;
         const v = etat.carte[cle];
         const { sx, sy } = coinCase(x, y);
+        // Bord de terre là où le terrain s'arrête (devant à gauche / devant à droite)
+        if (!possedee(x, y + 1)) poly(c, [[sx - TW / 2, sy + TH / 2], [sx, sy + TH], [sx, sy + TH + EPAIS], [sx - TW / 2, sy + TH / 2 + EPAIS]], "#9a6a3a");
+        if (!possedee(x + 1, y)) poly(c, [[sx, sy + TH], [sx + TW / 2, sy + TH / 2], [sx + TW / 2, sy + TH / 2 + EPAIS], [sx, sy + TH + EPAIS]], "#7d5430");
         // Cases du grand club-house : terrasse pavée
         if ((v && v.startsWith("@")) || (v === "clubhouse" && estGrandClubHouse(x, y))) {
           dessinerSol(c, "terrasse", sx, sy, x, y);
@@ -921,8 +997,8 @@
     }
 
     // 2e passage : objets en hauteur, de l'arrière vers l'avant
-    for (let s = 0; s <= 2 * (N - 1); s++) {
-      for (let x = Math.max(0, s - N + 1); x <= Math.min(s, N - 1); x++) {
+    for (let s = minX + minY; s <= maxX + maxY; s++) {
+      for (let x = Math.max(minX, s - maxY); x <= Math.min(maxX, s - minY); x++) {
         const y = s - x;
         const cle = x + "," + y;
         const type = etat.carte[cle];
@@ -945,7 +1021,7 @@
     }
 
     // Aperçu sous la souris
-    if (survol && outil) {
+    if (survol && outil && outil !== "terrain") {
       const { sx, sy } = coinCase(survol.x, survol.y);
       const occupe = etat.carte[survol.x + "," + survol.y];
       if (outil === "retirer") {
@@ -953,7 +1029,7 @@
       } else if (outil === "clubhouse") {
         const an = ancrePose(survol.x, survol.y);
         const cases = casesClubHouse(an.x, an.y);
-        const libre = cases.every(([a, b]) => !etat.carte[a + "," + b]);
+        const libre = cases.every(([a, b]) => possedee(a, b) && !etat.carte[a + "," + b]);
         const ok = libre && etat.pieces >= ELEMENTS.clubhouse.prix;
         c.save();
         c.globalAlpha = .6;
@@ -1027,24 +1103,31 @@
   }
 
   // --- Caméra ---
-  function zoomAjuste() { return Math.min(vue.l / (MONDE_L + 40), vue.h / (MONDE_H + 20)); }
-  function centrer() {
-    const fit = zoomAjuste();
-    vue.z = vue.l < 700 ? Math.max(fit, .4) : fit;   // un peu plus gros sur téléphone
-    vue.x = (vue.l - MONDE_L * vue.z) / 2;
-    vue.y = (vue.h - MONDE_H * vue.z) / 2;
+  // Zoom qui fait tenir tout le cadre (terrain + marge) dans l'écran
+  function zoomPour(m) { return Math.min(vue.l / (m.droite - m.gauche + 40), vue.h / (m.bas - m.haut + 20)); }
+  function zoomAjuste() { return zoomPour(cadreMonde(PARCELLE)); }
+  // marge = cases autour du terrain à montrer (ex. les parcelles à acheter)
+  function centrer(marge = 0) {
+    const m = cadreMonde(marge);
+    const fit = zoomPour(m);
+    vue.z = marge ? fit : (vue.l < 700 ? Math.max(fit, .4) : fit);   // un peu plus gros sur téléphone
+    vue.x = vue.l / 2 - (m.gauche + m.droite) / 2 * vue.z;
+    vue.y = vue.h / 2 - (m.haut + m.bas) / 2 * vue.z;
     borner();
     besoinRendu = true;
   }
+  // Le terrain ne doit jamais sortir complètement de l'écran
   function borner() {
-    const cxs = vue.x + MONDE_L / 2 * vue.z, cys = vue.y + MONDE_H / 2 * vue.z;
-    if (cxs < 0) vue.x -= cxs;
-    if (cxs > vue.l) vue.x -= cxs - vue.l;
-    if (cys < 0) vue.y -= cys;
-    if (cys > vue.h) vue.y -= cys - vue.h;
+    const m = cadreMonde(PARCELLE);
+    const g = vue.x + m.gauche * vue.z, d = vue.x + m.droite * vue.z;
+    const h = vue.y + m.haut * vue.z, b = vue.y + m.bas * vue.z;
+    if (d < 60) vue.x += 60 - d;
+    if (g > vue.l - 60) vue.x -= g - (vue.l - 60);
+    if (b < 60) vue.y += 60 - b;
+    if (h > vue.h - 60) vue.y -= h - (vue.h - 60);
   }
   function zoomAutour(facteur, sx, sy) {
-    const nz = Math.min(3, Math.max(zoomAjuste() * .8, vue.z * facteur));
+    const nz = Math.min(3, Math.max(zoomAjuste() * .7, vue.z * facteur));
     const wx = (sx - vue.x) / vue.z, wy = (sy - vue.y) / vue.z;
     vue.z = nz;
     vue.x = sx - wx * nz;
@@ -1067,10 +1150,43 @@
     besoinRendu = true;
     dessinerCarte(performance.now());
   }
-  function caseSousPointeur(clientX, clientY) {
+  // Case sous le doigt, même hors du terrain
+  function caseBrute(clientX, clientY) {
     const r = canvas.getBoundingClientRect();
-    const cs = caseDepuisMonde((clientX - r.left - vue.x) / vue.z, (clientY - r.top - vue.y) / vue.z);
-    return cs.x >= 0 && cs.y >= 0 && cs.x < N && cs.y < N ? cs : null;
+    return caseDepuisMonde((clientX - r.left - vue.x) / vue.z, (clientY - r.top - vue.y) / vue.z);
+  }
+  // Case du terrain possédé sous le doigt (null en dehors)
+  function caseSousPointeur(clientX, clientY) {
+    const cs = caseBrute(clientX, clientY);
+    return possedee(cs.x, cs.y) ? cs : null;
+  }
+
+  // Achat de la parcelle touchée (outil « Terrain »)
+  function acheterParcelle(clientX, clientY) {
+    const cs = caseBrute(clientX, clientY);
+    const q = parcelleDe(cs.x, cs.y);
+    if (parcellesPossedees.has(q)) { toast("Cette parcelle est déjà à toi. Touche un carré en pointillés."); return; }
+    if (!parcellesAchetables().has(q)) { son("erreur"); toast("Choisis un carré en pointillés, collé à ton terrain."); return; }
+    const prix = prixParcelle();
+    if (etat.pieces < prix) {
+      son("erreur");
+      secouer($("#ty-compteur"));
+      toast(`Il manque ${prix - etat.pieces} pièces pour cette parcelle.`);
+      return;
+    }
+    etat.pieces -= prix;
+    etat.parcelles.push(q);
+    majTerrain();
+    sauvegarder();
+    const [px, py] = q.split(",").map(Number);
+    for (const [dx, dy] of [[0, 0], [4, 0], [0, 4], [4, 4], [2, 2]]) lancerParticules(px * PARCELLE + dx, py * PARCELLE + dy, "#5cc246");
+    son("pose");
+    son("reverdit");
+    if (navigator.vibrate) { try { navigator.vibrate(20); } catch (e) { /* rien */ } }
+    toast(`🗺️ Parcelle achetée : +${PARCELLE * PARCELLE} cases !`);
+    animerPieces();
+    majBoutique();
+    besoinRendu = true;
   }
 
   // --- Gestes : glisser = déplacer, pincer / molette = zoomer, toucher = poser ---
@@ -1126,6 +1242,7 @@
   }
 
   function toucherCarte(clientX, clientY) {
+    if (outil === "terrain") { acheterParcelle(clientX, clientY); return; }
     const cs = caseSousPointeur(clientX, clientY);
     if (!cs) return;
     let cle = cs.x + "," + cs.y;
@@ -1157,7 +1274,7 @@
     // Le club-house prend 4 cases (2 x 2) : toutes doivent être libres
     const an = outil === "clubhouse" ? ancrePose(cs.x, cs.y) : cs;
     const cases = outil === "clubhouse" ? casesClubHouse(an.x, an.y) : [[cs.x, cs.y]];
-    if (cases.some(([a, b]) => etat.carte[a + "," + b])) {
+    if (cases.some(([a, b]) => !possedee(a, b) || etat.carte[a + "," + b])) {
       son("erreur");
       toast(outil === "clubhouse" ? "Le club-house a besoin de 4 cases libres (2 × 2)" : "Case occupée — utilise 🧹 Retirer d'abord");
       return;
@@ -1204,32 +1321,8 @@
     fjDessin = ancien;
   }
 
-  // Achète un terrain plus grand (20 -> 30 -> 40 -> 50 cases de côté)
-  function agrandirTerrain() {
-    const ag = AGRANDISSEMENTS[N];
-    if (!ag) return;
-    if (etat.pieces < ag.prix) {
-      son("erreur");
-      secouer($("#ty-compteur"));
-      toast(`Il manque ${ag.prix - etat.pieces} pièces pour agrandir le terrain.`);
-      return;
-    }
-    if (!confirm(`Agrandir le terrain à ${ag.vers} × ${ag.vers} cases pour ${ag.prix} pièces ?\nTout ce qui est déjà posé reste à sa place.`)) return;
-    etat.pieces -= ag.prix;
-    etat.taille = ag.vers;
-    sauvegarder();
-    appliquerTaille();
-    centrer();
-    son("niveau");
-    confettis();
-    toast(`🗺️ Terrain agrandi : ${N} × ${N} cases !`);
-    animerPieces();
-    majBoutique();
-    besoinRendu = true;
-  }
-
   function choisirOutil(type) {
-    if (type !== "retirer" && niveau() < ELEMENTS[type].niveau) {
+    if (ELEMENTS[type] && niveau() < ELEMENTS[type].niveau) {
       const el = ELEMENTS[type];
       const manque = (el.niveau - 1) * PALIER_NIVEAU - etat.totalFaits;
       son("erreur");
@@ -1237,6 +1330,7 @@
       return;
     }
     outil = outil === type ? null : type;
+    if (outil === "terrain") centrer(PARCELLE);   // on recule pour voir les parcelles à acheter
     son("clic");
     majBoutique();
     besoinRendu = true;
@@ -1250,6 +1344,11 @@
       const type = btn.dataset.type;
       btn.classList.toggle("choisi", outil === type);
       if (type === "retirer") return;
+      if (type === "terrain") {
+        btn.classList.toggle("trop-cher", etat.pieces < prixParcelle());
+        btn.querySelector(".ty-prix").innerHTML = `<span class="ty-piece"></span>${prixParcelle()}`;
+        return;
+      }
       const el = ELEMENTS[type];
       const verrou = niv < el.niveau;
       btn.classList.toggle("verrouille", verrou);
@@ -1259,21 +1358,12 @@
     let txt;
     if (!outil) txt = "Choisis un élément, puis touche une case. Glisse pour te déplacer, pince pour zoomer.";
     else if (outil === "retirer") txt = "Touche un élément pour le retirer (la moitié du prix est rendue).";
+    else if (outil === "terrain") txt = `Touche un carré en pointillés collé à ton terrain pour l'acheter : ${PARCELLE} × ${PARCELLE} cases pour ${prixParcelle()} pièces (le prix monte un peu à chaque achat).`;
     else if (outil === "clubhouse") txt = `Touche la carte pour poser le club-house : il prend 4 cases libres (2 × 2) — ${ELEMENTS.clubhouse.prix} pièces.`;
     else txt = `Touche une case vide pour poser : ${ELEMENTS[outil].nom} (${ELEMENTS[outil].prix} pièces). Touche l'élément à nouveau pour arrêter.`;
     $("#ty-consigne").textContent = txt;
     canvas.classList.toggle("outil-actif", !!outil);
-    $("#ty-cases").textContent = `${Object.keys(etat.carte).length} / ${N * N} cases`;
-    // Bouton « Agrandir le terrain »
-    const ag = AGRANDISSEMENTS[N];
-    const bouton = $("#ty-agrandir");
-    if (bouton) {
-      bouton.hidden = !ag;
-      if (ag) {
-        bouton.innerHTML = `🗺️ Agrandir le terrain : ${ag.vers} × ${ag.vers} cases · <span class="ty-piece"></span> ${ag.prix}`;
-        bouton.classList.toggle("trop-cher", etat.pieces < ag.prix);
-      }
-    }
+    $("#ty-cases").textContent = `${Object.keys(etat.carte).length} / ${etat.parcelles.length * PARCELLE * PARCELLE} cases`;
   }
 
   /* =======================================================
@@ -1579,7 +1669,6 @@
         </div>
         <p class="ty-consigne" id="ty-consigne"></p>
         <div class="ty-boutique" id="ty-boutique"></div>
-        <button type="button" class="bouton pleine-largeur ty-agrandir" id="ty-agrandir"></button>
       </div>
 
       <div class="ty-bloc">
@@ -1609,6 +1698,9 @@
 
     // Boutique
     const boutique = $("#ty-boutique");
+    // En premier : l'outil « Terrain » pour acheter des parcelles
+    boutique.insertAdjacentHTML("beforeend",
+      '<button type="button" class="ty-article" data-type="terrain"><span class="ty-icone">🗺️</span><span class="ty-nom">Terrain</span><span class="ty-prix"></span></button>');
     for (const [type, el] of Object.entries(ELEMENTS)) {
       const btn = document.createElement("button");
       btn.type = "button";
@@ -1622,7 +1714,6 @@
     }
     boutique.insertAdjacentHTML("beforeend",
       '<button type="button" class="ty-article" data-type="retirer"><span class="ty-icone">🧹</span><span class="ty-nom">Retirer</span><span class="ty-prix">50 % rendu</span></button>');
-    $("#ty-agrandir").addEventListener("click", agrandirTerrain);
     boutique.addEventListener("click", (ev) => {
       const b = ev.target.closest(".ty-article");
       if (b) choisirOutil(b.dataset.type);
@@ -1650,7 +1741,7 @@
       if (!confirm("Vraiment ? C'est définitif.")) return;
       etat = etatInitial();
       sauvegarder();
-      appliquerTaille();
+      majTerrain();
       centrer();
       piecesAffichees = etat.pieces;
       outil = null;
@@ -1702,7 +1793,7 @@
   // Démarrage : après le chargement de tous les scripts (app.js compris)
   document.addEventListener("DOMContentLoaded", () => {
     etat = chargerEtat();
-    appliquerTaille();
+    majTerrain();
     piecesAffichees = etat.pieces;
     pret = true;
     sauvegarder();
