@@ -21,6 +21,9 @@ const JOURS_CONSERVES = 30;          // on efface les données de plus de 30 jou
 // Prépa physique en cours de refonte (16/11/2026) : false = onglet 💪 Prépa grisé
 // « bientôt » et fiches physiques retirées de la Bibliothèque. Mettre true pour tout remettre.
 const PREPA_VISIBLE = false;
+// Mental en préparation (18/11/2026) : false = onglet 🧠 Mental grisé « bientôt ».
+// Mettre true pour le remettre (rien n'est effacé : exercices et carnet restent dans mental.js).
+const MENTAL_VISIBLE = false;
 
 // Programme golf : chaque ligne = 1 exercice (un « créneau »)
 const CRENEAUX_GOLF = [
@@ -632,6 +635,7 @@ function afficherErreur(code, complement = "") {
 // Affiche une vue (jour, biblio, parcours, historique) et cache les autres
 function changerVue(vue) {
   if (vue === "prepa" && !PREPA_VISIBLE) vue = "jour";   // Prépa en refonte
+  if (vue === "mental" && !MENTAL_VISIBLE) vue = "jour"; // Mental en préparation
   document.querySelectorAll("main > section[id^='vue-']").forEach((section) => {
     section.hidden = section.id !== "vue-" + vue;
   });
@@ -691,6 +695,12 @@ async function demarrer() {
     ongletPrepa.disabled = true;
     ongletPrepa.innerHTML = `💪 Prépa <small class="bientot">bientôt</small>`;
     ongletPrepa.title = "La prépa physique revient bientôt";
+  }
+  if (!MENTAL_VISIBLE) {
+    const ongletMental = document.querySelector(".onglet[data-vue='mental']");
+    ongletMental.disabled = true;
+    ongletMental.innerHTML = `🧠 Mental <small class="bientot">bientôt</small>`;
+    ongletMental.title = "Le mental arrive bientôt";
   }
   // Onglets branchés tout de suite : « Parcours » marche même sans les fiches
   document.querySelectorAll(".onglet").forEach((bouton) => {

@@ -147,3 +147,6 @@ afraichirCaseScore met à jour toutes les copies d'une fiche (programme + biblio
 - ✅ Corrigé : les sons du Tycoon ne marchaient plus depuis v37 (deux fonctions `note` dans tycoon.js ; celle des notes du golfeur renommée `noteSur100`).
 - ⚠ **À faire par l'utilisateur** : recoller `outils/regles-firestore.txt` dans la console Firebase (nouvelle collection `consignes` + champ `notes` dans `scores`), en remplaçant ADRESSE_ADMIN_1/2. Sans ça : enregistrement des exos refusé (message clair dans l'admin) et notes des joueurs refusées.
 - Un joueur n'apparaît dans 👤 Joueurs que s'il a déjà validé un jour, noté un score ou partagé une partie.
+
+## 🧠 Mental grisé (18/11/2026, v41)
+- ✅ Onglet 🧠 Mental grisé avec « bientôt », comme Prépa (`MENTAL_VISIBLE = false` dans app.js ; true pour le remettre, exercices et carnet gardés). Dans 📈 Progrès, si le point faible est le mental : « arrive bientôt », sans bouton.

@@ -143,6 +143,9 @@ function progresBlocNotes(notes) {
   let action;
   if (!faible) {
     action = `<p class="petit">Joue quelques exos interactifs et note une partie : ton point faible apparaîtra ici.</p>`;
+  } else if (faible === "mental" && !MENTAL_VISIBLE) {
+    action = `<p>Point faible : <strong>${PROGRES_NOMS_NOTES[faible]}</strong> (${notes[faible].valeur}/100)</p>
+      <p class="petit">L'onglet 🧠 Mental arrive bientôt.</p>`;
   } else if (faible === "mental") {
     action = `<p>Point faible : <strong>${PROGRES_NOMS_NOTES[faible]}</strong> (${notes[faible].valeur}/100)</p>
       <button type="button" class="pr-bouton" data-progres="mental">🧠 Aller faire un exercice mental</button>`;
