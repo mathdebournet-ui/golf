@@ -773,3 +773,44 @@ button.ty-chip { cursor: pointer; }
 .ty-classement li span { margin-right: 8px; }
 .ty-classement li.moi { color: var(--accent); font-weight: 800; }
 .ty-bloc[hidden] { display: none !important; }
+
+/* ---------- 📈 Progrès (progres.js) ---------- */
+.pr-titre { margin: 4px 0 14px; font-size: 1.5rem; }
+.pr-bloc { background: var(--carte); border: 1px solid var(--bord); border-radius: 14px; padding: 16px; box-shadow: var(--ombre); }
+.pr-radar { display: block; width: 100%; max-width: 340px; margin: 6px auto; }
+.pr-anneau { fill: none; stroke: var(--bord); stroke-width: 1; }
+.pr-forme { fill: var(--accent); fill-opacity: 0.25; stroke: var(--accent); stroke-width: 2.5; stroke-linejoin: round; }
+.pr-point { fill: var(--accent); }
+.pr-record { fill: #e0a100; stroke: var(--carte); stroke-width: 1.5; }
+.pr-etiquette { font-size: 11px; font-weight: 700; fill: var(--texte); }
+.pr-valeur { font-size: 13px; font-weight: 800; fill: var(--accent); }
+.pr-valeur.pr-sans { fill: var(--texte-doux); }
+.pr-details { margin: 4px 0 12px; padding-left: 18px; font-size: 0.85rem; color: var(--texte-doux); }
+.pr-details li { margin: 2px 0; }
+.pr-action { border-top: 1px solid var(--bord); padding-top: 10px; }
+.pr-action p { margin: 4px 0 8px; }
+.pr-bouton {
+  width: 100%; min-height: 48px; border: none; border-radius: 12px; font: inherit; font-weight: 800;
+  background: var(--accent); color: var(--accent-texte); cursor: pointer;
+}
+.pr-mois, .pr-stats { list-style: none; margin: 10px 0 0; padding: 0; }
+.pr-mois li, .pr-stats li {
+  display: flex; justify-content: space-between; align-items: center; gap: 8px;
+  padding: 9px 0; border-bottom: 1px solid var(--bord); font-weight: 600;
+}
+.pr-mois li:last-child, .pr-stats li:last-child { border-bottom: none; }
+.pr-evo { font-weight: 800; white-space: nowrap; font-size: 0.9rem; }
+.pr-mieux { color: var(--accent); }
+.pr-moins { color: var(--erreur-texte); }
+.pr-neutre { color: var(--texte-doux); font-weight: 600; }
+.pr-exo { border: 1px solid var(--bord); border-left: 6px solid var(--couleur-cat, var(--accent)); border-radius: 12px; padding: 10px 12px; margin-top: 12px; }
+.pr-exo-tete { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.pr-exo-tete h3 { margin: 0; font-size: 1rem; }
+.pr-exo-tete .pastille { font-size: 0.75rem; white-space: nowrap; }
+.pr-courbe { display: block; width: 100%; height: auto; max-height: 90px; margin: 8px 0 4px; }
+.pr-ligne { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.pr-exo-chiffres { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 0; font-size: 0.85rem; color: var(--texte-doux); }
+.pr-exo-chiffres strong { color: var(--texte); }
+.pr-nouveau { color: #b07a00; font-style: normal; font-weight: 800; }
+.resume-focus { width: 100%; margin: 4px 0 0; padding: 8px 10px; border-radius: 10px; background: var(--accent-doux); font-weight: 600; }
+.resume-focus .lien-bouton { margin-left: 4px; }

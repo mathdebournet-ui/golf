@@ -42,6 +42,7 @@
     <button type="button" class="onglet" data-vue="mental" aria-pressed="false">🧠 Mental</button>
     <button type="button" class="onglet" data-vue="parcours" aria-pressed="false">⛳ Parcours</button>
     <button type="button" class="onglet" data-vue="historique" aria-pressed="false">Historique</button>
+    <button type="button" class="onglet" data-vue="progres" aria-pressed="false">📈 Progrès</button>
     <button type="button" class="onglet" data-vue="biblio" aria-pressed="false">Bibliothèque</button>
     <button type="button" class="onglet onglet-tycoon" data-vue="tycoon" aria-pressed="false">🏗️ Tycoon : construis ton parcours</button>
   </nav>
@@ -87,6 +88,11 @@
       <div id="historique"></div>
     </section>
 
+    <!-- Vue 📈 Progrès : courbes, records, point faible (progres.js) -->
+    <section id="vue-progres" hidden>
+      <div id="progres"></div>
+    </section>
+
     <!-- Tycoon : les pièces gagnées à l'entraînement construisent un parcours (tycoon.js) -->
     <section id="vue-tycoon" hidden>
       <div id="tycoon"></div>
@@ -129,6 +135,7 @@
   <script src="mental-data.js"></script>
   <script src="mental.js"></script>
   <script src="tycoon.js"></script>
+  <script src="progres.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

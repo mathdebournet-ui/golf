@@ -33,6 +33,22 @@ const CRENEAUX_GOLF = [
   { bloc: "practice", categories: ["fers", "drive", "approches"], categoriesDifferentes: true },
 ];
 
+// Programme « point faible » (bouton de l'onglet 📈 Progrès) : même nombre
+// d'exos (6), mais la moitié dans la partie du jeu la plus faible.
+// Mémorisé pour la journée dans « focus » (clé jour:AAAA-MM-JJ).
+const PUTT = { bloc: "putting", categories: ["putting"] };
+const CHIP = { bloc: "chipping", categories: ["chipping", "bunker"] };
+const PRACTICE = { bloc: "practice", categories: ["fers", "drive", "approches"] };
+const FERS = { bloc: "practice", categories: ["fers", "approches"] };
+const DRIVE = { bloc: "practice", categories: ["drive"] };
+const CRENEAUX_FOCUS = {
+  putting: [PUTT, PUTT, PUTT, PUTT, CHIP, PRACTICE],
+  petitJeu: [PUTT, PUTT, CHIP, CHIP, CHIP, PRACTICE],
+  fers: [PUTT, PUTT, CHIP, FERS, FERS, FERS],
+  drive: [PUTT, PUTT, CHIP, DRIVE, DRIVE, FERS],
+};
+const NOMS_FOCUS = { putting: "🕳️ Putting", petitJeu: "🏖️ Petit jeu", fers: "🎯 Fers / wedging", drive: "🚀 Drive" };
+
 // Séance de sport selon le jour (0 = dimanche, 1 = lundi … 6 = samedi) :
 // utilisée par le bouton « Je ne sais pas » de l'onglet Prépa physique.
 // « exercices » = la catégorie de chaque exercice de la séance, dans l'ordre.
@@ -146,6 +162,7 @@ function lireJournee(jour) {
     programme: Array.isArray(donnees.programme) ? donnees.programme : [],   // ids, dans l'ordre des créneaux
     faits: Array.isArray(donnees.faits) ? donnees.faits : [],
     dejaProposes: donnees.dejaProposes || {},     // { position: [ids] }
+    focus: CRENEAUX_FOCUS[donnees.focus] ? donnees.focus : null,   // programme « point faible »
   };
 }
 
@@ -198,9 +215,11 @@ function choisirAuHasard(liste) {
    4. Construction du programme
    ========================================================= */
 
-// Liste des créneaux du jour (golf seulement : le sport est dans Prépa physique)
-function creneauxDuJour() {
-  return CRENEAUX_GOLF;
+// Liste des créneaux du jour (golf seulement : le sport est dans Prépa physique).
+// Jour en mode « point faible » : les créneaux de CRENEAUX_FOCUS.
+function creneauxDuJour(jour) {
+  const focus = jour ? lireJournee(jour).focus : null;
+  return focus ? CRENEAUX_FOCUS[focus] : CRENEAUX_GOLF;
 }
 
 // Interrupteur « 📡 Trackman » (Aujourd'hui) : sans Trackman, le tirage évite
@@ -278,8 +297,10 @@ function tirerNouveauProgramme(jour) {
   window.scrollTo(0, 0);
 }
 
-// Mémorise le programme affiché (sert d'historique pour les prochains tirages)
+// Mémorise le programme affiché (sert d'historique pour les prochains tirages).
+// Le mode « point faible » du jour est gardé, sauf si journee.focus est donné.
 function enregistrerProgramme(jour, journee) {
+  if (!("focus" in journee)) journee.focus = lireJournee(jour).focus;
   journee.programme = programmeCourant.map((p) => (p.fiche ? p.fiche.id : null));
   ecrireJournee(jour, journee);
 }
@@ -288,6 +309,20 @@ function enregistrerProgramme(jour, journee) {
 /* =========================================================
    5. Actions des boutons
    ========================================================= */
+
+// Bouton « Travailler mon point faible » (progres.js) : focus = clé de
+// CRENEAUX_FOCUS, ou null pour revenir au programme normal
+function programmePointFaible(focus) {
+  const jour = dateEnTexte(new Date());
+  const journee = lireJournee(jour);
+  if (journee.faits.length > 0 && !confirm("Tirer un nouveau programme ? Les exos cochés « Fait » seront décochés (ta série 🔥 du jour est gardée).")) return;
+  // Le focus est écrit AVANT le tirage : nouveauProgramme lit les créneaux du jour
+  ecrireJournee(jour, { ...journee, focus, faits: [], dejaProposes: {} });
+  programmeCourant = nouveauProgramme(jour);
+  enregistrerProgramme(jour, { faits: [], dejaProposes: {}, focus });
+  afficherProgramme(jour);
+  changerVue("jour");
+}
 
 // source = bouton appuyé (les pièces du Tycoon partent de là)
 function basculerFait(jour, idFiche, source) {
@@ -470,7 +505,9 @@ function afficherProgramme(jour) {
     <p class="resume-detail">${PREPA_VISIBLE ? "Golf · le sport est dans l'onglet 💪 Prépa physique" : "Golf · prépa physique bientôt de retour"}</p>
     ${nbFaits === presents.length ? `<p class="resume-bravo">Journée terminée, bravo ! 🎉</p>` : ""}
     <button type="button" class="interrupteur-trackman ${aLeTrackman() ? "actif" : ""}" data-action="trackman" aria-pressed="${aLeTrackman()}">📡 ${aLeTrackman() ? "J'ai le Trackman aujourd'hui" : "Pas de Trackman aujourd'hui"}</button>
-    <button type="button" class="lien-bouton" data-action="nouveau-programme">🔄 Nouveau programme</button>`;
+    <button type="button" class="lien-bouton" data-action="nouveau-programme">🔄 Nouveau programme</button>
+    ${journee.focus ? `<p class="resume-focus">🎯 Programme point faible : <strong>${NOMS_FOCUS[journee.focus]}</strong>
+      <button type="button" class="lien-bouton" data-action="programme-normal">Revenir au programme normal</button></p>` : ""}`;
 
   // Un bloc par groupe (putting, chipping, practice) avec les exos pas encore faits ;
   // les exos faits descendent tout en bas, grisés, dans « Terminés »
@@ -607,6 +644,7 @@ function changerVue(vue) {
   if (vue === "historique") afficherHistorique();   // dans parcours.js
   if (vue === "admin") ouvrirAdmin();               // dans serie.js
   if (vue === "tycoon") afficherTycoon();           // dans tycoon.js
+  if (vue === "progres") afficherProgres();         // dans progres.js
   window.scrollTo(0, 0);
 }
 
@@ -699,6 +737,7 @@ async function demarrer() {
   document.getElementById("resume").addEventListener("click", (evenement) => {
     if (evenement.target.closest('button[data-action="nouveau-programme"]')) tirerNouveauProgramme(aujourdhui);
     if (evenement.target.closest('button[data-action="trackman"]')) basculerTrackman(aujourdhui);
+    if (evenement.target.closest('button[data-action="programme-normal"]')) programmePointFaible(null);
   });
 
   // Un seul écouteur pour tous les boutons des cartes (délégation)

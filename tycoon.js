@@ -2798,7 +2798,9 @@
     document.addEventListener("visibilitychange", () => { if (!document.hidden) verifierJour(); });
   });
 
-  // Les 2 seules fonctions visibles par les autres fichiers
+  // Les seules fonctions visibles par les autres fichiers
   window.afficherTycoon = afficherTycoon;
   window.tycoonSynchroniser = (source) => synchroniser(source || null);
+  // Notes du golfeur, lues par l'onglet 📈 Progrès (progres.js)
+  window.tycoonNotesGolfeur = () => (etat ? statsGolfeur() : null);
 })();
