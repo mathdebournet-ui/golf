@@ -24,6 +24,9 @@ const PREPA_VISIBLE = false;
 // Mental en préparation (18/11/2026) : false = onglet 🧠 Mental grisé « bientôt ».
 // Mettre true pour le remettre (rien n'est effacé : exercices et carnet restent dans mental.js).
 const MENTAL_VISIBLE = false;
+// Tycoon mis de côté (18/11/2026) : false = onglet et badge 🏗️ cachés. Les pièces
+// continuent d'être comptées en silence (tycoon.js), rien n'est perdu. true pour le remettre.
+const TYCOON_VISIBLE = false;
 
 // Programme golf : chaque ligne = 1 exercice (un « créneau »)
 const CRENEAUX_GOLF = [
@@ -636,6 +639,7 @@ function afficherErreur(code, complement = "") {
 function changerVue(vue) {
   if (vue === "prepa" && !PREPA_VISIBLE) vue = "jour";   // Prépa en refonte
   if (vue === "mental" && !MENTAL_VISIBLE) vue = "jour"; // Mental en préparation
+  if (vue === "tycoon" && !TYCOON_VISIBLE) vue = "jour"; // Tycoon mis de côté
   document.querySelectorAll("main > section[id^='vue-']").forEach((section) => {
     section.hidden = section.id !== "vue-" + vue;
   });
@@ -701,6 +705,10 @@ async function demarrer() {
     ongletMental.disabled = true;
     ongletMental.innerHTML = `🧠 Mental <small class="bientot">bientôt</small>`;
     ongletMental.title = "Le mental arrive bientôt";
+  }
+  if (!TYCOON_VISIBLE) {
+    document.querySelector(".onglet-tycoon").style.display = "none";
+    document.getElementById("tycoon-badge").style.display = "none";
   }
   // Onglets branchés tout de suite : « Parcours » marche même sans les fiches
   document.querySelectorAll(".onglet").forEach((bouton) => {

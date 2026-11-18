@@ -186,7 +186,9 @@ async function envoyerScores() {
   // Notes du golfeur (tycoon.js), pour l'onglet 📈 Progrès du joueur dans l'espace admin.
   // Seulement les notes qui ont des données.
   const notes = typeof tycoonNotesGolfeur === "function" ? tycoonNotesGolfeur() : null;
-  if (notes) {
+  // (seulement quand les nouvelles règles Firestore sont publiées : COACH_EN_LIGNE, coach.js ;
+  //  avant, Firebase refuserait tout l'envoi des scores à cause de ce champ)
+  if (notes && typeof COACH_EN_LIGNE !== "undefined" && COACH_EN_LIGNE) {
     donnees.notes = Object.fromEntries(Object.entries(notes)
       .filter(([, n]) => n.detail !== "pas encore de données").map(([cle, n]) => [cle, n.valeur]));
   }

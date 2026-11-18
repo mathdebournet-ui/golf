@@ -17,6 +17,11 @@
    Fonctions préfixées « coach » (scripts classiques = noms globaux).
    ========================================================= */
 
+// Les nouvelles règles Firestore (consignes + notes) ne sont pas encore publiées :
+// false = rien n'est lu ni envoyé, et l'espace admin n'affiche pas « Exos à faire ».
+// Mettre true APRÈS avoir recollé outils/regles-firestore.txt dans la console Firebase.
+const COACH_EN_LIGNE = false;
+
 const PREFIXE_COACH = "golf-coach-v1:";
 const COLLECTION_CONSIGNES = "consignes";
 const CONSIGNES_MAX = 10;              // exos donnés en même temps au maximum
@@ -92,7 +97,7 @@ function coachNoterFait(idFiche, fait, jour) {
 }
 
 async function envoyerFaitsCoach() {
-  if (!partageConfigure() || !(await demarrerPartage())) return;   // partage.js
+  if (!COACH_EN_LIGNE || !partageConfigure() || !(await demarrerPartage())) return;   // partage.js
   try {
     await baseDeDonnees.collection(COLLECTION_CONSIGNES).doc(idAppareil).update({ faits: lireConsignes().faits });
   } catch (e) {
@@ -102,7 +107,7 @@ async function envoyerFaitsCoach() {
 
 // Lit les consignes du coach (au démarrage et quand on revient sur l'appli)
 async function chargerConsignes() {
-  if (!partageConfigure() || !navigator.onLine || !(await demarrerPartage())) return;
+  if (!COACH_EN_LIGNE || !partageConfigure() || !navigator.onLine || !(await demarrerPartage())) return;
   let recu;
   try {
     const doc = await baseDeDonnees.collection(COLLECTION_CONSIGNES).doc(idAppareil).get();

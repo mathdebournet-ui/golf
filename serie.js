@@ -215,7 +215,7 @@ async function chargerAdmin() {
     base.collection(COLLECTION_SERIES).get(),
     base.collection(COLLECTION_PARTIES).orderBy("envoyeLe", "desc").limit(500).get(),
     base.collection(COLLECTION_SCORES).get(),
-    base.collection(COLLECTION_CONSIGNES).get(),
+    COACH_EN_LIGNE ? base.collection(COLLECTION_CONSIGNES).get() : Promise.reject(new Error("coach pas en ligne")),
   ]);
   // Exos donnés par le coach (refusé tant que les nouvelles règles ne sont pas publiées : liste vide)
   consignesAdmin = {};
@@ -401,7 +401,7 @@ function htmlJoueursAdmin() {
     const fiches = fichesValides.filter((f) => f.categorie === cat && !c.exos.includes(f.id)).sort((a, b) => a.titre.localeCompare(b.titre, "fr"));
     return fiches.length ? `<optgroup label="${echapper(NOMS_CATEGORIES[cat])}">${fiches.map((f) => `<option value="${echapper(f.id)}">${echapper(f.titre)}</option>`).join("")}</optgroup>` : "";
   }).join("");
-  html += `<section class="bloc pr-bloc consignes-admin">
+  if (COACH_EN_LIGNE) html += `<section class="bloc pr-bloc consignes-admin">
     <h2 class="bloc-titre">⭐ Exos à faire pour ${echapper(nom)}</h2>
     <p class="bloc-info">Ils apparaissent en haut de son « Aujourd'hui » jusqu'à ce qu'il les fasse (${CONSIGNES_MAX} au maximum).</p>
     ${lignes ? `<ul class="liste-consignes">${lignes}</ul>` : `<p class="petit">Aucun exo donné pour l'instant.</p>`}
@@ -419,7 +419,7 @@ function htmlJoueursAdmin() {
   const exos = progresExosAvecScores(sc ? sc.scores : {});
   const parties = progresParties((partiesAdmin || []).filter((p) => p.uid === joueurAdmin));
   html += `<h2 class="pr-titre">📈 Progrès de ${echapper(nom)}</h2>
-    ${progresBlocNotesAdmin(sc && sc.notes)}
+    ${COACH_EN_LIGNE ? progresBlocNotesAdmin(sc && sc.notes) : ""}
     ${progresBlocMois(exos, parties)}
     ${progresBlocExos(exos)}
     ${progresBlocParcours(parties)}`;

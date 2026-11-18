@@ -150,3 +150,9 @@ afraichirCaseScore met à jour toutes les copies d'une fiche (programme + biblio
 
 ## 🧠 Mental grisé (18/11/2026, v41)
 - ✅ Onglet 🧠 Mental grisé avec « bientôt », comme Prépa (`MENTAL_VISIBLE = false` dans app.js ; true pour le remettre, exercices et carnet gardés). Dans 📈 Progrès, si le point faible est le mental : « arrive bientôt », sans bouton.
+
+## Publication (18/11/2026, v42)
+- ✅ Tycoon **mis de côté** : `TYCOON_VISIBLE = false` (app.js) cache l'onglet et le badge ; les pièces continuent d'être comptées sans effet. true pour le remettre.
+- ✅ Tout ce qui demande Firebase est **en attente** (l'utilisateur n'a pas son ordinateur) : `COACH_EN_LIGNE = false` (coach.js) → exos du coach et notes du golfeur ni lus ni envoyés ; l'onglet admin 👤 Joueurs montre seulement les progrès de chaque joueur. Tycoon en ligne déjà masqué (`TYCOON_EN_LIGNE = false`).
+- TODO quand l'ordinateur est là : recoller `outils/regles-firestore.txt` (remplacer ADRESSE_ADMIN_1/2), puis `COACH_EN_LIGNE = true` (et plus tard `TYCOON_EN_LIGNE` / `TYCOON_VISIBLE`).
+- Publié sur `main` (GitHub Pages) : 📈 Progrès, admin 👤 Joueurs (progrès), Mental grisé, sons du Tycoon réparés.

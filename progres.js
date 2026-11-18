@@ -156,7 +156,7 @@ function progresBlocNotes(notes) {
   }
   return `<section class="bloc pr-bloc">
     <h2 class="bloc-titre">🏌️ Mes 5 notes</h2>
-    <p class="bloc-info">Les mêmes que ton golfeur du Tycoon, sur 100 (— = pas encore de données)</p>
+    <p class="bloc-info">Sur 100, d'après tes jeux, exos et parties des 30 derniers jours (— = pas encore de données)</p>
     ${progresRadar(notes)}
     <ul class="pr-details">${PROGRES_ORDRE_RADAR.map((cle) => `<li><strong>${PROGRES_NOMS_NOTES[cle]}</strong> : ${echapper(notes[cle].detail)}</li>`).join("")}</ul>
     <div class="pr-action">${action}</div>

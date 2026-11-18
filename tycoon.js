@@ -294,6 +294,10 @@
 
   // Appelée après un ✓, un exercice mental, une partie terminée, et à l'ouverture.
   // source = bouton d'où partent les pièces volantes (facultatif)
+  // Tycoon mis de côté (TYCOON_VISIBLE = false dans app.js) : on compte les pièces
+  // sans aucun effet (pas de son, de pièces volantes ni de message)
+  function tycoonCache() { return typeof TYCOON_VISIBLE !== "undefined" && !TYCOON_VISIBLE; }
+
   function synchroniser(source) {
     if (!pret) return;
     const auj = cleJour();
@@ -319,7 +323,7 @@
       repris += retirerAbsents("exo:", ids);
       repris += retirerAbsents("parfait:", ids);
     }
-    if (parfaits.length) setTimeout(() => { son("niveau"); confettis(); toast("🌟 PARFAIT " + parfaits.join(" · ") + " : récompense doublée !"); }, 300);
+    if (parfaits.length && !tycoonCache()) setTimeout(() => { son("niveau"); confettis(); toast("🌟 PARFAIT " + parfaits.join(" · ") + " : récompense doublée !"); }, 300);
     // Exercices mentaux faits (mental.js)
     if (typeof mentalHistorique === "function") {
       const histo = mentalHistorique();
@@ -342,11 +346,11 @@
         }
       }
     }
-    if (defisReussis.length) setTimeout(() => toast("🏆 Défi réussi : " + defisReussis.join(" · ")), 400);
+    if (defisReussis.length && !tycoonCache()) setTimeout(() => toast("🏆 Défi réussi : " + defisReussis.join(" · ")), 400);
     if (etat.journal[auj] && !Object.keys(etat.journal[auj]).length) delete etat.journal[auj];
 
     if (gagne || repris) sauvegarder();
-    if (gagne) celebrerGain(source, gagne, ancienNiveau, etaitJaune);
+    if (gagne && !tycoonCache()) celebrerGain(source, gagne, ancienNiveau, etaitJaune);
     rafraichir(!gagne);
   }
 
