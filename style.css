@@ -725,3 +725,21 @@ button.ty-chip { cursor: pointer; }
 .ty-stat { background: var(--fond); border-radius: 12px; padding: 10px 12px; }
 .ty-stat b { display: block; font-size: 1.3rem; color: var(--accent); }
 .ty-stat span { font-size: .75rem; color: var(--texte-doux); }
+/* Défis golf (tycoon.js) */
+.ty-modale [hidden] { display: none !important; }
+.ty-cats { flex-wrap: wrap; }
+.ty-cats button { flex: 1 1 40%; }
+.ty-tag { display: inline-block; font-size: .7rem; font-weight: 800; padding: 0 7px; border-radius: 999px; background: var(--accent-doux); color: var(--accent); border: 1px solid var(--accent); }
+.ty-h-gain .ty-tag { font-size: .65rem; }
+.ty-h-nom { white-space: normal; line-height: 1.25; }
+.ty-h-auto { border-style: dashed; color: var(--texte-doux); font-size: 1.1rem; cursor: help; }
+.ty-m-defi {
+  display: flex; align-items: center; gap: 10px; width: 100%; margin-bottom: 6px; padding: 10px 12px; text-align: left;
+  border-radius: 12px; border: 2px solid var(--bord); background: var(--carte); color: var(--texte); font: inherit; cursor: pointer;
+}
+.ty-m-defi:active { transform: scale(.98); }
+.ty-m-defi:disabled { opacity: .55; cursor: default; background: var(--accent-doux); }
+.ty-m-icone { font-size: 1.4rem; flex: none; }
+.ty-m-nom { flex: 1; font-size: .9rem; font-weight: 700; line-height: 1.3; }
+.ty-m-prix { flex: none; font-size: .8rem; font-weight: 800; color: #a06e00; display: inline-flex; gap: 4px; align-items: center; }
+@media (prefers-color-scheme: dark) { .ty-m-prix { color: #ffd060; } }

@@ -125,3 +125,4 @@ afraichirCaseScore met à jour toutes les copies d'une fiche (programme + biblio
 - Prototype séparé `fairway-tycoon/index.html` (fichier unique, sans lien avec le site golf) : habit tracker + parcours isométrique 20x20, sauvegarde localStorage `fairway-tycoon-v1`.
 - v28 : Tycoon intégré au site (onglet 🏗️ + `tycoon.js`) : les exos cochés, le mental et les parties terminées rapportent des pièces pour construire le parcours. Le prototype `fairway-tycoon/` reste à part (habitudes libres).
 - TODO Tycoon : ajouter `golf-tycoon-v1:etat` à la sauvegarde Google (`compte.js` : `donneesLocales` + `fusionner`).
+- v29 : Tycoon — les « habitudes perso » deviennent des **défis golf** de performance (catalogue + défi perso) ; les défis 🤖 auto (birdie, sans 3-putts, sans double, 2/3 GIR, sous le par) se valident tout seuls avec une partie notée. Anciennes habitudes boire/dormir remplacées automatiquement. Défis = exemples de Claude, à ajuster par l'utilisateur.

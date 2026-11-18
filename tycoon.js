@@ -6,7 +6,9 @@
    - chaque exo d'« Aujourd'hui » coché ✓ rapporte 25 pièces,
    - chaque exercice 🧠 Mental fait : 25 pièces,
    - chaque partie ⛳ terminée : 50 pièces,
-   - des « habitudes perso » en plus (10, 25 ou 50 pièces).
+   - des « défis golf » de performance (10, 25 ou 50 pièces) :
+     cochés à la main (putting, chipping, practice…) ou validés
+     tout seuls par une partie notée (birdie, sans 3-putts…).
    Bonus : +10 % par jour de série 🔥 (serie.js), max +100 %.
    Les pièces servent à poser des éléments sur une carte
    isométrique 20 x 20 (gazon, bunker, lac, green, club-house…).
@@ -51,7 +53,52 @@
     practice:  { nom: "Practice",   prix: 150, niveau: 4, plat: false, haut: true,  couleur: "#ffffff" },
     clubhouse: { nom: "Club-house", prix: 300, niveau: 5, plat: false, haut: true,  couleur: "#e05a4a" },
   };
-  const ICONES = ["💧", "🥗", "😴", "📚", "🧘", "🚶", "🏃", "💪", "🎯", "🏌️", "📝", "🍎", "🧠", "📵", "🛌", "⛳"];
+  const ICONES = ["⛳", "🏌️", "🎯", "🕳️", "🚩", "🏖️", "📏", "🚀", "🔁", "🏆", "🟢", "🐦", "🧹", "⏱️", "🌲", "🔥"];
+
+  // Défis golf proposés : uniquement de la PERFORMANCE (score, cible, record),
+  // jamais de technique. Exemples écrits par Claude (sans source), à adapter.
+  // auto = validé tout seul quand une partie terminée remplit la condition.
+  const CATEGORIES_DEFIS = { putting: "Putting", chipping: "Chipping", bunker: "Bunker", practice: "Practice", parcours: "Sur le parcours" };
+  const CATALOGUE_DEFIS = [
+    { ref: "putt-50-1m",    cat: "putting",  icone: "🕳️", nom: "50 putts rentrés d'affilée à 1 m", recompense: 25 },
+    { ref: "putt-horloge",  cat: "putting",  icone: "🔁", nom: "Horloge : 12 putts à 1,5 m sans rater", recompense: 25 },
+    { ref: "putt-lag",      cat: "putting",  icone: "📏", nom: "Lag : 10 putts de 12 m, tous à moins de 1 m", recompense: 50 },
+    { ref: "chip-7-10",     cat: "chipping", icone: "🚩", nom: "10 chips : au moins 7 à moins de 1 m", recompense: 25 },
+    { ref: "up-down",       cat: "chipping", icone: "⛳", nom: "Up & down : 7 réussis sur 10 balles", recompense: 50 },
+    { ref: "bunker-6-10",   cat: "bunker",   icone: "🏖️", nom: "10 sorties de bunker : 6 à moins de 2 m", recompense: 25 },
+    { ref: "drive-couloir", cat: "practice", icone: "🚀", nom: "Drive : 8 sur 10 dans un couloir de 25 m", recompense: 25 },
+    { ref: "wedge-50",      cat: "practice", icone: "🎯", nom: "Wedging : 10 balles à 50 m, 6 à moins de 4 m", recompense: 25 },
+    { ref: "fers-cible",    cat: "practice", icone: "🏌️", nom: "Fers : 10 balles, 6 à moins de 8 m de la cible", recompense: 25 },
+    { ref: "auto-birdie",   cat: "parcours", icone: "🐦", nom: "Faire au moins un birdie", recompense: 10, auto: "birdie" },
+    { ref: "auto-3putts",   cat: "parcours", icone: "🟢", nom: "Partie sans 3-putts", recompense: 50, auto: "sans3putts" },
+    { ref: "auto-double",   cat: "parcours", icone: "🧹", nom: "Partie sans double bogey", recompense: 50, auto: "sansDouble" },
+    { ref: "auto-gir",      cat: "parcours", icone: "🎯", nom: "2 greens sur 3 en régulation", recompense: 50, auto: "gir" },
+    { ref: "auto-par",      cat: "parcours", icone: "🏆", nom: "Finir une partie sous le par", recompense: 50, auto: "sousLePar" },
+  ];
+  // Défis de départ
+  const DEFIS_DE_DEPART = ["putt-50-1m", "putt-lag", "up-down", "drive-couloir", "auto-birdie", "auto-3putts"];
+  function defiDuCatalogue(ref) {
+    const c = CATALOGUE_DEFIS.find((x) => x.ref === ref);
+    return c ? { id: c.ref, ...c } : null;
+  }
+
+  // Conditions des défis « auto », vérifiées sur une partie terminée (parcours.js).
+  // complete = tous les trous ont un score.
+  const nb = (v) => Number.isFinite(v);
+  const TESTS_AUTO = {
+    birdie: (trous) => trous.some((t) => nb(t.score) && t.score <= t.par - 1),
+    sans3putts: (trous, complete) => complete && trous.every((t) => nb(t.putts) && t.putts < 3),
+    sansDouble: (trous, complete) => complete && trous.every((t) => t.score <= t.par + 1),
+    gir: (trous, complete) => complete && trous.every((t) => nb(t.putts)) &&
+      trous.filter((t) => t.score - t.putts <= t.par - 2).length * 3 >= trous.length * 2,
+    sousLePar: (trous, complete) => complete &&
+      trous.reduce((s, t) => s + t.score, 0) < trous.reduce((s, t) => s + t.par, 0),
+  };
+  function defiReussiSurPartie(defi, partie) {
+    const trous = Array.isArray(partie.trous) ? partie.trous.filter((t) => t && nb(t.par)) : [];
+    if (!trous.length || !TESTS_AUTO[defi.auto]) return false;
+    return TESTS_AUTO[defi.auto](trous, trous.every((t) => nb(t.score)));
+  }
 
   let etat = null;      // chargé au démarrage (DOMContentLoaded)
   let pret = false;
@@ -83,10 +130,7 @@
       pieces: 20,           // de quoi poser ses premières cases
       totalFaits: 0,        // nombre total d'actions récompensées
       son: true,
-      habitudes: [
-        { id: "h1", nom: "Boire 2 L d'eau", icone: "💧", recompense: 10 },
-        { id: "h2", nom: "Dormir 8 h", icone: "😴", recompense: 25 },
-      ],
+      habitudes: DEFIS_DE_DEPART.map(defiDuCatalogue),   // = les défis golf actifs
       journal: {},          // { "AAAA-MM-JJ": { cle: { g: gain, l: libellé, i: icône } } }
       carte: {},            // { "x,y": typeElement }
     };
@@ -105,6 +149,9 @@
       journal: d.journal && typeof d.journal === "object" ? d.journal : {},
       carte: {},
     };
+    // Anciennes habitudes de départ (boire, dormir) jamais modifiées : remplacées par les défis golf
+    const anciennes = ["Boire 2 L d'eau", "Dormir 8 h"];
+    if (e.habitudes.length && e.habitudes.every((h) => anciennes.includes(h.nom))) e.habitudes = base.habitudes;
     if (d.carte && typeof d.carte === "object") {
       for (const [cle, type] of Object.entries(d.carte)) if (ELEMENTS[type]) e.carte[cle] = type;
     }
@@ -200,14 +247,21 @@
       }
       repris += retirerAbsents("mental:", histo.filter((h) => h && h.date === auj).map((h) => h.id));
     }
-    // Parties terminées (parcours.js) — une partie supprimée garde ses pièces
+    // Parties terminées (parcours.js) — une partie supprimée garde ses pièces.
+    // On vérifie aussi les défis « auto » (birdie, sans 3-putts…) sur chaque partie.
+    const defisReussis = [];
     if (typeof partiesTerminees === "function") {
       for (const p of partiesTerminees()) {
-        if (p && typeof p.date === "string") {
-          gagne += ajouterGain(p.date, "partie:" + p.id, GAIN_PARTIE, "Partie : " + (p.parcoursNom || "parcours"), "🏌️");
+        if (!p || typeof p.date !== "string") continue;
+        gagne += ajouterGain(p.date, "partie:" + p.id, GAIN_PARTIE, "Partie : " + (p.parcoursNom || "parcours"), "🏌️");
+        for (const d of etat.habitudes) {
+          if (!d.auto || !defiReussiSurPartie(d, p)) continue;
+          const g = ajouterGain(p.date, "h:" + d.id, d.recompense, d.nom, d.icone);
+          if (g) { gagne += g; defisReussis.push(d.icone + " " + d.nom); }
         }
       }
     }
+    if (defisReussis.length) setTimeout(() => toast("🏆 Défi réussi : " + defisReussis.join(" · ")), 400);
     if (etat.journal[auj] && !Object.keys(etat.journal[auj]).length) delete etat.journal[auj];
 
     if (gagne || repris) sauvegarder();
@@ -959,7 +1013,8 @@
   }
 
   /* =======================================================
-     7. HABITUDES PERSO + GAINS DU JOUR
+     7. DÉFIS GOLF + GAINS DU JOUR
+     (dans le code, les défis s'appellent encore « habitudes »)
      ======================================================= */
 
   function rendreGains() {
@@ -978,33 +1033,37 @@
     const jour = etat.journal[cleJour()] || {};
     const bonus = bonusSerie();
     liste.innerHTML = "";
-    if (!etat.habitudes.length) liste.innerHTML = '<p class="ty-vide">Pas d\'habitude perso. Ajoute-en une (boire, dormir, étirements…).</p>';
+    if (!etat.habitudes.length) liste.innerHTML = '<p class="ty-vide">Aucun défi. Ajoute-en un : putting, chipping, practice ou partie.</p>';
     for (const h of etat.habitudes) {
       const fait = jour["h:" + h.id];
       const gain = fait ? fait.g : avecBonus(h.recompense, bonus);
+      const cat = CATEGORIES_DEFIS[h.cat] || "Défi";
       const ligne = document.createElement("div");
       ligne.className = "ty-habitude" + (fait ? " faite" : "");
       ligne.innerHTML = `
         <span class="ty-h-icone">${esc(h.icone)}</span>
         <div class="ty-h-texte">
           <div class="ty-h-nom">${esc(h.nom)}</div>
-          <div class="ty-h-gain">${fait ? "Gagné" : "Rapporte"} <b>${gain}</b> <span class="ty-piece"></span></div>
+          <div class="ty-h-gain">${esc(cat)}${h.auto ? ' · <span class="ty-tag">🤖 auto</span>' : ""} · ${fait ? "Gagné" : "Rapporte"} <b>${gain}</b> <span class="ty-piece"></span></div>
         </div>
         <button type="button" class="ty-h-edit" aria-label="Modifier">✎</button>
-        <button type="button" class="ty-h-check" aria-label="${fait ? "Annuler" : "Cocher"} ${esc(h.nom)}">${fait ? "✓" : ""}</button>`;
-      ligne.querySelector(".ty-h-check").addEventListener("click", (ev) => basculerHabitude(h.id, ev.currentTarget));
+        ${h.auto
+          ? `<span class="ty-h-check ty-h-auto" title="Validé tout seul à la fin d'une partie notée dans ⛳ Parcours">${fait ? "✓" : "⛳"}</span>`
+          : `<button type="button" class="ty-h-check" aria-label="${fait ? "Annuler" : "Valider"} ${esc(h.nom)}">${fait ? "✓" : ""}</button>`}`;
+      if (!h.auto) ligne.querySelector(".ty-h-check").addEventListener("click", (ev) => basculerHabitude(h.id, ev.currentTarget));
       ligne.querySelector(".ty-h-edit").addEventListener("click", () => ouvrirModale(h.id));
       liste.appendChild(ligne);
     }
   }
 
+  // Valider / annuler un défi coché à la main (pas les défis « auto »)
   function basculerHabitude(id, bouton) {
     const h = etat.habitudes.find((x) => x.id === id);
-    if (!h) return;
+    if (!h || h.auto) return;
     const auj = cleJour();
     const jour = etat.journal[auj] || (etat.journal[auj] = {});
     const cle = "h:" + id;
-    if (jour[cle]) {   // décocher : on reprend les pièces
+    if (jour[cle]) {   // annuler : on reprend les pièces
       const g = jour[cle].g;
       if (etat.pieces < g) {
         son("erreur");
@@ -1030,10 +1089,11 @@
     rafraichir(false);
   }
 
-  // --- Fenêtre d'ajout / modification ---
+  // --- Fenêtre : catalogue de défis, ou formulaire (créer / modifier) ---
   let habitudeEditee = null;
   let iconeChoisie = ICONES[0];
   let recompenseChoisie = 25;
+  let categorieChoisie = "practice";
 
   function creerModale() {
     const m = document.createElement("div");
@@ -1041,61 +1101,132 @@
     m.className = "ty-modale";
     m.hidden = true;
     m.innerHTML = `
-      <form class="ty-modale-boite" autocomplete="off">
-        <h3 id="ty-modale-titre">Nouvelle habitude</h3>
-        <label class="ty-label">Nom
-          <input type="text" id="ty-f-nom" class="champ" maxlength="40" required placeholder="Ex. : 10 min d'étirements">
-        </label>
-        <div class="ty-label">Icône</div>
-        <div class="ty-icones">${ICONES.map((i) => `<button type="button" data-i="${i}">${i}</button>`).join("")}</div>
-        <div class="ty-label">Récompense (petite · moyenne · grosse tâche)</div>
-        <div class="ty-segments">${[10, 25, 50].map((v) => `<button type="button" data-v="${v}"><span class="ty-piece"></span>${v}</button>`).join("")}</div>
-        <div class="ty-modale-actions">
-          <button type="button" class="bouton secondaire" id="ty-f-supprimer">Supprimer</button>
-          <span class="ty-espace"></span>
-          <button type="button" class="bouton secondaire" id="ty-f-annuler">Annuler</button>
-          <button type="submit" class="bouton principal">Enregistrer</button>
+      <div class="ty-modale-boite">
+        <div id="ty-m-catalogue">
+          <h3>Ajouter un défi golf</h3>
+          <p class="petit">Des défis de performance à réussir. Les défis 🤖 auto se valident tout seuls quand une partie notée dans ⛳ Parcours remplit la condition. Exemples à adapter à ton niveau (✎).</p>
+          <div id="ty-m-liste"></div>
+          <div class="ty-modale-actions">
+            <button type="button" class="bouton" id="ty-m-creer">✏️ Créer mon défi</button>
+            <span class="ty-espace"></span>
+            <button type="button" class="bouton principal" data-ty-fermer>Fermer</button>
+          </div>
         </div>
-      </form>`;
+        <form id="ty-m-form" autocomplete="off" hidden>
+          <h3 id="ty-modale-titre">Mon défi</h3>
+          <label class="ty-label">Défi (avec un objectif chiffré)
+            <input type="text" id="ty-f-nom" class="champ" maxlength="60" required placeholder="Ex. : 20 putts de 2 m, 15 rentrés">
+          </label>
+          <div class="ty-label">Catégorie</div>
+          <div class="ty-segments ty-cats">${Object.entries(CATEGORIES_DEFIS).filter(([c]) => c !== "parcours")
+            .map(([c, n]) => `<button type="button" data-c="${c}">${n}</button>`).join("")}</div>
+          <div class="ty-label">Icône</div>
+          <div class="ty-icones">${ICONES.map((i) => `<button type="button" data-i="${i}">${i}</button>`).join("")}</div>
+          <div class="ty-label">Récompense (facile · moyen · difficile)</div>
+          <div class="ty-segments ty-recompenses">${[10, 25, 50].map((v) => `<button type="button" data-v="${v}"><span class="ty-piece"></span>${v}</button>`).join("")}</div>
+          <div class="ty-modale-actions">
+            <button type="button" class="bouton" id="ty-f-supprimer">Supprimer</button>
+            <span class="ty-espace"></span>
+            <button type="button" class="bouton" data-ty-fermer>Annuler</button>
+            <button type="submit" class="bouton principal">Enregistrer</button>
+          </div>
+        </form>
+      </div>`;
     document.body.appendChild(m);
+
     m.querySelectorAll(".ty-icones button").forEach((b) => b.addEventListener("click", () => { iconeChoisie = b.dataset.i; majChoixModale(); son("clic"); }));
-    m.querySelectorAll(".ty-segments button").forEach((b) => b.addEventListener("click", () => { recompenseChoisie = Number(b.dataset.v); majChoixModale(); son("clic"); }));
+    m.querySelectorAll(".ty-recompenses button").forEach((b) => b.addEventListener("click", () => { recompenseChoisie = Number(b.dataset.v); majChoixModale(); son("clic"); }));
+    m.querySelectorAll(".ty-cats button").forEach((b) => b.addEventListener("click", () => { categorieChoisie = b.dataset.c; majChoixModale(); son("clic"); }));
+    m.querySelectorAll("[data-ty-fermer]").forEach((b) => b.addEventListener("click", () => { m.hidden = true; }));
+    m.addEventListener("click", (ev) => { if (ev.target === m) m.hidden = true; });
+    $("#ty-m-creer").addEventListener("click", () => ouvrirFormulaire(null));
+
+    // Catalogue : un appui ajoute le défi (la fenêtre reste ouverte pour en ajouter d'autres)
+    $("#ty-m-liste").addEventListener("click", (ev) => {
+      const b = ev.target.closest("[data-ref]");
+      if (!b || b.disabled) return;
+      const defi = defiDuCatalogue(b.dataset.ref);
+      if (!defi || etat.habitudes.some((h) => h.id === defi.id)) return;
+      etat.habitudes.push(defi);
+      sauvegarder();
+      son("clic");
+      rendreCatalogue();
+      rendreHabitudes();
+      synchroniser(null);   // un défi auto peut déjà être rempli par une partie d'aujourd'hui
+    });
+
     m.querySelector("form").addEventListener("submit", (ev) => {
       ev.preventDefault();
       const nom = $("#ty-f-nom").value.trim();
       if (!nom) return;
       const h = etat.habitudes.find((x) => x.id === habitudeEditee);
-      if (h) Object.assign(h, { nom, icone: iconeChoisie, recompense: recompenseChoisie });
-      else etat.habitudes.push({ id: "h" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), nom, icone: iconeChoisie, recompense: recompenseChoisie });
+      if (h) {
+        Object.assign(h, { nom, icone: iconeChoisie, recompense: recompenseChoisie });
+        if (!h.auto) h.cat = categorieChoisie;
+      } else {
+        etat.habitudes.push({ id: "d" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), nom, icone: iconeChoisie, recompense: recompenseChoisie, cat: categorieChoisie });
+      }
       sauvegarder();
       m.hidden = true;
       rendreHabitudes();
     });
-    $("#ty-f-annuler").addEventListener("click", () => { m.hidden = true; });
-    m.addEventListener("click", (ev) => { if (ev.target === m) m.hidden = true; });
     $("#ty-f-supprimer").addEventListener("click", () => {
       const h = etat.habitudes.find((x) => x.id === habitudeEditee);
-      if (!h || !confirm(`Supprimer « ${h.nom} » ? (le calendrier garde l'historique)`)) return;
+      if (!h || !confirm(`Retirer le défi « ${h.nom} » ? (le calendrier garde l'historique)`)) return;
       etat.habitudes = etat.habitudes.filter((x) => x.id !== habitudeEditee);
       sauvegarder();
       m.hidden = true;
       rendreHabitudes();
     });
   }
+
+  function rendreCatalogue() {
+    const actifs = new Set(etat.habitudes.map((h) => h.id));
+    $("#ty-m-liste").innerHTML = Object.entries(CATEGORIES_DEFIS).map(([cat, nomCat]) => {
+      const defis = CATALOGUE_DEFIS.filter((d) => d.cat === cat);
+      return `<div class="ty-label">${nomCat}</div>` + defis.map((d) => `
+        <button type="button" class="ty-m-defi" data-ref="${d.ref}" ${actifs.has(d.ref) ? "disabled" : ""}>
+          <span class="ty-m-icone">${d.icone}</span>
+          <span class="ty-m-nom">${esc(d.nom)}${d.auto ? ' <span class="ty-tag">🤖 auto</span>' : ""}</span>
+          <span class="ty-m-prix">${actifs.has(d.ref) ? "✓ ajouté" : `<span class="ty-piece"></span> ${d.recompense}`}</span>
+        </button>`).join("");
+    }).join("");
+  }
+
   function majChoixModale() {
     document.querySelectorAll(".ty-icones button").forEach((b) => b.classList.toggle("choisi", b.dataset.i === iconeChoisie));
-    document.querySelectorAll(".ty-segments button").forEach((b) => b.classList.toggle("choisi", Number(b.dataset.v) === recompenseChoisie));
+    document.querySelectorAll(".ty-recompenses button").forEach((b) => b.classList.toggle("choisi", Number(b.dataset.v) === recompenseChoisie));
+    document.querySelectorAll(".ty-cats button").forEach((b) => b.classList.toggle("choisi", b.dataset.c === categorieChoisie));
   }
-  function ouvrirModale(id = null) {
-    if (!$("#ty-modale")) creerModale();
+
+  // Formulaire : id = défi à modifier, null = nouveau défi perso
+  function ouvrirFormulaire(id) {
     habitudeEditee = id;
     const h = id ? etat.habitudes.find((x) => x.id === id) : null;
-    $("#ty-modale-titre").textContent = h ? "Modifier l'habitude" : "Nouvelle habitude";
+    $("#ty-m-catalogue").hidden = true;
+    $("#ty-m-form").hidden = false;
+    $("#ty-modale-titre").textContent = h ? "Modifier le défi" : "Mon défi";
     $("#ty-f-nom").value = h ? h.nom : "";
     iconeChoisie = h ? h.icone : ICONES[0];
     recompenseChoisie = h ? h.recompense : 25;
+    categorieChoisie = h && h.cat && h.cat !== "parcours" ? h.cat : "practice";
+    // La catégorie d'un défi auto (sur le parcours) ne change pas
+    document.querySelector(".ty-cats").hidden = !!(h && h.auto);
+    document.querySelector(".ty-cats").previousElementSibling.hidden = !!(h && h.auto);
     $("#ty-f-supprimer").hidden = !h;
     majChoixModale();
+  }
+
+  // id = défi à modifier ; sans id = catalogue pour en ajouter
+  function ouvrirModale(id = null) {
+    if (!$("#ty-modale")) creerModale();
+    if (id) {
+      ouvrirFormulaire(id);
+    } else {
+      $("#ty-m-catalogue").hidden = false;
+      $("#ty-m-form").hidden = true;
+      rendreCatalogue();
+    }
     $("#ty-modale").hidden = false;
   }
 
@@ -1193,9 +1324,10 @@
       </div>
 
       <div class="ty-bloc">
-        <div class="ty-titre"><h2>Habitudes perso</h2></div>
+        <div class="ty-titre"><h2>🎯 Défis golf</h2></div>
+        <p class="petit">Réussis un défi = des pièces (une fois par jour). Les défis 🤖 auto se valident tout seuls avec une partie notée dans ⛳ Parcours.</p>
         <div id="ty-habitudes"></div>
-        <button type="button" class="bouton secondaire pleine-largeur" id="ty-ajout">＋ Nouvelle habitude</button>
+        <button type="button" class="bouton pleine-largeur" id="ty-ajout">＋ Ajouter un défi</button>
       </div>
 
       <div class="ty-bloc">
@@ -1248,7 +1380,7 @@
       detailJour(c.dataset.jour);
     });
     $("#ty-reset").addEventListener("click", () => {
-      if (!confirm("Recommencer le Tycoon : pièces, carte, habitudes perso et calendrier du Tycoon effacés ? (tes exos, parties et séries ne bougent pas)")) return;
+      if (!confirm("Recommencer le Tycoon : pièces, carte, défis et calendrier du Tycoon effacés ? (tes exos, parties et séries ne bougent pas)")) return;
       if (!confirm("Vraiment ? C'est définitif.")) return;
       etat = etatInitial();
       sauvegarder();
