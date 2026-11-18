@@ -135,6 +135,7 @@
       journal: {},          // { "AAAA-MM-JJ": { cle: { g: gain, l: libellé, i: icône } } }
       carte: {},            // { "x,y": typeElement }
       parcelles: parcellesDeDepart(),   // ["px,py", …] : parcelles de 5 x 5 cases achetées
+      ordreGreens: [],      // cases de green dans l'ordre de pose (trou 1 = le green posé en premier)
     };
   }
   // Parcelles de départ : 4 x 4 parcelles de 5 x 5 cases = le terrain 20 x 20 d'origine
@@ -167,6 +168,7 @@
       journal: d.journal && typeof d.journal === "object" ? d.journal : {},
       carte: {},
       parcelles: lireParcelles(d),
+      ordreGreens: Array.isArray(d.ordreGreens) ? d.ordreGreens.filter((k) => typeof k === "string") : [],
     };
     // Anciennes habitudes de départ (boire, dormir) jamais modifiées : remplacées par les défis golf
     const anciennes = ["Boire 2 L d'eau", "Dormir 8 h"];
@@ -178,6 +180,9 @@
         if (typeof type === "string" && type.startsWith("@") && e.carte[type.slice(1)] === "clubhouse") e.carte[cle] = type;
       }
     }
+    // Ordre des greens : on garde ceux qui existent, on ajoute ceux qui manquent
+    e.ordreGreens = [...new Set(e.ordreGreens)].filter((k) => e.carte[k] === "green");
+    for (const [cle, type] of Object.entries(e.carte)) if (type === "green" && !e.ordreGreens.includes(cle)) e.ordreGreens.push(cle);
     return e;
   }
   function sauvegarder() {
@@ -681,12 +686,32 @@
         c.moveTo(X + 3, Y + 4); c.quadraticCurveTo(X + 7, Y + 1, X + 11, Y + 4);
         c.stroke();
         break;
-      case "green":
+      case "green": {
+        // Le green se dessine dans le repère de la case (u, v de 0 à 1) : un rond au centre,
+        // prolongé jusqu'au bord vers chaque green voisin => des greens collés n'en font qu'un.
         dessinerHerbe(c, sx, sy, x, y);
-        ovale(c, X, Y + 1, TW * .38, TH * .38, herbe("#3fb85a", "#bdb04a"));
-        ovale(c, X, Y, TW * .34, TH * .33, herbe("#66e57f", "#d9d070"));
-        ovale(c, X + 3, Y + 1, 2.6, 1.4, "#1d2b22");   // le trou
+        const g = (dx, dy) => greensFusionnes && etat.carte[(x + dx) + "," + (y + dy)] === "green";
+        c.save();
+        c.translate(sx, sy);
+        c.transform(TW / 2, TH / 2, -TW / 2, TH / 2, 0, 0);   // (u, v) -> losange de la case
+        for (const [r, coul] of [[.5, herbe("#3fb85a", "#bdb04a")], [.42, herbe("#66e57f", "#d9d070")]]) {
+          c.fillStyle = coul;
+          c.beginPath(); c.arc(.5, .5, r, 0, Math.PI * 2); c.fill();
+          // e = petit débord sur la case voisine pour qu'aucune ligne ne se voie à la jointure
+          const a = .5 - r, l = 2 * r, e = .03;
+          if (g(1, 0)) c.fillRect(.5, a, .5 + e, l);
+          if (g(-1, 0)) c.fillRect(-e, a, .5 + e, l);
+          if (g(0, 1)) c.fillRect(a, .5, l, .5 + e);
+          if (g(0, -1)) c.fillRect(a, -e, l, .5 + e);
+          // Coin rempli quand les 3 cases autour du coin sont aussi du green
+          if (g(1, 0) && g(0, 1) && g(1, 1)) c.fillRect(.5, .5, .5 + e, .5 + e);
+          if (g(-1, 0) && g(0, 1) && g(-1, 1)) c.fillRect(-e, .5, .5 + e, .5 + e);
+          if (g(1, 0) && g(0, -1) && g(1, -1)) c.fillRect(.5, -e, .5 + e, .5 + e);
+          if (g(-1, 0) && g(0, -1) && g(-1, -1)) c.fillRect(-e, -e, .5 + e, .5 + e);
+        }
+        c.restore();
         break;
+      }
       case "terrasse":   // dalles de pierre sous le grand club-house
         losange(c, sx, sy, 1, "#d8ccb4");
         losange(c, sx, sy, .9, "#e4dac6");
@@ -859,16 +884,9 @@
         c.restore();
         break;
       }
-      case "green": {                      // drapeau dans le trou
-        const hx = X + 3, hy = Y + 1;
-        c.save(); c.translate(0, dy);
-        c.strokeStyle = "#f4f4f4"; c.lineWidth = 2;
-        c.beginPath(); c.moveTo(hx, hy); c.lineTo(hx, hy - 36); c.stroke();
-        poly(c, [[hx, hy - 36], [hx + 15, hy - 31], [hx, hy - 25]], "#e8433a");
-        poly(c, [[hx, hy - 31], [hx + 15, hy - 31], [hx, hy - 25]], "rgba(0,0,0,.12)");
-        c.restore();
+      case "green":                        // drapeau seul (aperçu, boutique)
+        dessinerDrapeau(c, X, Y, dy, null);
         break;
-      }
       case "practice": {
         ombre(c, X, Y, 24, 10, dy);
         c.save(); c.translate(0, dy);
@@ -904,6 +922,67 @@
         break;
       }
     }
+  }
+
+  // Trou + drapeau planté en (hx, hy) ; numero = numéro du trou écrit sur le drapeau (ou null)
+  function dessinerDrapeau(c, hx, hy, dy = 0, numero = null) {
+    ovale(c, hx, hy + 1, 3, 1.6, "#1d2b22");   // le trou
+    c.save(); c.translate(0, dy);
+    c.strokeStyle = "#f4f4f4"; c.lineWidth = 2;
+    c.beginPath(); c.moveTo(hx, hy); c.lineTo(hx, hy - 40); c.stroke();
+    if (numero == null) {
+      poly(c, [[hx, hy - 40], [hx + 15, hy - 35], [hx, hy - 29]], "#e8433a");
+    } else {
+      // Drapeau rectangulaire avec le numéro du trou
+      poly(c, [[hx, hy - 40], [hx + 19, hy - 38], [hx + 19, hy - 27], [hx, hy - 29]], "#e8433a");
+      poly(c, [[hx, hy - 34], [hx + 19, hy - 32.5], [hx + 19, hy - 27], [hx, hy - 29]], "rgba(0,0,0,.12)");
+      c.fillStyle = "#ffffff";
+      c.font = `bold ${numero > 9 ? 8 : 9}px system-ui, sans-serif`;
+      c.textAlign = "center"; c.textBaseline = "middle";
+      c.fillText(String(numero), hx + 9.5, hy - 33.2);
+    }
+    c.restore();
+  }
+
+  /* Greens collés = un seul green. On les regroupe (cases voisines par un côté),
+     on plante le drapeau au milieu du groupe et on numérote les trous dans l'ordre de pose. */
+  let greensFusionnes = true;   // false pour les petits dessins de la boutique
+  function groupesDeGreens() {
+    const vus = new Set();
+    const groupes = [];
+    const ordre = (k) => { const i = etat.ordreGreens.indexOf(k); return i < 0 ? 1e9 : i; };
+    for (const [cle, type] of Object.entries(etat.carte)) {
+      if (type !== "green" || vus.has(cle)) continue;
+      const cases = [];
+      const pile = [cle];
+      vus.add(cle);
+      while (pile.length) {
+        const k = pile.pop();
+        cases.push(k);
+        const [x, y] = k.split(",").map(Number);
+        for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+          const v = (x + dx) + "," + (y + dy);
+          if (etat.carte[v] === "green" && !vus.has(v)) { vus.add(v); pile.push(v); }
+        }
+      }
+      const pts = cases.map((k) => k.split(",").map(Number));
+      const cx = pts.reduce((t, p) => t + p[0] + .5, 0) / pts.length;
+      const cy = pts.reduce((t, p) => t + p[1] + .5, 0) / pts.length;
+      // Case du drapeau : celle du groupe la plus proche du centre
+      let porteur = cases[0], meilleure = Infinity;
+      for (const [x, y] of pts) {
+        const d = (x + .5 - cx) ** 2 + (y + .5 - cy) ** 2;
+        if (d < meilleure) { meilleure = d; porteur = x + "," + y; }
+      }
+      const [px, py] = porteur.split(",").map(Number);
+      // Trou un peu vers le centre du groupe, mais toujours dans la case porteuse
+      const tx = px + .5 + Math.max(-.3, Math.min(.3, cx - px - .5));
+      const ty = py + .5 + Math.max(-.3, Math.min(.3, cy - py - .5));
+      groupes.push({ cases, porteur, tx, ty, rang: Math.min(...cases.map(ordre)) });
+    }
+    groupes.sort((a, b) => a.rang - b.rang);
+    groupes.forEach((g, i) => { g.numero = i + 1; });
+    return groupes;
   }
 
   function easeOutBack(p) { const s = 1.70158; return 1 + (s + 1) * Math.pow(p - 1, 3) + s * Math.pow(p - 1, 2); }
@@ -959,6 +1038,8 @@
       }
     }
 
+    const drapeaux = {};   // case porteuse -> groupe de greens
+    for (const g of groupesDeGreens()) drapeaux[g.porteur] = g;
     const anim = {};
     animations = animations.filter((a) => t - a.t0 < a.duree);
     for (const a of animations) anim[a.cle] = Math.min(1, Math.max(0, (t - a.t0) / a.duree));
@@ -973,8 +1054,9 @@
         const v = etat.carte[cle];
         const { sx, sy } = coinCase(x, y);
         // Bord de terre là où le terrain s'arrête (devant à gauche / devant à droite)
-        if (!possedee(x, y + 1)) poly(c, [[sx - TW / 2, sy + TH / 2], [sx, sy + TH], [sx, sy + TH + EPAIS], [sx - TW / 2, sy + TH / 2 + EPAIS]], "#9a6a3a");
-        if (!possedee(x + 1, y)) poly(c, [[sx, sy + TH], [sx + TW / 2, sy + TH / 2], [sx + TW / 2, sy + TH / 2 + EPAIS], [sx, sy + TH + EPAIS]], "#7d5430");
+        // (dépassent d'un demi-pixel pour qu'on ne voie pas de jointure entre deux cases)
+        if (!possedee(x, y + 1)) poly(c, [[sx - TW / 2 - .6, sy + TH / 2 - .3], [sx + .6, sy + TH + .3], [sx + .6, sy + TH + EPAIS + .3], [sx - TW / 2 - .6, sy + TH / 2 + EPAIS - .3]], "#9a6a3a");
+        if (!possedee(x + 1, y)) poly(c, [[sx - .6, sy + TH + .3], [sx + TW / 2 + .6, sy + TH / 2 - .3], [sx + TW / 2 + .6, sy + TH / 2 + EPAIS - .3], [sx - .6, sy + TH + EPAIS + .3]], "#7d5430");
         // Cases du grand club-house : terrasse pavée
         if ((v && v.startsWith("@")) || (v === "clubhouse" && estGrandClubHouse(x, y))) {
           dessinerSol(c, "terrasse", sx, sy, x, y);
@@ -1013,6 +1095,14 @@
           continue;
         }
         if (type === "clubhouse" && estGrandClubHouse(x, y)) continue;
+        if (type === "green") {
+          const g = drapeaux[cle];
+          if (g) {
+            const t = coinCase(g.tx, g.ty);
+            dessinerDrapeau(c, t.sx, t.sy, anim[cle] != null ? -(1 - easeOutBounce(anim[cle])) * 150 : 0, g.numero);
+          }
+          continue;
+        }
         if (!ELEMENTS[type].haut) continue;
         const { sx, sy } = coinCase(x, y);
         const dy = anim[cle] != null ? -(1 - easeOutBounce(anim[cle])) * 150 : 0;
@@ -1249,7 +1339,12 @@
     const present = typeDe(cle);   // type réel (aussi pour une case du club-house)
 
     if (!outil) {
-      toast(present ? ELEMENTS[present].nom : "Choisis un élément dans la boutique ci-dessous 👇");
+      if (present === "green") {
+        const g = groupesDeGreens().find((gr) => gr.cases.includes(cle));
+        toast(`⛳ Green du trou n° ${g ? g.numero : "?"} (${g ? g.cases.length : 1} case${g && g.cases.length > 1 ? "s" : ""})`);
+      } else {
+        toast(present ? ELEMENTS[present].nom : "Choisis un élément dans la boutique ci-dessous 👇");
+      }
       return;
     }
     if (outil === "retirer") {
@@ -1260,6 +1355,7 @@
       // Grand club-house : on libère ses 4 cases
       const cases = present === "clubhouse" && estGrandClubHouse(ax, ay) ? casesClubHouse(ax, ay) : [[cs.x, cs.y]];
       for (const [a, b] of cases) delete etat.carte[a + "," + b];
+      etat.ordreGreens = etat.ordreGreens.filter((k) => etat.carte[k] === "green");
       etat.pieces += rendu;
       sauvegarder();
       for (const [a, b] of cases) lancerParticules(a, b, ELEMENTS[present].couleur);
@@ -1289,6 +1385,7 @@
     cle = an.x + "," + an.y;
     etat.carte[cle] = outil;
     for (const [a, b] of cases.slice(1)) etat.carte[a + "," + b] = "@" + cle;   // renvois vers l'ancre
+    if (outil === "green") etat.ordreGreens.push(cle);
     sauvegarder();
     animations.push({ cle, type: outil, t0: performance.now(), duree: el.haut ? 650 : 380, impact: el.haut ? .36 : 0, poussiere: false });
     if (navigator.vibrate) { try { navigator.vibrate(15); } catch (e) { /* rien */ } }
@@ -1309,16 +1406,19 @@
     c.setTransform(dpr * k, 0, 0, dpr * k, dpr * 30, dpr * 2);
     const ancien = fjDessin;
     fjDessin = 0;
+    greensFusionnes = false;
     if (type === "clubhouse") {   // grand club-house : 4 cases, dessiné plus petit
       c.setTransform(dpr * .42, 0, 0, dpr * .42, dpr * 30, 0);
       for (const [i, j] of casesClubHouse(0, 0)) dessinerSol(c, "terrasse", (i - j) * TW / 2, 105 + (i + j - 2) * TH / 2, i, j);
       dessinerGrandClubHouse(c, 0, 105);
       fjDessin = ancien;
+      greensFusionnes = true;
       return;
     }
     dessinerSol(c, ELEMENTS[type].plat ? type : null, 0, 42, 0, 1);
     if (ELEMENTS[type].haut) dessinerObjet(c, type, 0, 42, 1, 0);
     fjDessin = ancien;
+    greensFusionnes = true;
   }
 
   function choisirOutil(type) {
