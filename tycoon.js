@@ -154,6 +154,10 @@
     if (e.habitudes.length && e.habitudes.every((h) => anciennes.includes(h.nom))) e.habitudes = base.habitudes;
     if (d.carte && typeof d.carte === "object") {
       for (const [cle, type] of Object.entries(d.carte)) if (ELEMENTS[type]) e.carte[cle] = type;
+      // Cases du grand club-house (2 x 2) : "@x,y" renvoie vers la case principale
+      for (const [cle, type] of Object.entries(d.carte)) {
+        if (typeof type === "string" && type.startsWith("@") && e.carte[type.slice(1)] === "clubhouse") e.carte[cle] = type;
+      }
     }
     return e;
   }
@@ -599,9 +603,142 @@
         ovale(c, X, Y, TW * .34, TH * .33, herbe("#66e57f", "#d9d070"));
         ovale(c, X + 3, Y + 1, 2.6, 1.4, "#1d2b22");   // le trou
         break;
+      case "terrasse":   // dalles de pierre sous le grand club-house
+        losange(c, sx, sy, 1, "#d8ccb4");
+        losange(c, sx, sy, .9, "#e4dac6");
+        c.strokeStyle = "rgba(120,95,60,.25)";
+        c.lineWidth = .8;
+        c.beginPath();
+        c.moveTo(...pt(sx, sy, .5, 0)); c.lineTo(...pt(sx, sy, .5, 1));
+        c.moveTo(...pt(sx, sy, 0, .5)); c.lineTo(...pt(sx, sy, 1, .5));
+        c.stroke();
+        break;
       default:
         dessinerHerbe(c, sx, sy, x, y);
     }
+  }
+
+  /* ---------- Grand club-house sur 2 x 2 cases ----------
+     La case du fond (« ancre ») contient "clubhouse", les 3 autres
+     contiennent "@x,y" (un renvoi vers l'ancre). */
+  function casesClubHouse(x, y) { return [[x, y], [x + 1, y], [x, y + 1], [x + 1, y + 1]]; }
+  function estGrandClubHouse(x, y) {
+    return etat.carte[x + "," + y] === "clubhouse" &&
+      casesClubHouse(x, y).slice(1).every(([a, b]) => etat.carte[a + "," + b] === "@" + x + "," + y);
+  }
+  // Type réel d'une case (une case « renvoi » donne le type de son ancre)
+  function typeDe(cle) {
+    const v = etat.carte[cle];
+    if (!v) return null;
+    return v.startsWith("@") ? etat.carte[v.slice(1)] || null : v;
+  }
+  function ancreDe(cle) {
+    const v = etat.carte[cle];
+    return v && v.startsWith("@") ? v.slice(1) : cle;
+  }
+  // Case ancre quand on touche (x, y) pour poser le club-house (reste dans la grille)
+  function ancrePose(x, y) { return { x: Math.min(x, N - 2), y: Math.min(y, N - 2) }; }
+
+  // X, Y = centre des 4 cases ; dy = décalage pendant la chute
+  function dessinerGrandClubHouse(c, X, Y, dy = 0) {
+    const k = Math.max(.3, 1 + dy / 200);
+    ovale(c, X + 10, Y - 10, 44 * k, 18 * k, "rgba(0,0,0,.12)");   // ombre derrière le bâtiment
+    c.save(); c.translate(0, dy);
+
+    // --- Bâtiment : soubassement en pierre + murs crème ---
+    const BX = X, BY = Y - 8, a = 40, b = 20;
+    boite(c, BX, BY, a, b, 5, null, "#c9b896", "#a99776");
+    const MY = BY - 5, h = 24;   // murs
+    boite(c, BX, MY, a, b, h, null, "#fbf3e3", "#e1cfad");
+    // Fenêtres face gauche (cadre blanc + vitre)
+    for (const [s1, s2] of [[.07, .2], [.29, .42], [.58, .71], [.8, .93]]) {
+      surFaceG(c, BX, MY, a, b, h, s1 - .015, s2 + .015, .1, .6, "#ffffff");
+      surFaceG(c, BX, MY, a, b, h, s1, s2, .14, .56, "#8fd3f7");
+      surFaceG(c, BX, MY, a, b, h, s1, (s1 + s2) / 2, .14, .56, "rgba(255,255,255,.35)");
+    }
+    // Face droite : grande porte vitrée + 2 fenêtres
+    surFaceD(c, BX, MY, a, b, h, .38, .62, 0, .74, "#2b5d45");
+    surFaceD(c, BX, MY, a, b, h, .41, .59, 0, .7, "#6fbbe6");
+    surFaceD(c, BX, MY, a, b, h, .495, .505, 0, .7, "#2b5d45");
+    for (const [s1, s2] of [[.08, .26], [.74, .92]]) {
+      surFaceD(c, BX, MY, a, b, h, s1, s2, .25, .68, "#ffffff");
+      surFaceD(c, BX, MY, a, b, h, s1 + .02, s2 - .02, .29, .64, "#79c3ec");
+    }
+    // Auvent vert au-dessus de la porte
+    const P = (s, t) => [BX + s * a, MY + b - s * b - t * h];
+    const [p1, p2] = [P(.34, .84), P(.66, .84)];
+    poly(c, [p1, p2, [p2[0] + 5, p2[1] + 5], [p1[0] + 5, p1[1] + 5]], "#2f8a5c");
+    poly(c, [[p1[0] + 5, p1[1] + 5], [p2[0] + 5, p2[1] + 5], [p2[0] + 5, p2[1] + 7], [p1[0] + 5, p1[1] + 7]], "#ffffff");
+
+    // Enseigne « CLUB HOUSE » sur la face gauche (texte incliné comme le mur)
+    c.save();
+    const o = [BX - a + .22 * a, MY + .22 * b - .66 * h];
+    c.transform(1, b / a, 0, 1, o[0], o[1]);
+    c.fillStyle = "#1f5a3e";
+    c.fillRect(0, -6.5, .56 * a, 7);
+    c.fillStyle = "#f2c94c";
+    c.font = "bold 4.8px system-ui, sans-serif";
+    c.textAlign = "center";
+    c.textBaseline = "middle";
+    c.fillText("CLUB HOUSE", .28 * a, -2.9);
+    c.restore();
+
+    // --- Toit à quatre pans (vert golf) ---
+    const Yt = MY - h, rh = 17, d = 1.08;   // d = débord du toit
+    const L = [BX - a * d, Yt], F = [BX, Yt + b * d], R = [BX + a * d, Yt], Bk = [BX, Yt - b * d];
+    const R1 = [BX - .3 * a, Yt - .3 * b - rh], R2 = [BX + .3 * a, Yt + .3 * b - rh];   // faîtage
+    poly(c, [Bk, R, R2, R1], "#2a6448");
+    poly(c, [L, Bk, R1], "#2f6e50");
+    poly(c, [L, F, R2, R1], "#3f9467");
+    poly(c, [F, R, R2], "#2b7350");
+    c.strokeStyle = "#6cc394"; c.lineWidth = 1.2;
+    c.beginPath(); c.moveTo(...R1); c.lineTo(...R2); c.stroke();
+    c.strokeStyle = "rgba(255,255,255,.4)"; c.lineWidth = .8;
+    c.beginPath(); c.moveTo(...L); c.lineTo(...F); c.lineTo(...R); c.stroke();
+
+    // Cheminée en briques
+    boite(c, BX + 20, Yt - 2, 3, 1.5, 13, "#7a3424", "#b5523b", "#93402d");
+
+    // --- Petite tour avec horloge au milieu du toit ---
+    const TX = BX, TY = Yt - rh + 6, ta = 7, tb = 3.5, th = 15;
+    boite(c, TX, TY, ta, tb, th, null, "#ffffff", "#e3dccd");
+    rond(c, TX - ta / 2, TY + tb / 2 - th * .55, 2.6, "#2b3a33");
+    rond(c, TX - ta / 2, TY + tb / 2 - th * .55, 2.1, "#fffdf5");
+    c.strokeStyle = "#2b3a33"; c.lineWidth = .5;
+    c.beginPath();
+    c.moveTo(TX - ta / 2, TY + tb / 2 - th * .55); c.lineTo(TX - ta / 2, TY + tb / 2 - th * .55 - 1.6);
+    c.moveTo(TX - ta / 2, TY + tb / 2 - th * .55); c.lineTo(TX - ta / 2 + 1.2, TY + tb / 2 - th * .55);
+    c.stroke();
+    const sommet = [TX, TY - th - 11];
+    poly(c, [[TX - ta - 1, TY - th], [TX, TY + tb - th + 1], sommet], "#e9b949");
+    poly(c, [[TX, TY + tb - th + 1], [TX + ta + 1, TY - th], sommet], "#c9952a");
+    c.strokeStyle = "#ffffff"; c.lineWidth = 1;
+    c.beginPath(); c.moveTo(...sommet); c.lineTo(sommet[0], sommet[1] - 9); c.stroke();
+    poly(c, [[sommet[0], sommet[1] - 9], [sommet[0] + 7, sommet[1] - 7], [sommet[0], sommet[1] - 5]], "#e8433a");
+
+    // --- Devant : haie, mâts de drapeaux, terrasse avec parasols, voiturette ---
+    for (let s = .08; s < 1; s += .14) rond(c, BX - a + s * a - 3, BY + s * b + 4, 3.6, s * 10 % 2 < 1 ? "#3f9a4f" : "#358843");
+    for (const [fx, fy, coul] of [[-62, -2, "#e8433a"], [-57, 1, "#2f6fd6"], [-52, 4, "#f2c94c"]]) {   // à gauche de l'enseigne
+      c.strokeStyle = "#f4f4f4"; c.lineWidth = 1.2;
+      c.beginPath(); c.moveTo(X + fx, Y + fy); c.lineTo(X + fx, Y + fy - 40); c.stroke();
+      poly(c, [[X + fx, Y + fy - 40], [X + fx - 9, Y + fy - 37], [X + fx, Y + fy - 34]], coul);
+    }
+    for (const [px, py, coul] of [[-20, 15, "#e8433a"], [4, 22, "#2f8a5c"], [22, 14, "#e8433a"]]) {
+      ovale(c, X + px, Y + py + 1, 6, 2.5, "rgba(0,0,0,.12)");
+      c.strokeStyle = "#6b5a45"; c.lineWidth = 1;
+      c.beginPath(); c.moveTo(X + px, Y + py); c.lineTo(X + px, Y + py - 15); c.stroke();
+      ovale(c, X + px, Y + py - 4, 4.5, 2, "#ffffff");   // table
+      poly(c, [[X + px - 11, Y + py - 13], [X + px + 11, Y + py - 13], [X + px, Y + py - 21]], coul);
+      poly(c, [[X + px - 3.5, Y + py - 13], [X + px + 3.5, Y + py - 13], [X + px, Y + py - 21]], "#ffffff");
+    }
+    // Voiturette de golf
+    const vx = X + 42, vy = Y + 6;
+    rond(c, vx - 5, vy + 1, 1.8, "#222"); rond(c, vx + 4, vy + 4, 1.8, "#222");
+    boite(c, vx, vy, 7, 3.5, 5, "#ffffff", "#ececec", "#cfcfcf");
+    c.strokeStyle = "#555"; c.lineWidth = .8;
+    c.beginPath(); c.moveTo(vx - 6, vy - 5); c.lineTo(vx - 6, vy - 11); c.moveTo(vx + 5, vy - 2); c.lineTo(vx + 5, vy - 9); c.stroke();
+    boite(c, vx, vy - 11, 8, 4, 1.5, "#2f8a5c", "#26704a", "#1f5a3c");
+    c.restore();
   }
 
   // --- Parties en hauteur (dy = décalage pendant la chute) ---
@@ -720,8 +857,15 @@
     for (let y = 0; y < N; y++) {
       for (let x = 0; x < N; x++) {
         const cle = x + "," + y;
-        const type = etat.carte[cle];
+        const v = etat.carte[cle];
         const { sx, sy } = coinCase(x, y);
+        // Cases du grand club-house : terrasse pavée
+        if ((v && v.startsWith("@")) || (v === "clubhouse" && estGrandClubHouse(x, y))) {
+          dessinerSol(c, "terrasse", sx, sy, x, y);
+          if (outil) losange(c, sx, sy, 1, null, "rgba(0,0,0,.08)");
+          continue;
+        }
+        const type = v;
         if (type && ELEMENTS[type].plat && anim[cle] != null) {
           dessinerHerbe(c, sx, sy, x, y);
           const s = Math.max(.01, easeOutBack(anim[cle]));
@@ -742,7 +886,18 @@
         const y = s - x;
         const cle = x + "," + y;
         const type = etat.carte[cle];
-        if (!type || !ELEMENTS[type].haut) continue;
+        if (!type) continue;
+        if (type.startsWith("@")) {
+          const [ax, ay] = type.slice(1).split(",").map(Number);
+          if (x === ax + 1 && y === ay + 1 && estGrandClubHouse(ax, ay)) {
+            const ca = ax + "," + ay;
+            const centre = coinCase(ax + 1, ay + 1);
+            dessinerGrandClubHouse(c, centre.sx, centre.sy, anim[ca] != null ? -(1 - easeOutBounce(anim[ca])) * 150 : 0);
+          }
+          continue;
+        }
+        if (type === "clubhouse" && estGrandClubHouse(x, y)) continue;
+        if (!ELEMENTS[type].haut) continue;
         const { sx, sy } = coinCase(x, y);
         const dy = anim[cle] != null ? -(1 - easeOutBounce(anim[cle])) * 150 : 0;
         dessinerObjet(c, type, sx, sy, x, y, dy);
@@ -755,6 +910,23 @@
       const occupe = etat.carte[survol.x + "," + survol.y];
       if (outil === "retirer") {
         losange(c, sx, sy, 1, occupe ? "rgba(224,83,63,.35)" : "rgba(255,255,255,.25)", "#ffffff");
+      } else if (outil === "clubhouse") {
+        const an = ancrePose(survol.x, survol.y);
+        const cases = casesClubHouse(an.x, an.y);
+        const libre = cases.every(([a, b]) => !etat.carte[a + "," + b]);
+        const ok = libre && etat.pieces >= ELEMENTS.clubhouse.prix;
+        c.save();
+        c.globalAlpha = .6;
+        if (libre) {
+          for (const [a, b] of cases) { const q = coinCase(a, b); dessinerSol(c, "terrasse", q.sx, q.sy, a, b); }
+          const centre = coinCase(an.x + 1, an.y + 1);
+          dessinerGrandClubHouse(c, centre.sx, centre.sy);
+        }
+        c.restore();
+        for (const [a, b] of cases) {
+          const q = coinCase(a, b);
+          losange(c, q.sx, q.sy, 1, ok ? "rgba(255,255,255,.15)" : "rgba(224,83,63,.35)", ok ? "#ffffff" : "#e0533f");
+        }
       } else {
         const ok = !occupe && etat.pieces >= ELEMENTS[outil].prix;
         c.save();
@@ -790,7 +962,8 @@
       if (!a.poussiere && (t - a.t0) / a.duree >= a.impact) {
         a.poussiere = true;
         const [x, y] = a.cle.split(",").map(Number);
-        lancerParticules(x, y, ELEMENTS[a.type].couleur);
+        const cases = a.type === "clubhouse" && estGrandClubHouse(x, y) ? casesClubHouse(x, y) : [[x, y]];
+        for (const [px, py] of cases) lancerParticules(px, py, ELEMENTS[a.type].couleur);
         son("pose");
       }
     }
@@ -915,8 +1088,8 @@
   function toucherCarte(clientX, clientY) {
     const cs = caseSousPointeur(clientX, clientY);
     if (!cs) return;
-    const cle = cs.x + "," + cs.y;
-    const present = etat.carte[cle];
+    let cle = cs.x + "," + cs.y;
+    const present = typeDe(cle);   // type réel (aussi pour une case du club-house)
 
     if (!outil) {
       toast(present ? ELEMENTS[present].nom : "Choisis un élément dans la boutique ci-dessous 👇");
@@ -925,10 +1098,14 @@
     if (outil === "retirer") {
       if (!present) return;
       const rendu = Math.floor(ELEMENTS[present].prix / 2);
-      delete etat.carte[cle];
+      cle = ancreDe(cle);
+      const [ax, ay] = cle.split(",").map(Number);
+      // Grand club-house : on libère ses 4 cases
+      const cases = present === "clubhouse" && estGrandClubHouse(ax, ay) ? casesClubHouse(ax, ay) : [[cs.x, cs.y]];
+      for (const [a, b] of cases) delete etat.carte[a + "," + b];
       etat.pieces += rendu;
       sauvegarder();
-      lancerParticules(cs.x, cs.y, ELEMENTS[present].couleur);
+      for (const [a, b] of cases) lancerParticules(a, b, ELEMENTS[present].couleur);
       son("retirer");
       if (rendu) toast(`${ELEMENTS[present].nom} retiré : +${rendu} pièces`);
       animerPieces();
@@ -937,9 +1114,12 @@
       return;
     }
     const el = ELEMENTS[outil];
-    if (present) {
+    // Le club-house prend 4 cases (2 x 2) : toutes doivent être libres
+    const an = outil === "clubhouse" ? ancrePose(cs.x, cs.y) : cs;
+    const cases = outil === "clubhouse" ? casesClubHouse(an.x, an.y) : [[cs.x, cs.y]];
+    if (cases.some(([a, b]) => etat.carte[a + "," + b])) {
       son("erreur");
-      toast("Case occupée — utilise 🧹 Retirer d'abord");
+      toast(outil === "clubhouse" ? "Le club-house a besoin de 4 cases libres (2 × 2)" : "Case occupée — utilise 🧹 Retirer d'abord");
       return;
     }
     if (etat.pieces < el.prix) {
@@ -949,7 +1129,9 @@
       return;
     }
     etat.pieces -= el.prix;
+    cle = an.x + "," + an.y;
     etat.carte[cle] = outil;
+    for (const [a, b] of cases.slice(1)) etat.carte[a + "," + b] = "@" + cle;   // renvois vers l'ancre
     sauvegarder();
     animations.push({ cle, type: outil, t0: performance.now(), duree: el.haut ? 650 : 380, impact: el.haut ? .36 : 0, poussiere: false });
     if (navigator.vibrate) { try { navigator.vibrate(15); } catch (e) { /* rien */ } }
@@ -970,6 +1152,13 @@
     c.setTransform(dpr * k, 0, 0, dpr * k, dpr * 30, dpr * 2);
     const ancien = fjDessin;
     fjDessin = 0;
+    if (type === "clubhouse") {   // grand club-house : 4 cases, dessiné plus petit
+      c.setTransform(dpr * .42, 0, 0, dpr * .42, dpr * 30, 0);
+      for (const [i, j] of casesClubHouse(0, 0)) dessinerSol(c, "terrasse", (i - j) * TW / 2, 105 + (i + j - 2) * TH / 2, i, j);
+      dessinerGrandClubHouse(c, 0, 105);
+      fjDessin = ancien;
+      return;
+    }
     dessinerSol(c, ELEMENTS[type].plat ? type : null, 0, 42, 0, 1);
     if (ELEMENTS[type].haut) dessinerObjet(c, type, 0, 42, 1, 0);
     fjDessin = ancien;
@@ -1006,6 +1195,7 @@
     let txt;
     if (!outil) txt = "Choisis un élément, puis touche une case. Glisse pour te déplacer, pince pour zoomer.";
     else if (outil === "retirer") txt = "Touche un élément pour le retirer (la moitié du prix est rendue).";
+    else if (outil === "clubhouse") txt = `Touche la carte pour poser le club-house : il prend 4 cases libres (2 × 2) — ${ELEMENTS.clubhouse.prix} pièces.`;
     else txt = `Touche une case vide pour poser : ${ELEMENTS[outil].nom} (${ELEMENTS[outil].prix} pièces). Touche l'élément à nouveau pour arrêter.`;
     $("#ty-consigne").textContent = txt;
     canvas.classList.toggle("outil-actif", !!outil);
