@@ -127,3 +127,4 @@ afraichirCaseScore met à jour toutes les copies d'une fiche (programme + biblio
 - TODO Tycoon : ajouter `golf-tycoon-v1:etat` à la sauvegarde Google (`compte.js` : `donneesLocales` + `fusionner`).
 - v29 : Tycoon — les « habitudes perso » deviennent des **défis golf** de performance (catalogue + défi perso) ; les défis 🤖 auto (birdie, sans 3-putts, sans double, 2/3 GIR, sous le par) se valident tout seuls avec une partie notée. Anciennes habitudes boire/dormir remplacées automatiquement. Défis = exemples de Claude, à ajuster par l'utilisateur.
 - v30 : Tycoon — nouveau club-house sur 2×2 cases (toit vert, tour-horloge, enseigne « CLUB HOUSE », terrasse et parasols, drapeaux, voiturette) ; pose refusée s'il manque une case libre ; le retrait libère les 4 cases.
+- v31 : Tycoon — un jeu interactif réussi sans raté (ex. Trèfle 16/16) double la récompense de l'exo (+25 « 🌟 Parfait », toast + confettis), même si l'exo était déjà coché plus tôt dans la journée.

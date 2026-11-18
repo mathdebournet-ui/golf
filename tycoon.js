@@ -3,7 +3,8 @@
    ---------------------------------------------------------
    Repris du prototype fairway-tycoon/index.html, branché sur
    l'appli d'entraînement :
-   - chaque exo d'« Aujourd'hui » coché ✓ rapporte 25 pièces,
+   - chaque exo d'« Aujourd'hui » coché ✓ rapporte 25 pièces
+     (×2 si le jeu interactif est PARFAIT : ex. Trèfle 16/16),
    - chaque exercice 🧠 Mental fait : 25 pièces,
    - chaque partie ⛳ terminée : 50 pièces,
    - des « défis golf » de performance (10, 25 ou 50 pièces) :
@@ -238,11 +239,23 @@
     let repris = 0;
 
     // Exos d'« Aujourd'hui » cochés (liste tenue par serie.js)
+    // + 🌟 PARFAIT : un jeu interactif (Trèfle 16/16…) réussi sans aucun raté
+    //   aujourd'hui = la récompense de l'exo est doublée (gain en plus « parfait:id »).
+    const parfaits = [];
     if (typeof faitsDuJour === "function") {
       const ids = faitsDuJour();
-      for (const id of ids) gagne += ajouterGain(auj, "exo:" + id, GAIN_EXO, titreFiche(id), "⛳");
+      for (const id of ids) {
+        gagne += ajouterGain(auj, "exo:" + id, GAIN_EXO, titreFiche(id), "⛳");
+        const p = tourParfaitDuJour(id);
+        if (p) {
+          const g = ajouterGain(auj, "parfait:" + id, GAIN_EXO, `Parfait ${p.score} : ${p.nom} (récompense ×2)`, "🌟");
+          if (g) { gagne += g; parfaits.push(`${p.nom} ${p.score}`); }
+        }
+      }
       repris += retirerAbsents("exo:", ids);
+      repris += retirerAbsents("parfait:", ids);
     }
+    if (parfaits.length) setTimeout(() => { son("niveau"); confettis(); toast("🌟 PARFAIT " + parfaits.join(" · ") + " : récompense doublée !"); }, 300);
     // Exercices mentaux faits (mental.js)
     if (typeof mentalHistorique === "function") {
       const histo = mentalHistorique();
@@ -285,6 +298,19 @@
     }
     if (etaitJaune) setTimeout(() => { son("reverdit"); toast("🌱 Le gazon de ton parcours reverdit !"); }, 600);
     if (niveau() > ancienNiveau) setTimeout(() => montrerNiveau(niveau()), 1000);
+  }
+
+  // Tour PARFAIT aujourd'hui sur le jeu interactif de cette fiche (exos-points.js) :
+  // toutes les balles réussies, aucun raté (ex. Trèfle 16/16). Renvoie {nom, score} ou null.
+  function tourParfaitDuJour(idFiche) {
+    if (typeof EXOS_POINTS === "undefined" || typeof toursDe !== "function") return null;
+    const auj = cleJour();
+    for (const [exo, config] of Object.entries(EXOS_POINTS)) {
+      if (config.idFiche !== idFiche) continue;
+      const t = toursDe(exo).find((x) => x.d === auj && x.total > 0 && x.rentres === x.total && x.fini !== false);
+      if (t) return { nom: config.nom, score: `${t.rentres}/${t.total}` };
+    }
+    return null;
   }
 
   /* =======================================================
@@ -1510,7 +1536,7 @@
       <div class="ty-bloc">
         <div class="ty-titre"><h2>Gains d'aujourd'hui</h2><span class="petit" id="ty-total-jour"></span></div>
         <ul class="ty-gains" id="ty-gains"></ul>
-        <p class="petit">Barème : exo du jour ✓ ${GAIN_EXO} · exercice mental ${GAIN_MENTAL} · partie terminée ${GAIN_PARTIE} pièces.</p>
+        <p class="petit">Barème : exo du jour ✓ ${GAIN_EXO} · exercice mental ${GAIN_MENTAL} · partie terminée ${GAIN_PARTIE} pièces · 🌟 parfait à un jeu interactif (ex. Trèfle 16/16) : récompense ×2.</p>
       </div>
 
       <div class="ty-bloc">
