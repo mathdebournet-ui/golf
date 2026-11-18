@@ -62,40 +62,71 @@
   // jamais de technique. Exemples écrits par Claude (sans source), à adapter.
   // auto = validé tout seul quand une partie terminée remplit la condition.
   const CATEGORIES_DEFIS = { putting: "Putting", chipping: "Chipping", bunker: "Bunker", practice: "Practice", parcours: "Sur le parcours" };
+  // Niveau visé : joueurs de 5 à +4 d'index (v38, défis durcis).
   const CATALOGUE_DEFIS = [
-    { ref: "putt-50-1m",    cat: "putting",  icone: "🕳️", nom: "50 putts rentrés d'affilée à 1 m", recompense: 25 },
-    { ref: "putt-horloge",  cat: "putting",  icone: "🔁", nom: "Horloge : 12 putts à 1,5 m sans rater", recompense: 25 },
-    { ref: "putt-lag",      cat: "putting",  icone: "📏", nom: "Lag : 10 putts de 12 m, tous à moins de 1 m", recompense: 50 },
-    { ref: "chip-7-10",     cat: "chipping", icone: "🚩", nom: "10 chips : au moins 7 à moins de 1 m", recompense: 25 },
-    { ref: "up-down",       cat: "chipping", icone: "⛳", nom: "Up & down : 7 réussis sur 10 balles", recompense: 50 },
-    { ref: "bunker-6-10",   cat: "bunker",   icone: "🏖️", nom: "10 sorties de bunker : 6 à moins de 2 m", recompense: 25 },
-    { ref: "drive-couloir", cat: "practice", icone: "🚀", nom: "Drive : 8 sur 10 dans un couloir de 25 m", recompense: 25 },
-    { ref: "wedge-50",      cat: "practice", icone: "🎯", nom: "Wedging : 10 balles à 50 m, 6 à moins de 4 m", recompense: 25 },
-    { ref: "fers-cible",    cat: "practice", icone: "🏌️", nom: "Fers : 10 balles, 6 à moins de 8 m de la cible", recompense: 25 },
-    { ref: "auto-birdie",   cat: "parcours", icone: "🐦", nom: "Faire au moins un birdie", recompense: 10, auto: "birdie" },
+    // Putting
+    { ref: "putt-50-1m",    cat: "putting",  icone: "🕳️", nom: "50 putts rentrés d'affilée à 1,5 m", recompense: 25 },
+    { ref: "putt-horloge",  cat: "putting",  icone: "🔁", nom: "Horloge : 12 putts à 1,5 m puis 12 à 2 m, sans rater", recompense: 50 },
+    { ref: "putt-3m",       cat: "putting",  icone: "🎯", nom: "Putts de 3 m : 6 rentrés sur 10", recompense: 50 },
+    { ref: "putt-lag",      cat: "putting",  icone: "📏", nom: "Lag : 10 putts de 15 m, tous à moins de 90 cm", recompense: 50 },
+    // Chipping
+    { ref: "chip-7-10",     cat: "chipping", icone: "🚩", nom: "10 chips : 8 à moins de 1 m et 1 rentré", recompense: 50 },
+    { ref: "up-down",       cat: "chipping", icone: "⛳", nom: "Up & down : 8 réussis sur 10 (lies différents)", recompense: 50 },
+    { ref: "lob",           cat: "chipping", icone: "🪂", nom: "Lob par-dessus un obstacle : 6 sur 10 à moins de 2 m", recompense: 25 },
+    // Bunker
+    { ref: "bunker-6-10",   cat: "bunker",   icone: "🏖️", nom: "10 sorties de bunker : 8 à moins de 2 m", recompense: 50 },
+    { ref: "bunker-30m",    cat: "bunker",   icone: "🏝️", nom: "Bunker à 30 m du trou : 5 sur 10 à moins de 4 m", recompense: 50 },
+    // Practice
+    { ref: "drive-couloir", cat: "practice", icone: "🚀", nom: "Drive : 8 sur 10 dans un couloir de 20 m", recompense: 50 },
+    { ref: "wedge-50",      cat: "practice", icone: "🎯", nom: "Wedging : 10 balles à 50 m, 7 à moins de 3 m", recompense: 50 },
+    { ref: "wedge-3dist",   cat: "practice", icone: "📐", nom: "Wedging 40 / 60 / 80 m : 9 balles sur 15 à moins de 4 m", recompense: 50 },
+    { ref: "fers-cible",    cat: "practice", icone: "🏌️", nom: "Fers à 150 m : 6 balles sur 10 à moins de 6 m de la cible", recompense: 50 },
+    // Sur le parcours (validés tout seuls par une partie notée ; seuils pour 18 trous, entre parenthèses pour 9)
+    { ref: "auto-birdie",   cat: "parcours", icone: "🐦", nom: "3 birdies dans la partie (2 sur 9 trous)", recompense: 25, auto: "birdies" },
+    { ref: "auto-eagle",    cat: "parcours", icone: "🦅", nom: "Faire un eagle", recompense: 50, auto: "eagle" },
     { ref: "auto-3putts",   cat: "parcours", icone: "🟢", nom: "Partie sans 3-putts", recompense: 50, auto: "sans3putts" },
-    { ref: "auto-double",   cat: "parcours", icone: "🧹", nom: "Partie sans double bogey", recompense: 50, auto: "sansDouble" },
-    { ref: "auto-gir",      cat: "parcours", icone: "🎯", nom: "2 greens sur 3 en régulation", recompense: 50, auto: "gir" },
-    { ref: "auto-par",      cat: "parcours", icone: "🏆", nom: "Finir une partie sous le par", recompense: 50, auto: "sousLePar" },
+    { ref: "auto-double",   cat: "parcours", icone: "🧹", nom: "Au plus 2 bogeys, aucun double (1 sur 9 trous)", recompense: 50, auto: "peuDeBogeys" },
+    { ref: "auto-penalite", cat: "parcours", icone: "🚫", nom: "Partie sans aucune pénalité", recompense: 25, auto: "sansPenalite" },
+    { ref: "auto-gir",      cat: "parcours", icone: "🎯", nom: "14 greens en régulation sur 18 (7 sur 9)", recompense: 50, auto: "gir14" },
+    { ref: "auto-par",      cat: "parcours", icone: "🏆", nom: "Finir sous le par", recompense: 25, auto: "sousLePar" },
+    { ref: "auto-moins3",   cat: "parcours", icone: "🔥", nom: "Finir à −3 ou mieux (−2 sur 9 trous)", recompense: 50, auto: "moins3" },
   ];
+  // Anciens textes (avant v38) : un défi jamais modifié par le joueur est mis à jour tout seul
+  const ANCIENS_DEFIS = {
+    "putt-50-1m": "50 putts rentrés d'affilée à 1 m", "putt-horloge": "Horloge : 12 putts à 1,5 m sans rater",
+    "putt-lag": "Lag : 10 putts de 12 m, tous à moins de 1 m", "chip-7-10": "10 chips : au moins 7 à moins de 1 m",
+    "up-down": "Up & down : 7 réussis sur 10 balles", "bunker-6-10": "10 sorties de bunker : 6 à moins de 2 m",
+    "drive-couloir": "Drive : 8 sur 10 dans un couloir de 25 m", "wedge-50": "Wedging : 10 balles à 50 m, 6 à moins de 4 m",
+    "fers-cible": "Fers : 10 balles, 6 à moins de 8 m de la cible", "auto-birdie": "Faire au moins un birdie",
+    "auto-double": "Partie sans double bogey", "auto-gir": "2 greens sur 3 en régulation", "auto-par": "Finir une partie sous le par",
+  };
   // Défis de départ
-  const DEFIS_DE_DEPART = ["putt-50-1m", "putt-lag", "up-down", "drive-couloir", "auto-birdie", "auto-3putts"];
+  const DEFIS_DE_DEPART = ["putt-3m", "putt-lag", "up-down", "wedge-50", "auto-birdie", "auto-3putts"];
   function defiDuCatalogue(ref) {
     const c = CATALOGUE_DEFIS.find((x) => x.ref === ref);
     return c ? { id: c.ref, ...c } : null;
   }
 
   // Conditions des défis « auto », vérifiées sur une partie terminée (parcours.js).
-  // complete = tous les trous ont un score.
+  // complete = tous les trous ont un score. Les seuils s'adaptent au nombre de trous (18 ou 9).
   const nb = (v) => Number.isFinite(v);
+  const ecartPartie = (trous) => trous.reduce((s, t) => s + t.score - t.par, 0);
   const TESTS_AUTO = {
-    birdie: (trous) => trous.some((t) => nb(t.score) && t.score <= t.par - 1),
+    birdies: (trous) => trous.filter((t) => nb(t.score) && t.score <= t.par - 1).length >= (trous.length >= 18 ? 3 : 2),
+    eagle: (trous) => trous.some((t) => nb(t.score) && t.score <= t.par - 2),
     sans3putts: (trous, complete) => complete && trous.every((t) => nb(t.putts) && t.putts < 3),
+    peuDeBogeys: (trous, complete) => complete && trous.every((t) => t.score <= t.par + 1) &&
+      trous.filter((t) => t.score > t.par).length <= (trous.length >= 18 ? 2 : 1),
+    sansPenalite: (trous, complete) => complete && trous.every((t) => !t.penalites),
+    gir14: (trous, complete) => complete && trous.every((t) => nb(t.putts)) &&
+      trous.filter((t) => t.score - t.putts <= t.par - 2).length * 9 >= trous.length * 7,
+    sousLePar: (trous, complete) => complete && ecartPartie(trous) < 0,
+    moins3: (trous, complete) => complete && ecartPartie(trous) <= (trous.length >= 18 ? -3 : -2),
+    // Anciens tests (défis d'avant v38 modifiés par le joueur)
+    birdie: (trous) => trous.some((t) => nb(t.score) && t.score <= t.par - 1),
     sansDouble: (trous, complete) => complete && trous.every((t) => t.score <= t.par + 1),
     gir: (trous, complete) => complete && trous.every((t) => nb(t.putts)) &&
       trous.filter((t) => t.score - t.putts <= t.par - 2).length * 3 >= trous.length * 2,
-    sousLePar: (trous, complete) => complete &&
-      trous.reduce((s, t) => s + t.score, 0) < trous.reduce((s, t) => s + t.par, 0),
   };
   function defiReussiSurPartie(defi, partie) {
     const trous = Array.isArray(partie.trous) ? partie.trous.filter((t) => t && nb(t.par)) : [];
@@ -181,6 +212,8 @@
     // Anciennes habitudes de départ (boire, dormir) jamais modifiées : remplacées par les défis golf
     const anciennes = ["Boire 2 L d'eau", "Dormir 8 h"];
     if (e.habitudes.length && e.habitudes.every((h) => anciennes.includes(h.nom))) e.habitudes = base.habitudes;
+    // Défis d'avant v38 jamais modifiés : on prend la nouvelle version (plus dure)
+    e.habitudes = e.habitudes.map((h) => (ANCIENS_DEFIS[h.id] === h.nom && defiDuCatalogue(h.id)) || h);
     if (d.carte && typeof d.carte === "object") {
       for (const [cle, type] of Object.entries(d.carte)) if (ELEMENTS[type]) e.carte[cle] = type;
       // Cases du grand club-house (2 x 2) : "@x,y" renvoie vers la case principale
