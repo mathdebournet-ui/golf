@@ -134,6 +134,7 @@
       habitudes: DEFIS_DE_DEPART.map(defiDuCatalogue),   // = les défis golf actifs
       journal: {},          // { "AAAA-MM-JJ": { cle: { g: gain, l: libellé, i: icône } } }
       carte: {},            // { "x,y": typeElement }
+      taille: 20,           // terrain de taille x taille cases
     };
   }
   function chargerEtat() {
@@ -149,6 +150,7 @@
       habitudes: Array.isArray(d.habitudes) ? d.habitudes.filter((h) => h && h.id && h.nom) : base.habitudes,
       journal: d.journal && typeof d.journal === "object" ? d.journal : {},
       carte: {},
+      taille: [20, 30, 40, 50].includes(d.taille) ? d.taille : 20,
     };
     // Anciennes habitudes de départ (boire, dormir) jamais modifiées : remplacées par les défis golf
     const anciennes = ["Boire 2 L d'eau", "Dormir 8 h"];
@@ -508,12 +510,24 @@
      5. RENDU DE LA CARTE ISOMÉTRIQUE (Canvas)
      ======================================================= */
 
-  const N = 20;
+  // Taille du terrain : 20 x 20 au départ, agrandissable avec des pièces
+  // (pour avoir la place de faire un 18 trous). Ces valeurs changent avec appliquerTaille().
+  let N = 20;
   const TW = 64, TH = 32;     // taille d'une case (losange), en unités « monde »
-  const OX = 640, OY = 90;    // coin haut de la case (0,0)
+  let OX = 640;               // coin haut de la case (0,0), au milieu du monde
+  const OY = 90;
   const EPAIS = 16;           // épaisseur du socle de terre
-  const MONDE_L = N * TW;
-  const MONDE_H = OY + N * TH + EPAIS + 20;
+  let MONDE_L = N * TW;
+  let MONDE_H = OY + N * TH + EPAIS + 20;
+  function appliquerTaille() {
+    N = etat.taille;
+    MONDE_L = N * TW;
+    OX = MONDE_L / 2;
+    MONDE_H = OY + N * TH + EPAIS + 20;
+  }
+  // Agrandissements possibles : taille actuelle -> { nouvelle taille, prix }.
+  // Le terrain grandit vers l'avant : ce qui est déjà posé ne bouge pas.
+  const AGRANDISSEMENTS = { 20: { vers: 30, prix: 400 }, 30: { vers: 40, prix: 800 }, 40: { vers: 50, prix: 1500 } };
 
   let canvas = null, ctx = null;
   const vue = { z: 1, x: 0, y: 0, l: 0, h: 0, dpr: 1, pret: false };
@@ -1190,6 +1204,30 @@
     fjDessin = ancien;
   }
 
+  // Achète un terrain plus grand (20 -> 30 -> 40 -> 50 cases de côté)
+  function agrandirTerrain() {
+    const ag = AGRANDISSEMENTS[N];
+    if (!ag) return;
+    if (etat.pieces < ag.prix) {
+      son("erreur");
+      secouer($("#ty-compteur"));
+      toast(`Il manque ${ag.prix - etat.pieces} pièces pour agrandir le terrain.`);
+      return;
+    }
+    if (!confirm(`Agrandir le terrain à ${ag.vers} × ${ag.vers} cases pour ${ag.prix} pièces ?\nTout ce qui est déjà posé reste à sa place.`)) return;
+    etat.pieces -= ag.prix;
+    etat.taille = ag.vers;
+    sauvegarder();
+    appliquerTaille();
+    centrer();
+    son("niveau");
+    confettis();
+    toast(`🗺️ Terrain agrandi : ${N} × ${N} cases !`);
+    animerPieces();
+    majBoutique();
+    besoinRendu = true;
+  }
+
   function choisirOutil(type) {
     if (type !== "retirer" && niveau() < ELEMENTS[type].niveau) {
       const el = ELEMENTS[type];
@@ -1226,6 +1264,16 @@
     $("#ty-consigne").textContent = txt;
     canvas.classList.toggle("outil-actif", !!outil);
     $("#ty-cases").textContent = `${Object.keys(etat.carte).length} / ${N * N} cases`;
+    // Bouton « Agrandir le terrain »
+    const ag = AGRANDISSEMENTS[N];
+    const bouton = $("#ty-agrandir");
+    if (bouton) {
+      bouton.hidden = !ag;
+      if (ag) {
+        bouton.innerHTML = `🗺️ Agrandir le terrain : ${ag.vers} × ${ag.vers} cases · <span class="ty-piece"></span> ${ag.prix}`;
+        bouton.classList.toggle("trop-cher", etat.pieces < ag.prix);
+      }
+    }
   }
 
   /* =======================================================
@@ -1531,6 +1579,7 @@
         </div>
         <p class="ty-consigne" id="ty-consigne"></p>
         <div class="ty-boutique" id="ty-boutique"></div>
+        <button type="button" class="bouton pleine-largeur ty-agrandir" id="ty-agrandir"></button>
       </div>
 
       <div class="ty-bloc">
@@ -1573,6 +1622,7 @@
     }
     boutique.insertAdjacentHTML("beforeend",
       '<button type="button" class="ty-article" data-type="retirer"><span class="ty-icone">🧹</span><span class="ty-nom">Retirer</span><span class="ty-prix">50 % rendu</span></button>');
+    $("#ty-agrandir").addEventListener("click", agrandirTerrain);
     boutique.addEventListener("click", (ev) => {
       const b = ev.target.closest(".ty-article");
       if (b) choisirOutil(b.dataset.type);
@@ -1600,6 +1650,8 @@
       if (!confirm("Vraiment ? C'est définitif.")) return;
       etat = etatInitial();
       sauvegarder();
+      appliquerTaille();
+      centrer();
       piecesAffichees = etat.pieces;
       outil = null;
       rafraichir();
@@ -1650,6 +1702,7 @@
   // Démarrage : après le chargement de tous les scripts (app.js compris)
   document.addEventListener("DOMContentLoaded", () => {
     etat = chargerEtat();
+    appliquerTaille();
     piecesAffichees = etat.pieces;
     pret = true;
     sauvegarder();
