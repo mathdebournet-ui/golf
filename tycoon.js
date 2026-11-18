@@ -47,6 +47,7 @@
   const ELEMENTS = {
     gazon:     { nom: "Gazon",      prix: 5,   niveau: 1, plat: true,  haut: false, couleur: "#5cc246" },
     fairway:   { nom: "Fairway",    prix: 10,  niveau: 1, plat: true,  haut: false, couleur: "#86e06a" },
+    depart:    { nom: "Départ",     prix: 10,  niveau: 1, plat: true,  haut: false, couleur: "#6fcf55" },
     bunker:    { nom: "Bunker",     prix: 15,  niveau: 1, plat: true,  haut: false, couleur: "#f2dc9b" },
     arbre:     { nom: "Arbre",      prix: 20,  niveau: 1, plat: false, haut: true,  couleur: "#3fae4f" },
     lac:       { nom: "Lac",        prix: 40,  niveau: 2, plat: true,  haut: false, couleur: "#7fd0ff" },
@@ -694,6 +695,14 @@
         surfaceGreen(c, sx, sy, (dx, dy) => greensFusionnes && etat.carte[(x + dx) + "," + (y + dy)] === "green");
         break;
       }
+      case "depart": {   // zone de départ : herbe rase + 2 boules de départ
+        losange(c, sx, sy, 1, herbe("#4fb83c", "#c4b44a"));
+        poly(c, [pt(sx, sy, .18, .22), pt(sx, sy, .82, .22), pt(sx, sy, .82, .78), pt(sx, sy, .18, .78)], herbe("#73d65a", "#d6ca66"));
+        const [ax, ay] = pt(sx, sy, .3, .3), [bx, by] = pt(sx, sy, .3, .7);
+        rond(c, ax, ay, 2.3, "#e8433a"); rond(c, bx, by, 2.3, "#e8433a");
+        rond(c, ...pt(sx, sy, .45, .5), 1.4, "#ffffff");
+        break;
+      }
       case "terrasse":   // dalles de pierre sous le grand club-house
         losange(c, sx, sy, 1, "#d8ccb4");
         losange(c, sx, sy, .9, "#e4dac6");
@@ -767,10 +776,73 @@
       const a = { x: x - i, y: y - j };
       const cases = casesDe(type, a.x, a.y);
       if (!cases.every(([p, q]) => possedee(p, q))) continue;
-      if (cases.every(([p, q]) => !etat.carte[p + "," + q])) return a;
+      if (cases.every(([p, q]) => !etat.carte[p + "," + q] || etat.carte[p + "," + q] === "gazon")) return a;
       if (!repli) repli = a;
     }
     return repli || { x, y };
+  }
+
+  /* ---------- 3 trous tout prêts (par 3, par 4, par 5) ----------
+     Toujours les mêmes plans. Une fois posés, ce sont des cases normales :
+     on peut tout modifier (✏️ Modifier, 🧹 Retirer, poser par-dessus le gazon).
+     Plans : une ligne = une rangée de cases (largeur), un caractère = une case (longueur).
+     T départ · F fairway · G green · B bunker · L lac · A arbre · . gazon (rough) */
+  const KITS_TROUS = {
+    par3: { nom: "Trou par 3", icone: "3", prix: 250, niveau: 3, plan: [
+      "A..A.A.A",
+      "....LBGG",
+      "TT..LGGG",
+      "....LBGG",
+      "A..A...A",
+    ] },
+    par4: { nom: "Trou par 4", icone: "4", prix: 400, niveau: 4, plan: [
+      "A..A...A...A.",
+      "......FFFB.GG",
+      "TT.FFFFFFFFGG",
+      "...FFFFB...BG",
+      ".A....A..A...",
+    ] },
+    par5: { nom: "Trou par 5", icone: "5", prix: 550, niveau: 5, plan: [
+      "A..A..A....A..A..A",
+      "......FFF.LL..FFGG",
+      "TT..FFFFFFLLFFFFGG",
+      "....FFFFB.LLFFFBGG",
+      ".......B..LL...B..",
+      "A...A...A....A...A",
+    ] },
+  };
+  const LEGENDE_KIT = { T: "depart", F: "fairway", G: "green", B: "bunker", L: "lac", A: "arbre", ".": "gazon" };
+  let rotationKit = 0;   // 0 à 3 : quart de tour du trou avant de le poser
+  // Cases d'un trou posé avec son centre en (cx, cy) : [[x, y, type], …]
+  function casesKit(id, cx, cy, rot = rotationKit) {
+    const plan = KITS_TROUS[id].plan;
+    const h = plan.length, w = plan[0].length;
+    const [W, H] = rot % 2 ? [h, w] : [w, h];
+    const x0 = cx - Math.floor(W / 2), y0 = cy - Math.floor(H / 2);
+    const res = [];
+    for (let v = 0; v < h; v++) {
+      for (let u = 0; u < w; u++) {
+        const type = LEGENDE_KIT[plan[v][u]];
+        if (!type) continue;
+        let i, j;
+        if (rot === 0) { i = u; j = v; } else if (rot === 1) { i = h - 1 - v; j = u; }
+        else if (rot === 2) { i = w - 1 - u; j = h - 1 - v; } else { i = v; j = w - 1 - u; }
+        res.push([x0 + i, y0 + j, type]);
+      }
+    }
+    return res;
+  }
+  // Problèmes pour poser un trou : cases hors du terrain, cases déjà prises (le gazon ne gêne pas)
+  function conflitsKit(cases) {
+    const horsTerrain = cases.filter(([x, y]) => !possedee(x, y)).length;
+    const prises = cases.filter(([x, y, t]) => t !== "gazon" && etat.carte[x + "," + y] && etat.carte[x + "," + y] !== "gazon").length;
+    return { horsTerrain, prises };
+  }
+  // Nom / prix / niveau d'un outil (élément, trou tout prêt…)
+  function infoOutil(o) {
+    if (ELEMENTS[o]) return ELEMENTS[o];
+    if (o && o.startsWith("kit:")) return KITS_TROUS[o.slice(4)];
+    return null;
   }
 
   // Sol d'une case (i, j) d'un grand élément
@@ -1200,7 +1272,8 @@
     for (const g of groupesDeGreens()) drapeaux[g.porteur] = g;
     const anim = {};
     animations = animations.filter((a) => t - a.t0 < a.duree);
-    for (const a of animations) anim[a.cle] = Math.min(1, Math.max(0, (t - a.t0) / a.duree));
+    // -1 = animation pas encore commencée (vague d'apparition d'un trou) : l'élément reste caché
+    for (const a of animations) anim[a.cle] = t < a.t0 ? -1 : Math.min(1, (t - a.t0) / a.duree);
 
     // 1er passage : le sol (de l'arrière vers l'avant), avec les bords de terre
     const { minX, maxX, minY, maxY } = bornes;
@@ -1230,7 +1303,7 @@
         const type = v;
         if (type && ELEMENTS[type].plat && anim[cle] != null) {
           dessinerHerbe(c, sx, sy, x, y);
-          const s = Math.max(.01, easeOutBack(anim[cle]));
+          const s = anim[cle] < 0 ? .01 : Math.max(.01, easeOutBack(anim[cle]));
           c.save();
           c.translate(sx, sy + TH / 2); c.scale(s, s); c.translate(-sx, -(sy + TH / 2));
           dessinerSol(c, type, sx, sy, x, y);
@@ -1267,19 +1340,38 @@
           const g = drapeaux[cle];
           if (g) {
             const t = coinCase(g.tx, g.ty);
-            dessinerDrapeau(c, t.sx, t.sy, anim[cle] != null ? -(1 - easeOutBounce(anim[cle])) * 150 : 0, g.numero);
+            if (!(anim[cle] < 0)) dessinerDrapeau(c, t.sx, t.sy, anim[cle] != null ? -(1 - easeOutBounce(anim[cle])) * 150 : 0, g.numero);
           }
           continue;
         }
         if (!ELEMENTS[type].haut) continue;
         const { sx, sy } = coinCase(x, y);
+        if (anim[cle] < 0) continue;   // pas encore apparu
         const dy = anim[cle] != null ? -(1 - easeOutBounce(anim[cle])) * 150 : 0;
         dessinerObjet(c, type, sx, sy, x, y, dy);
       }
     }
 
+    // ✏️ Modifier : l'élément choisi est entouré en jaune
+    if (outil === "modifier" && selection) {
+      const [ax, ay] = selection.ancre.split(",").map(Number);
+      const cases = estGrand(selection.type, ax, ay) ? casesDe(selection.type, ax, ay) : [[ax, ay]];
+      for (const [a, b] of cases) { const q = coinCase(a, b); losange(c, q.sx, q.sy, 1, "rgba(255,210,63,.35)", "#ffb800"); }
+    }
+    // Aperçu d'un trou tout prêt sous la souris
+    if (survol && outil && outil.startsWith("kit:")) {
+      const cases = casesKit(outil.slice(4), survol.x, survol.y);
+      c.save(); c.globalAlpha = .6;
+      for (const [x, y, t] of cases) { const q = coinCase(x, y); dessinerSol(c, ELEMENTS[t].plat ? t : null, q.sx, q.sy, x, y); }
+      c.restore();
+      for (const [x, y, t] of cases) {
+        const q = coinCase(x, y);
+        const pb = !possedee(x, y) || (t !== "gazon" && etat.carte[x + "," + y] && etat.carte[x + "," + y] !== "gazon");
+        if (pb) losange(c, q.sx, q.sy, 1, "rgba(224,83,63,.45)");
+      }
+    }
     // Aperçu sous la souris
-    if (survol && outil && outil !== "terrain") {
+    if (survol && outil && outil !== "terrain" && outil !== "modifier" && !outil.startsWith("kit:")) {
       const { sx, sy } = coinCase(survol.x, survol.y);
       const occupe = etat.carte[survol.x + "," + survol.y];
       if (outil === "retirer") {
@@ -1287,7 +1379,7 @@
       } else if (TAILLES[outil]) {
         const an = ancrePose(outil, survol.x, survol.y);
         const cases = casesDe(outil, an.x, an.y);
-        const libre = cases.every(([a, b]) => possedee(a, b) && !etat.carte[a + "," + b]);
+        const libre = cases.every(([a, b]) => possedee(a, b) && (!etat.carte[a + "," + b] || etat.carte[a + "," + b] === "gazon"));
         const ok = libre && etat.pieces >= ELEMENTS[outil].prix;
         c.save();
         c.globalAlpha = .6;
@@ -1298,10 +1390,11 @@
           losange(c, q.sx, q.sy, 1, ok ? "rgba(255,255,255,.15)" : "rgba(224,83,63,.35)", ok ? "#ffffff" : "#e0533f");
         }
       } else {
-        const ok = !occupe && etat.pieces >= ELEMENTS[outil].prix;
+        const libre = !occupe || (occupe === "gazon" && outil !== "gazon");   // on peut poser sur le gazon
+        const ok = libre && etat.pieces >= ELEMENTS[outil].prix;
         c.save();
         c.globalAlpha = .6;
-        if (!occupe) {
+        if (libre) {
           if (ELEMENTS[outil].plat) dessinerSol(c, outil, sx, sy, survol.x, survol.y);
           if (ELEMENTS[outil].haut) dessinerObjet(c, outil, sx, sy, survol.x, survol.y);
         }
@@ -1329,7 +1422,7 @@
       besoinRendu = true;
     }
     for (const a of animations) {
-      if (!a.poussiere && (t - a.t0) / a.duree >= a.impact) {
+      if (!a.poussiere && t >= a.t0 && (t - a.t0) / a.duree >= a.impact) {
         a.poussiere = true;
         const [x, y] = a.cle.split(",").map(Number);
         const cases = estGrand(a.type, x, y) ? casesDe(a.type, x, y) : [[x, y]];
@@ -1497,8 +1590,10 @@
 
   function toucherCarte(clientX, clientY) {
     if (outil === "terrain") { acheterParcelle(clientX, clientY); return; }
+    if (outil && outil.startsWith("kit:")) { const b = caseBrute(clientX, clientY); poserKit(outil.slice(4), b.x, b.y); return; }
     const cs = caseSousPointeur(clientX, clientY);
     if (!cs) return;
+    if (outil === "modifier") { modifierToucher(cs); return; }
     let cle = cs.x + "," + cs.y;
     const present = typeDe(cle);   // type réel (aussi pour une case du club-house)
 
@@ -1534,7 +1629,9 @@
     // Grands éléments (club-house, putting green, practice) : toutes leurs cases doivent être libres
     const an = TAILLES[outil] ? ancrePose(outil, cs.x, cs.y) : cs;
     const cases = TAILLES[outil] ? casesDe(outil, an.x, an.y) : [[cs.x, cs.y]];
-    if (cases.some(([a, b]) => !possedee(a, b) || etat.carte[a + "," + b])) {
+    // Une case de gazon peut être recouverte (sauf par du gazon)
+    const prise = (a, b) => { const v = etat.carte[a + "," + b]; return v && !(v === "gazon" && outil !== "gazon"); };
+    if (cases.some(([a, b]) => !possedee(a, b) || prise(a, b))) {
       son("erreur");
       const t = TAILLES[outil];
       toast(t ? `${el.nom} : il faut ${t[0] * t[1]} cases libres (${t[0]} × ${t[1]}) sur ton terrain` : "Case occupée — utilise 🧹 Retirer d'abord");
@@ -1550,12 +1647,112 @@
     cle = an.x + "," + an.y;
     etat.carte[cle] = outil;
     for (const [a, b] of cases.slice(1)) etat.carte[a + "," + b] = "@" + cle;   // renvois vers l'ancre
-    if (outil === "green") etat.ordreGreens.push(cle);
+    if (outil === "green") { etat.ordreGreens = etat.ordreGreens.filter((k) => k !== cle); etat.ordreGreens.push(cle); }
     sauvegarder();
     animations.push({ cle, type: outil, t0: performance.now(), duree: el.haut ? 650 : 380, impact: el.haut ? .36 : 0, poussiere: false });
     if (navigator.vibrate) { try { navigator.vibrate(15); } catch (e) { /* rien */ } }
     besoinRendu = true;
     animerPieces();
+    majBoutique();
+  }
+
+  // Pose d'un trou tout prêt centré sur la case (x, y)
+  function poserKit(id, x, y) {
+    const kit = KITS_TROUS[id];
+    const cases = casesKit(id, x, y);
+    const { horsTerrain, prises } = conflitsKit(cases);
+    if (horsTerrain) {
+      son("erreur");
+      toast(`Pas assez de terrain ici : ${horsTerrain} case${horsTerrain > 1 ? "s" : ""} en dehors. Achète des parcelles 🗺️ ou tourne le trou ↻.`);
+      return;
+    }
+    if (prises) {
+      son("erreur");
+      toast(`${prises} case${prises > 1 ? "s sont" : " est"} déjà prise${prises > 1 ? "s" : ""} (le gazon ne gêne pas). Déplace-les avec ✏️ ou retire-les 🧹.`);
+      return;
+    }
+    if (etat.pieces < kit.prix) {
+      son("erreur");
+      secouer($("#ty-compteur"));
+      toast(`Il manque ${kit.prix - etat.pieces} pièces pour le ${kit.nom.toLowerCase()}.`);
+      return;
+    }
+    if (!confirm(`Poser le ${kit.nom.toLowerCase()} ici pour ${kit.prix} pièces ?\nTu pourras tout modifier ensuite (✏️ Modifier).`)) return;
+    etat.pieces -= kit.prix;
+    const t0 = performance.now();
+    for (const [cx, cy, t] of cases) {
+      const k = cx + "," + cy;
+      if (t === "gazon" && etat.carte[k]) continue;   // le rough ne remplace rien
+      etat.carte[k] = t;
+      if (t === "green") etat.ordreGreens.push(k);
+      // Petite vague d'apparition : du départ vers le green
+      animations.push({ cle: k, type: t, t0: t0 + (cx + cy - x - y) * 18 + 200, duree: ELEMENTS[t].haut ? 650 : 380, impact: 9, poussiere: true });
+    }
+    etat.ordreGreens = [...new Set(etat.ordreGreens)];
+    sauvegarder();
+    for (let n = 0; n < 6; n++) { const [cx, cy] = cases[Math.floor(n * cases.length / 6)]; lancerParticules(cx, cy, "#86e06a"); }
+    son("pose");
+    son("niveau");
+    confettis();
+    toast(`⛳ ${kit.nom} posé ! Tout est modifiable avec ✏️ Modifier.`);
+    animerPieces();
+    majBoutique();
+    besoinRendu = true;
+  }
+
+  // ✏️ Modifier : toucher un élément pour le choisir, puis une case libre pour le déplacer (gratuit)
+  let selection = null;   // { ancre: "x,y", type }
+  function modifierToucher(cs) {
+    const cle = cs.x + "," + cs.y;
+    const type = typeDe(cle);
+    if (!selection) {
+      if (!type) { toast("Touche d'abord un élément à déplacer."); return; }
+      selection = { ancre: ancreDe(cle), type };
+      son("clic");
+      toast(`${ELEMENTS[type].nom} choisi : touche une case libre pour le déplacer.`);
+      besoinRendu = true;
+      return;
+    }
+    const ancreTouchee = type ? ancreDe(cle) : null;
+    if (ancreTouchee === selection.ancre) { selection = null; toast("Sélection annulée."); besoinRendu = true; return; }
+    if (type && type !== "gazon") {   // on change d'élément choisi
+      selection = { ancre: ancreTouchee, type };
+      son("clic");
+      toast(`${ELEMENTS[type].nom} choisi : touche une case libre pour le déplacer.`);
+      besoinRendu = true;
+      return;
+    }
+    // Déplacement vers la case touchée (libre ou gazon)
+    const { type: t } = selection;
+    const [ax, ay] = selection.ancre.split(",").map(Number);
+    const grand = estGrand(t, ax, ay);
+    const anciennes = new Set((grand ? casesDe(t, ax, ay) : [[ax, ay]]).map(([a, b]) => a + "," + b));
+    const libre = (a, b) => {
+      const k = a + "," + b, v = etat.carte[k];
+      return possedee(a, b) && (!v || anciennes.has(k) || (v === "gazon" && t !== "gazon"));
+    };
+    let na = null;
+    if (grand) {
+      const [w, h] = TAILLES[t];
+      for (let j = 0; j < h && !na; j++) for (let i = 0; i < w && !na; i++) {
+        const cand = { x: cs.x - i, y: cs.y - j };
+        if (casesDe(t, cand.x, cand.y).every(([a, b]) => libre(a, b))) na = cand;
+      }
+    } else if (libre(cs.x, cs.y)) {
+      na = { x: cs.x, y: cs.y };
+    }
+    if (!na) { son("erreur"); toast("Pas la place ici : il faut des cases libres sur ton terrain."); return; }
+    for (const k of anciennes) delete etat.carte[k];
+    const nouvelle = na.x + "," + na.y;
+    etat.carte[nouvelle] = t;
+    if (grand) for (const [a, b] of casesDe(t, na.x, na.y).slice(1)) etat.carte[a + "," + b] = "@" + nouvelle;
+    // Un green déplacé garde son numéro de trou
+    if (t === "green") etat.ordreGreens = etat.ordreGreens.map((k) => (k === selection.ancre ? nouvelle : k));
+    selection = null;
+    sauvegarder();
+    animations.push({ cle: nouvelle, type: t, t0: performance.now(), duree: ELEMENTS[t].haut ? 500 : 300, impact: ELEMENTS[t].haut ? .36 : 0, poussiere: false });
+    son("clic");
+    besoinRendu = true;
     majBoutique();
   }
 
@@ -1589,15 +1786,42 @@
     greensFusionnes = true;
   }
 
+  // Petit dessin d'un trou tout prêt pour la boutique
+  function dessinerMiniKit(cv, id) {
+    const dpr = Math.min(window.devicePixelRatio || 1, 3);
+    cv.width = 60 * dpr; cv.height = 60 * dpr;
+    const c = cv.getContext("2d");
+    const cases = casesKit(id, 0, 0, 0);
+    const plan = KITS_TROUS[id].plan, w = plan[0].length, h = plan.length;
+    const x0 = -Math.floor(w / 2), y0 = -Math.floor(h / 2);
+    const z = Math.min(58 / ((w + h) * TW / 2), 50 / ((w + h) * TH / 2 + 30));
+    const cx = (w - h) / 2 * TW / 2, cy = (w + h) / 2 * TH / 2;
+    c.setTransform(dpr * z, 0, 0, dpr * z, dpr * (30 - cx * z), dpr * (34 - cy * z));
+    const ancien = fjDessin;
+    fjDessin = 0; greensFusionnes = false;
+    const P = (x, y) => [(x - x0 - (y - y0)) * TW / 2, (x - x0 + y - y0) * TH / 2];
+    for (const [x, y, t] of cases) { const [sx, sy] = P(x, y); dessinerSol(c, ELEMENTS[t].plat ? t : null, sx, sy, x, y); }
+    for (const [x, y, t] of cases.sort((a, b) => (a[0] + a[1]) - (b[0] + b[1]))) {
+      if (t === "arbre") { const [sx, sy] = P(x, y); dessinerObjet(c, t, sx, sy, x, y); }
+    }
+    // Drapeau au milieu du green
+    const gr = cases.filter(([, , t]) => t === "green");
+    const gx = gr.reduce((s, q) => s + q[0] + .5, 0) / gr.length, gy = gr.reduce((s, q) => s + q[1] + .5, 0) / gr.length;
+    const [fx, fy] = P(gx, gy);
+    dessinerDrapeau(c, fx, fy, 0, null);
+    fjDessin = ancien; greensFusionnes = true;
+  }
+
   function choisirOutil(type) {
-    if (ELEMENTS[type] && niveau() < ELEMENTS[type].niveau) {
-      const el = ELEMENTS[type];
+    const el = infoOutil(type);
+    if (el && niveau() < el.niveau) {
       const manque = (el.niveau - 1) * PALIER_NIVEAU - etat.totalFaits;
       son("erreur");
       toast(`🔒 ${el.nom} : niveau ${el.niveau} (encore ${manque} action${manque > 1 ? "s" : ""})`);
       return;
     }
     outil = outil === type ? null : type;
+    selection = null;
     if (outil === "terrain") centrer(PARCELLE);   // on recule pour voir les parcelles à acheter
     son("clic");
     majBoutique();
@@ -1611,13 +1835,13 @@
     zone.querySelectorAll(".ty-article").forEach((btn) => {
       const type = btn.dataset.type;
       btn.classList.toggle("choisi", outil === type);
-      if (type === "retirer") return;
+      if (type === "retirer" || type === "modifier") return;
       if (type === "terrain") {
         btn.classList.toggle("trop-cher", etat.pieces < prixParcelle());
         btn.querySelector(".ty-prix").innerHTML = `<span class="ty-piece"></span>${prixParcelle()}`;
         return;
       }
-      const el = ELEMENTS[type];
+      const el = infoOutil(type);
       const verrou = niv < el.niveau;
       btn.classList.toggle("verrouille", verrou);
       btn.classList.toggle("trop-cher", !verrou && etat.pieces < el.prix);
@@ -1626,10 +1850,15 @@
     let txt;
     if (!outil) txt = "Choisis un élément, puis touche une case. Glisse pour te déplacer, pince pour zoomer.";
     else if (outil === "retirer") txt = "Touche un élément pour le retirer (la moitié du prix est rendue).";
+    else if (outil === "modifier") txt = selection
+      ? `${ELEMENTS[selection.type].nom} choisi (en jaune) : touche une case libre pour le déplacer, ou touche-le encore pour annuler.`
+      : "✏️ Modifier : touche un élément pour le choisir, puis une case libre pour le déplacer (gratuit). Pour changer une case de gazon, pose simplement un autre élément dessus.";
+    else if (outil.startsWith("kit:")) txt = `Touche la carte pour poser le ${KITS_TROUS[outil.slice(4)].nom.toLowerCase()} (centré sur la case touchée) — ${KITS_TROUS[outil.slice(4)].prix} pièces. ↻ pour le tourner. Sur ordinateur, l'aperçu montre en rouge ce qui gêne.`;
     else if (outil === "terrain") txt = `Touche un carré en pointillés collé à ton terrain pour l'acheter : ${PARCELLE} × ${PARCELLE} cases pour ${prixParcelle()} pièces (le prix monte un peu à chaque achat).`;
     else if (TAILLES[outil]) txt = `Touche la carte pour poser : ${ELEMENTS[outil].nom}. Il prend ${TAILLES[outil][0]} × ${TAILLES[outil][1]} cases libres — ${ELEMENTS[outil].prix} pièces.`;
     else txt = `Touche une case vide pour poser : ${ELEMENTS[outil].nom} (${ELEMENTS[outil].prix} pièces). Touche l'élément à nouveau pour arrêter.`;
     $("#ty-consigne").textContent = txt;
+    $("#ty-tourner").hidden = !(outil && outil.startsWith("kit:"));
     canvas.classList.toggle("outil-actif", !!outil);
     $("#ty-cases").textContent = `${Object.keys(etat.carte).length} / ${etat.parcelles.length * PARCELLE * PARCELLE} cases`;
   }
@@ -1936,6 +2165,7 @@
           </div>
         </div>
         <p class="ty-consigne" id="ty-consigne"></p>
+        <button type="button" class="bouton ty-tourner" id="ty-tourner" hidden>↻ Tourner le trou</button>
         <div class="ty-boutique" id="ty-boutique"></div>
       </div>
 
@@ -1966,9 +2196,22 @@
 
     // Boutique
     const boutique = $("#ty-boutique");
-    // En premier : l'outil « Terrain » pour acheter des parcelles
+    // En premier : « Terrain » (acheter des parcelles), « Modifier » (déplacer), puis les 3 trous tout prêts
     boutique.insertAdjacentHTML("beforeend",
-      '<button type="button" class="ty-article" data-type="terrain"><span class="ty-icone">🗺️</span><span class="ty-nom">Terrain</span><span class="ty-prix"></span></button>');
+      '<button type="button" class="ty-article" data-type="terrain"><span class="ty-icone">🗺️</span><span class="ty-nom">Terrain</span><span class="ty-prix"></span></button>' +
+      '<button type="button" class="ty-article" data-type="modifier"><span class="ty-icone">✏️</span><span class="ty-nom">Modifier</span><span class="ty-prix">gratuit</span></button>');
+    for (const [id, kit] of Object.entries(KITS_TROUS)) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "ty-article ty-kit";
+      btn.dataset.type = "kit:" + id;
+      const mini = document.createElement("canvas");
+      dessinerMiniKit(mini, id);
+      btn.appendChild(mini);
+      btn.insertAdjacentHTML("beforeend", `<span class="ty-nom">${kit.nom}</span><span class="ty-prix"></span>`);
+      boutique.appendChild(btn);
+    }
+    $("#ty-tourner").addEventListener("click", () => { rotationKit = (rotationKit + 1) % 4; son("clic"); besoinRendu = true; toast("↻ Trou tourné d'un quart de tour"); });
     for (const [type, el] of Object.entries(ELEMENTS)) {
       const btn = document.createElement("button");
       btn.type = "button";
