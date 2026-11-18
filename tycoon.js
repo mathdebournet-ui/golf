@@ -2245,7 +2245,7 @@
     return n;
   }
   // Note sur 100 : moyenne des sources disponibles (taux 0-1 -> 20 à 95), 50 sans données
-  function note(sources) {
+  function noteSur100(sources) {
     const ok = sources.filter((s) => s.v != null);
     if (!ok.length) return { valeur: 50, detail: "pas encore de données" };
     const v = ok.reduce((t, s) => t + s.v, 0) / ok.length;
@@ -2258,11 +2258,11 @@
     const petitJeu = exosCat(["chipping", "bunker"]) + defisCat(["chipping", "bunker"]);
     const mental = compte30Jours((k) => k.startsWith("mental:"));
     return {
-      drive: note([{ nom: "jeux de drive", v: tauxJeuxZones(["drive"]) }, { nom: "fairways en partie", v: parties.fw }]),
-      fers: note([{ nom: "jeux de fers", v: tauxJeuxPoints(["fers", "approches"]) }, { nom: "cibles au practice", v: tauxJeuxZones(["fers", "approches"]) }, { nom: "greens en régulation", v: parties.gir }]),
-      petitJeu: note([{ nom: `${petitJeu} exos/défis chipping-bunker (30 j)`, v: petitJeu ? Math.min(1, .3 + petitJeu * .05) : null }]),
-      putting: note([{ nom: "jeux de putting", v: tauxJeuxPoints(["putting"]) }]),
-      mental: note([{ nom: `${mental} exercices mentaux (30 j)`, v: mental ? Math.min(1, .3 + mental * .05) : null }]),
+      drive: noteSur100([{ nom: "jeux de drive", v: tauxJeuxZones(["drive"]) }, { nom: "fairways en partie", v: parties.fw }]),
+      fers: noteSur100([{ nom: "jeux de fers", v: tauxJeuxPoints(["fers", "approches"]) }, { nom: "cibles au practice", v: tauxJeuxZones(["fers", "approches"]) }, { nom: "greens en régulation", v: parties.gir }]),
+      petitJeu: noteSur100([{ nom: `${petitJeu} exos/défis chipping-bunker (30 j)`, v: petitJeu ? Math.min(1, .3 + petitJeu * .05) : null }]),
+      putting: noteSur100([{ nom: "jeux de putting", v: tauxJeuxPoints(["putting"]) }]),
+      mental: noteSur100([{ nom: `${mental} exercices mentaux (30 j)`, v: mental ? Math.min(1, .3 + mental * .05) : null }]),
     };
   }
   const NOMS_STATS = { drive: "🚀 Drive", fers: "🎯 Fers", petitJeu: "🏖️ Petit jeu", putting: "🕳️ Putting", mental: "🧠 Mental" };

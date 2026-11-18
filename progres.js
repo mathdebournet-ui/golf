@@ -36,12 +36,12 @@ function progresMoyenne(liste) { return liste.length ? liste.reduce((t, x) => t 
 /* ---------- Données ---------- */
 
 // Scores de chaque exo, triés par date : [{ fiche, liste: [{t, d, v}] }]
-function progresExosAvecScores() {
-  const scores = lireScores();
+// scores = { idFiche: [{d, v, t?}] } (les miens par défaut, ou ceux d'un joueur dans l'espace admin)
+function progresExosAvecScores(scores = lireScores()) {
   return Object.entries(scores)
     .map(([id, liste]) => ({
       fiche: fichesValides.find((f) => f.id === id),
-      liste: (Array.isArray(liste) ? liste : []).filter((s) => s && Number.isFinite(s.v) && typeof s.d === "string").sort((a, b) => (a.t || 0) - (b.t || 0)),
+      liste: (Array.isArray(liste) ? liste : []).filter((s) => s && Number.isFinite(s.v) && typeof s.d === "string").sort((a, b) => a.d.localeCompare(b.d) || (a.t || 0) - (b.t || 0)),
     }))
     .filter((e) => e.fiche && e.liste.length > 0);
 }
@@ -58,9 +58,9 @@ function progresEvolutionExo(e) {
 }
 
 // Parties terminées avec leurs stats, de la plus ancienne à la plus récente
-function progresParties() {
-  if (typeof partiesTerminees !== "function") return [];
-  return partiesTerminees()
+// liste = mes parties par défaut, ou celles d'un joueur dans l'espace admin
+function progresParties(liste = partiesTerminees()) {
+  return liste
     .filter((p) => p && Array.isArray(p.trous) && typeof p.date === "string")
     .map((p) => ({ partie: p, stats: calculerStats(p) }))
     .filter((p) => p.stats.trousJoues >= 9)
@@ -160,6 +160,23 @@ function progresBlocNotes(notes) {
   </section>`;
 }
 
+// Espace admin (serie.js) : notes envoyées par l'appli du joueur ({ cle: valeur }),
+// radar + point faible, sans bouton
+function progresBlocNotesAdmin(notesRecues) {
+  const notes = {};
+  for (const cle of PROGRES_ORDRE_RADAR) {
+    const v = notesRecues && Number.isInteger(notesRecues[cle]) && notesRecues[cle] >= 0 && notesRecues[cle] <= 100 ? notesRecues[cle] : null;
+    notes[cle] = v === null ? { valeur: 50, detail: "pas encore de données" } : { valeur: v, detail: "" };
+  }
+  const faible = progresPointFaible(notes);
+  return `<section class="bloc pr-bloc">
+    <h2 class="bloc-titre">🏌️ Ses 5 notes</h2>
+    <p class="bloc-info">Calculées par son appli (— = pas encore de données)</p>
+    ${progresRadar(notes)}
+    ${faible ? `<p>Point faible : <strong>${PROGRES_NOMS_NOTES[faible]}</strong> (${notes[faible].valeur}/100)</p>` : ""}
+  </section>`;
+}
+
 function progresBlocMois(exos, parties) {
   const lignes = PROGRES_FAMILLES.map((fam) => {
     const evolutions = exos.filter((e) => fam.categories.includes(e.fiche.categorie)).map(progresEvolutionExo).filter((v) => v !== null);
@@ -190,7 +207,8 @@ function progresBlocExos(exos) {
   }
   const debutMois = progresIlYA(29);
   // Les exos joués le plus récemment d'abord
-  const cartes = [...exos].sort((a, b) => (b.liste[b.liste.length - 1].t || 0) - (a.liste[a.liste.length - 1].t || 0)).map((e) => {
+  const dernier = (e) => e.liste[e.liste.length - 1];
+  const cartes = [...exos].sort((a, b) => dernier(b).d.localeCompare(dernier(a).d) || (dernier(b).t || 0) - (dernier(a).t || 0)).map((e) => {
     const id = e.fiche.id;
     const valeurs = e.liste.map((s) => s.v);
     const record = meilleurScore(id, valeurs);

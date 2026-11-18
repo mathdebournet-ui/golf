@@ -335,6 +335,7 @@ function basculerFait(jour, idFiche, source) {
   }
   ecrireJournee(jour, journee);
   noterExoFait(idFiche, fait);   // série de jours d'affilée (serie.js)
+  if (typeof coachNoterFait === "function") coachNoterFait(idFiche, fait, jour);   // exos du coach (coach.js)
   if (typeof tycoonSynchroniser === "function") tycoonSynchroniser(source);   // pièces (tycoon.js)
   afficherProgramme(jour);
 }
@@ -463,7 +464,7 @@ function carteFiche(fiche, options) {
     actions = `
       <div class="actions">
         ${boutonFait}
-        <button type="button" class="bouton ${boutonFait ? "" : "pleine-largeur"}" data-action="autre" data-position="${options.position}">↻ Autre exo</button>
+        ${options.sansAutre ? "" : `<button type="button" class="bouton ${boutonFait ? "" : "pleine-largeur"}" data-action="autre" data-position="${options.position}">↻ Autre exo</button>`}
         ${lienOrigine(fiche)}
       </div>`;
   } else if (lienOrigine(fiche)) {
@@ -538,7 +539,9 @@ function afficherProgramme(jour) {
         </section>`;
     })
     .join("");
-  document.getElementById("programme").innerHTML = html + blocTermines(cartesFaites);
+  // Exos demandés par le coach (coach.js) : bloc tout en haut
+  const coach = typeof blocCoach === "function" ? blocCoach(jour, presents.map((p) => p.fiche.id)) : { html: "", cartesFaites: [] };
+  document.getElementById("programme").innerHTML = coach.html + html + blocTermines([...coach.cartesFaites, ...cartesFaites]);
 }
 
 // Bloc « ✓ Terminés » placé en bas de page (Aujourd'hui et Prépa)

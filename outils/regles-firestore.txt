@@ -6,6 +6,8 @@ rules_version = '2';
 //    modifier ou supprimer QUE les siennes.
 //  - Séries (jours d'affilée) et scores de putting : chaque joueur écrit les
 //    siens, mais SEUL l'administrateur (connecté avec Google) peut les lire.
+//  - Exos du coach (consignes) : écrits par l'admin, lus par le joueur concerné,
+//    qui ne peut changer que la date où il les a faits.
 //  - Sauvegardes : privées, lisibles seulement par leur compte Google.
 //  - Tycoon : parcours publiés et scores des parties simulées, lisibles par tous ;
 //    chacun n'écrit que les siens.
@@ -68,15 +70,36 @@ service cloud.firestore {
     function scoresValides() {
       let d = request.resource.data;
       return d.uid == request.auth.uid
-        && d.keys().hasOnly(['uid', 'joueur', 'scores', 'majLe'])
+        && d.keys().hasOnly(['uid', 'joueur', 'scores', 'notes', 'majLe'])
         && d.joueur is string && d.joueur.size() > 0 && d.joueur.size() <= 40
-        && d.scores is map && d.scores.size() <= 100;
+        && d.scores is map && d.scores.size() <= 100
+        && (!('notes' in d) || (d.notes is map && d.notes.size() <= 5));
     }
 
     match /scores/{idAppareil} {
       allow read: if estAdmin();
       allow delete: if estAdmin() || estProprietaire(idAppareil);
       allow create, update: if estProprietaire(idAppareil) && scoresValides();
+    }
+
+    // Exos donnés par le coach (coach.js) : écrits par l'admin, lus par le joueur ;
+    // le joueur ne peut changer QUE « faits » (date où il a fait chaque exo).
+    function consignesValides() {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['uid', 'exos', 'message', 'faits', 'majLe'])
+        && d.exos is list && d.exos.size() <= 10
+        && d.message is string && d.message.size() <= 300
+        && d.faits is map && d.faits.size() <= 10;
+    }
+
+    match /consignes/{idAppareil} {
+      allow read: if estAdmin() || estProprietaire(idAppareil);
+      allow create: if estAdmin() && consignesValides();
+      allow update: if (estAdmin() && consignesValides())
+        || (estProprietaire(idAppareil)
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['faits'])
+            && request.resource.data.faits is map && request.resource.data.faits.size() <= 10);
+      allow delete: if estAdmin();
     }
 
     // Tycoon : parcours publiés (tout le monde peut les lire, chacun écrit le sien)

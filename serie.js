@@ -34,6 +34,7 @@ const MESSAGES_ADMIN = {
   domaine: "Ce site n'est pas encore autorisé pour la connexion Google (Firebase > Authentication > Paramètres > Domaines autorisés).",
   "google-inactif": "La connexion Google n'est pas encore activée dans Firebase (Authentication > Méthode de connexion).",
   erreur: "Impossible de charger les séries pour l'instant. Réessaie dans un moment.",
+  "consignes-refusees": "Enregistrement refusé par Firebase : recolle les dernières règles (outils/regles-firestore.txt) dans la console Firebase.",
 };
 
 function lireSerieStockee(cle, defaut) { return lireStockage(cle, defaut, PREFIXE_SERIE); }
@@ -148,12 +149,13 @@ async function envoyerSerie() {
 /* ---------- 4. Espace administrateur ---------- */
 
 // Trois onglets : 🔥 Séries, ⛳ Parcours (parties de chaque joueur), 🎯 Putting (scores)
-let ongletAdmin = "series";
+let ongletAdmin = "joueurs";
 let joueurAdmin = "";         // uid du joueur affiché (onglets Parcours et Putting)
 let partieAdminOuverte = null; // index dans partiesAdmin de la partie affichée en détail
 let seriesAdmin = null;       // données reçues (null = pas encore chargées)
 let partiesAdmin = null;
 let scoresAdmin = null;
+let consignesAdmin = null;    // { uid: { exos, message, faits } } : exos donnés par le coach (coach.js)
 let erreurAdmin = "";
 let chargementAdmin = false;
 
@@ -209,11 +211,17 @@ async function chargerAdmin() {
   erreurAdmin = "";
   afficherAdmin();
   const base = appAdmin().firestore();
-  const [series, parties, scores] = await Promise.allSettled([
+  const [series, parties, scores, consignes] = await Promise.allSettled([
     base.collection(COLLECTION_SERIES).get(),
     base.collection(COLLECTION_PARTIES).orderBy("envoyeLe", "desc").limit(500).get(),
     base.collection(COLLECTION_SCORES).get(),
+    base.collection(COLLECTION_CONSIGNES).get(),
   ]);
+  // Exos donnés par le coach (refusé tant que les nouvelles règles ne sont pas publiées : liste vide)
+  consignesAdmin = {};
+  if (consignes.status === "fulfilled") {
+    consignes.value.docs.forEach((doc) => { consignesAdmin[doc.id] = normaliserConsignes(doc.data()); });   // coach.js
+  }
   // Données en ligne = non fiables : on vérifie chaque champ
   if (series.status === "fulfilled") {
     seriesAdmin = series.value.docs
@@ -256,7 +264,9 @@ async function chargerAdmin() {
             propres[idFiche] = ok.map((x) => ({ d: x.d, v: x.v }));
           }
         }
-        return { id: s.id, joueur: s.joueur, scores: propres, exosPoints };
+        // Notes du golfeur envoyées par son appli (scores.js), lues par progresBlocNotesAdmin
+        const notes = s.notes && typeof s.notes === "object" ? s.notes : null;
+        return { id: s.id, joueur: s.joueur, scores: propres, exosPoints, notes };
       });
   } else if (!erreurAdmin) {
     erreurAdmin = codeErreurAdmin(scores.reason);
@@ -366,6 +376,89 @@ function htmlPuttingAdmin() {
   return html;
 }
 
+// Onglet 👤 Joueurs : pour UN joueur, les exos donnés par le coach + ses progrès
+function htmlJoueursAdmin() {
+  const joueurs = joueursAdmin();
+  if (joueurs.length === 0) return `<p class="petit">Aucun joueur pour l'instant (un joueur apparaît dès qu'il a validé un jour, noté un score ou partagé une partie).</p>`;
+  let html = choixJoueurAdmin(joueurs);
+  const nom = (joueurs.find((j) => j.uid === joueurAdmin) || {}).nom || "";
+  const c = (consignesAdmin && consignesAdmin[joueurAdmin]) || { exos: [], message: "", faits: {} };
+
+  // --- Exos donnés ---
+  const lignes = c.exos.map((id) => {
+    const fiche = fichesValides.find((f) => f.id === id);
+    const faitLe = c.faits[id];
+    return `<li class="consigne">
+      <span><strong>${echapper(fiche ? fiche.titre : id)}</strong>
+        <small>${fiche ? echapper(NOMS_CATEGORIES[fiche.categorie] || fiche.categorie) + " · " : ""}${faitLe ? "✓ fait le " + echapper(dateLisible(faitLe)) : "à faire"}</small></span>
+      ${faitLe ? `<button type="button" class="bouton" data-action="admin-consigne-redonner" data-id="${echapper(id)}">↺ Redonner</button>` : ""}
+      <button type="button" class="bouton danger" data-action="admin-consigne-retirer" data-id="${echapper(id)}" aria-label="Retirer">✕</button>
+    </li>`;
+  }).join("");
+  // Choix d'un exo golf pas encore donné, rangé par catégorie
+  const categories = ["putting", "chipping", "bunker", "approches", "fers", "drive"];
+  const options = categories.map((cat) => {
+    const fiches = fichesValides.filter((f) => f.categorie === cat && !c.exos.includes(f.id)).sort((a, b) => a.titre.localeCompare(b.titre, "fr"));
+    return fiches.length ? `<optgroup label="${echapper(NOMS_CATEGORIES[cat])}">${fiches.map((f) => `<option value="${echapper(f.id)}">${echapper(f.titre)}</option>`).join("")}</optgroup>` : "";
+  }).join("");
+  html += `<section class="bloc pr-bloc consignes-admin">
+    <h2 class="bloc-titre">⭐ Exos à faire pour ${echapper(nom)}</h2>
+    <p class="bloc-info">Ils apparaissent en haut de son « Aujourd'hui » jusqu'à ce qu'il les fasse (${CONSIGNES_MAX} au maximum).</p>
+    ${lignes ? `<ul class="liste-consignes">${lignes}</ul>` : `<p class="petit">Aucun exo donné pour l'instant.</p>`}
+    ${c.exos.length < CONSIGNES_MAX ? `<div class="ajout-consigne">
+      <select id="admin-choix-exo" aria-label="Exo à donner">${options}</select>
+      <button type="button" class="bouton principal" data-action="admin-consigne-ajouter">➕ Donner</button>
+    </div>` : ""}
+    <label class="petit" for="admin-message-coach">💬 Message (affiché au-dessus de ses exos)</label>
+    <textarea id="admin-message-coach" maxlength="${MESSAGE_COACH_MAX}" rows="2">${echapper(c.message)}</textarea>
+    <button type="button" class="bouton" data-action="admin-consigne-message">Enregistrer le message</button>
+  </section>`;
+
+  // --- Ses progrès (progres.js), avec ses données reçues ---
+  const sc = (scoresAdmin || []).find((s) => s.id === joueurAdmin);
+  const exos = progresExosAvecScores(sc ? sc.scores : {});
+  const parties = progresParties((partiesAdmin || []).filter((p) => p.uid === joueurAdmin));
+  html += `<h2 class="pr-titre">📈 Progrès de ${echapper(nom)}</h2>
+    ${progresBlocNotesAdmin(sc && sc.notes)}
+    ${progresBlocMois(exos, parties)}
+    ${progresBlocExos(exos)}
+    ${progresBlocParcours(parties)}`;
+  return html;
+}
+
+// Enregistre les exos donnés à un joueur (doc supprimé s'il n'y a plus rien)
+async function ecrireConsignesAdmin(uid, c) {
+  const propre = normaliserConsignes(c);
+  // On ne garde que les dates des exos encore donnés
+  propre.faits = Object.fromEntries(Object.entries(propre.faits).filter(([id]) => propre.exos.includes(id)));
+  try {
+    const doc = appAdmin().firestore().collection(COLLECTION_CONSIGNES).doc(uid);
+    if (!propre.exos.length && !propre.message) await doc.delete();
+    else await doc.set({ uid, ...propre, majLe: firebase.firestore.FieldValue.serverTimestamp() });
+    consignesAdmin[uid] = propre;
+    erreurAdmin = "";
+  } catch (e) {
+    erreurAdmin = codeErreurAdmin(e) === "refuse" ? "consignes-refusees" : codeErreurAdmin(e);
+  }
+  afficherAdmin();
+}
+
+function actionConsigneAdmin(action, bouton) {
+  const uid = joueurAdmin;
+  if (!uid || !consignesAdmin) return;
+  const c = consignesAdmin[uid] ? JSON.parse(JSON.stringify(consignesAdmin[uid])) : { exos: [], message: "", faits: {} };
+  if (action === "admin-consigne-ajouter") {
+    const id = document.getElementById("admin-choix-exo").value;
+    if (!id || c.exos.includes(id)) return;
+    c.exos.push(id);
+    delete c.faits[id];
+  }
+  if (action === "admin-consigne-retirer") c.exos = c.exos.filter((id) => id !== bouton.dataset.id);
+  if (action === "admin-consigne-redonner") delete c.faits[bouton.dataset.id];
+  if (action === "admin-consigne-message") c.message = document.getElementById("admin-message-coach").value.trim();
+  ecrireConsignesAdmin(uid, c);
+}
+
 // Un tableau pour tous les joueurs : ratés moyens par tour à chaque distance (exos-points.js)
 function htmlExoPointsAdmin(exo) {
   if (!scoresAdmin) return "";
@@ -422,7 +515,7 @@ function filtresAdmin() {
   const bouton = (action, valeur, nom, actif) =>
     `<button type="button" class="filtre ${actif ? "actif" : ""}" data-action="${action}" data-valeur="${valeur}" aria-pressed="${actif}">${nom}</button>`;
   const famille = FAMILLES_PUTTING.find((f) => f.id === familleAdmin);
-  let html = `<div class="filtres">${[["series", "🔥 Séries"], ["parcours", "⛳ Parcours"], ["putting", "🎯 Scores putting"]]
+  let html = `<div class="filtres">${[["joueurs", "👤 Joueurs"], ["series", "🔥 Séries"], ["parcours", "⛳ Parcours"], ["putting", "🎯 Scores putting"]]
     .map(([valeur, nom]) => bouton("admin-onglet", valeur, nom, !famille && ongletAdmin === valeur)).join("")}</div>
     <div class="filtres">${FAMILLES_PUTTING.map((f) => bouton("admin-famille", f.id, f.nom, famille === f)).join("")}</div>`;
   if (famille) {
@@ -450,6 +543,7 @@ function afficherAdmin() {
   html += `<p class="petit">Connecté : ${echapper(utilisateur.email || "")}</p>
     ${filtresAdmin()}`;
   if (chargementAdmin) html += `<p class="petit">Chargement…</p>`;
+  else if (ongletAdmin === "joueurs") html += htmlJoueursAdmin();
   else if (ongletAdmin === "series") html += htmlSeriesAdmin();
   else if (ongletAdmin === "parcours") html += htmlParcoursAdmin();
   else if (EXOS_POINTS[ongletAdmin]) html += htmlExoPointsAdmin(ongletAdmin);
@@ -556,5 +650,6 @@ document.addEventListener("DOMContentLoaded", () => {
     if (bouton.dataset.action === "liste") { partieAdminOuverte = null; afficherAdmin(); }
     if (bouton.dataset.action === "admin-deconnexion") deconnecterAdmin();
     if (bouton.dataset.action === "admin-supprimer") supprimerSerieAdmin(bouton.dataset.id, bouton.dataset.nom);
+    if (bouton.dataset.action.startsWith("admin-consigne-")) actionConsigneAdmin(bouton.dataset.action, bouton);
   });
 });

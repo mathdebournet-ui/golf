@@ -145,7 +145,8 @@ function enregistrerScore(idFiche, valeur) {
 
   // Score noté = exo fait : il est coché « ✓ Fait » et descend dans « Terminés » (app.js)
   const jour = dateEnTexte(new Date());
-  const dansLeProgramme = programmeCourant.some((p) => p.fiche && p.fiche.id === idFiche);
+  const dansLeProgramme = programmeCourant.some((p) => p.fiche && p.fiche.id === idFiche)
+    || (typeof coachDemande === "function" && coachDemande(idFiche));   // exo demandé par le coach (coach.js)
   if (dansLeProgramme && !lireJournee(jour).faits.includes(idFiche)) basculerFait(jour, idFiche);
 }
 
@@ -182,6 +183,13 @@ async function envoyerScores() {
     }
   }
   const donnees = { joueur: nomDuJoueur(), scores };
+  // Notes du golfeur (tycoon.js), pour l'onglet 📈 Progrès du joueur dans l'espace admin.
+  // Seulement les notes qui ont des données.
+  const notes = typeof tycoonNotesGolfeur === "function" ? tycoonNotesGolfeur() : null;
+  if (notes) {
+    donnees.notes = Object.fromEntries(Object.entries(notes)
+      .filter(([, n]) => n.detail !== "pas encore de données").map(([cle, n]) => [cle, n.valeur]));
+  }
   if (JSON.stringify(lireStockage("dernierEnvoi", null, PREFIXE_SCORES)) === JSON.stringify(donnees)) return;
   if (!(await demarrerPartage())) return;   // réessayé au prochain lancement / retour du réseau
   try {
@@ -197,7 +205,8 @@ async function envoyerScores() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  envoyerScores();
+  // Après les autres démarrages (le Tycoon doit être chargé pour les notes)
+  setTimeout(envoyerScores, 0);
   window.addEventListener("online", envoyerScores);
 
   document.addEventListener("submit", (evenement) => {

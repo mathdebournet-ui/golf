@@ -140,3 +140,10 @@ afraichirCaseScore met à jour toutes les copies d'une fiche (programme + biblio
 - ✅ Nouvel onglet **📈 Progrès** (`progres.js`) : radar des 5 notes (celles du golfeur du Tycoon), point faible + bouton « Travailler mon point faible » (programme du jour avec la moitié des exos sur ce point faible, bandeau pour revenir au programme normal ; Mental → onglet Mental), « Ce mois-ci » (30 j vs 30 j d'avant par famille + parcours), courbe et record ⭐ de chaque exo noté, courbe et moyennes des parties.
 - Testé (Pixel 7) avec des données de test : radar, évolutions, courbes, programme point faible gardé après rechargement, retour au programme normal.
 - Idée suivante (projet séparé) : appli **Altus Performance Europe** à part, qui reprendra quelques exos (fiches + jeux interactifs).
+
+## ⭐ Exos du coach (18/11/2026, v40)
+- ✅ Espace admin → onglet **👤 Joueurs** : pour un joueur, donner des exos (un joueur à la fois), un message, voir quand il les a faits, et voir ses progrès (radar des notes, mois, records, parties).
+- ✅ Chez le joueur : bloc « ⭐ Demandé par le coach » en haut d'Aujourd'hui, jusqu'à ce que l'exo soit fait (compte pour la série et le Tycoon comme les autres exos).
+- ✅ Corrigé : les sons du Tycoon ne marchaient plus depuis v37 (deux fonctions `note` dans tycoon.js ; celle des notes du golfeur renommée `noteSur100`).
+- ⚠ **À faire par l'utilisateur** : recoller `outils/regles-firestore.txt` dans la console Firebase (nouvelle collection `consignes` + champ `notes` dans `scores`), en remplaçant ADRESSE_ADMIN_1/2. Sans ça : enregistrement des exos refusé (message clair dans l'admin) et notes des joueurs refusées.
+- Un joueur n'apparaît dans 👤 Joueurs que s'il a déjà validé un jour, noté un score ou partagé une partie.

@@ -814,3 +814,16 @@ button.ty-chip { cursor: pointer; }
 .pr-nouveau { color: #b07a00; font-style: normal; font-weight: 800; }
 .resume-focus { width: 100%; margin: 4px 0 0; padding: 8px 10px; border-radius: 10px; background: var(--accent-doux); font-weight: 600; }
 .resume-focus .lien-bouton { margin-left: 4px; }
+
+/* ---------- ⭐ Exos du coach (coach.js + espace admin) ---------- */
+.bloc-coach { border: 2px solid #e0a100; border-radius: 14px; padding: 14px 12px 4px; background: rgba(224, 161, 0, 0.07); }
+.message-coach { margin: 8px 0; padding: 10px 12px; border-radius: 10px; background: var(--carte); border-left: 4px solid #e0a100; font-weight: 600; white-space: pre-wrap; }
+.liste-consignes { list-style: none; margin: 10px 0; padding: 0; }
+.consigne { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--bord); }
+.consigne > span { flex: 1; display: flex; flex-direction: column; }
+.consigne small { color: var(--texte-doux); }
+.consigne .bouton { width: auto; min-height: 40px; padding: 6px 10px; }
+.ajout-consigne { display: flex; gap: 8px; margin: 10px 0 14px; }
+.ajout-consigne select { flex: 1; min-width: 0; min-height: 44px; font: inherit; border-radius: 10px; border: 1px solid var(--bord); background: var(--carte); color: var(--texte); padding: 0 8px; }
+.ajout-consigne .bouton { width: auto; }
+.consignes-admin textarea { display: block; width: 100%; box-sizing: border-box; margin: 4px 0 8px; font: inherit; border-radius: 10px; border: 1px solid var(--bord); background: var(--carte); color: var(--texte); padding: 8px; }
