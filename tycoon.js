@@ -138,6 +138,9 @@
       carte: {},            // { "x,y": typeElement }
       parcelles: parcellesDeDepart(),   // ["px,py", …] : parcelles de 5 x 5 cases achetées
       ordreGreens: [],      // cases de green dans l'ordre de pose (trou 1 = le green posé en premier)
+      nomGolf: "",          // nom du parcours publié en ligne
+      joues: {},            // { idParcours: "AAAA-MM-JJ" } : dernière partie officielle (1 par jour)
+      resultatsVirtuels: [],   // 30 dernières parties de mon golfeur { d, nom, score, par }
     };
   }
   // Parcelles de départ : 4 x 4 parcelles de 5 x 5 cases = le terrain 20 x 20 d'origine
@@ -171,6 +174,9 @@
       carte: {},
       parcelles: lireParcelles(d),
       ordreGreens: Array.isArray(d.ordreGreens) ? d.ordreGreens.filter((k) => typeof k === "string") : [],
+      nomGolf: typeof d.nomGolf === "string" ? d.nomGolf.slice(0, 40) : "",
+      joues: d.joues && typeof d.joues === "object" && !Array.isArray(d.joues) ? d.joues : {},
+      resultatsVirtuels: Array.isArray(d.resultatsVirtuels) ? d.resultatsVirtuels.slice(-30) : [],
     };
     // Anciennes habitudes de départ (boire, dormir) jamais modifiées : remplacées par les défis golf
     const anciennes = ["Boire 2 L d'eau", "Dormir 8 h"];
@@ -2129,6 +2135,439 @@
   }
 
   /* =======================================================
+     8 bis. MON GOLFEUR + PARCOURS DES AUTRES (partie simulée)
+     -------------------------------------------------------
+     - Le golfeur a 5 notes sur 100 (drive, fers, petit jeu, putting,
+       mental), calculées avec les VRAIS résultats du joueur : jeux de
+       putting (exos-points.js), jeux du practice (jeux-zones.js), parties
+       notées (parcours.js), exercices mentaux et exos cochés.
+     - Les trous du parcours sont trouvés tout seuls : un green (numéroté)
+       + le départ le plus proche. Par et obstacles viennent de la carte.
+     - On publie son parcours en ligne (Firestore « parcoursTycoon », règles
+       dans outils/regles-firestore.txt), on joue celui des autres : le
+       golfeur fait le score trou par trou (au hasard, selon ses notes),
+       1 partie officielle par jour et par parcours, classement
+       « scoresTycoon ». Les données reçues sont vérifiées et échappées.
+     ======================================================= */
+
+  const COLLECTION_PARCOURS_TY = "parcoursTycoon";
+  const COLLECTION_SCORES_TY = "scoresTycoon";
+  const METRES_PAR_CASE = 28;
+  const borne = (v, a, b) => Math.max(a, Math.min(b, v));
+
+  // --- Les 5 notes du golfeur ---
+  // Taux de réussite (0 à 1) des derniers tours des jeux interactifs d'une catégorie
+  function categorieFiche(id) {
+    const f = typeof toutesLesFiches !== "undefined" ? toutesLesFiches.find((x) => x.id === id) : null;
+    return f ? f.categorie : null;
+  }
+  function tauxJeuxPoints(categories) {
+    if (typeof EXOS_POINTS === "undefined" || typeof toursDe !== "function") return null;
+    let ok = 0, total = 0;
+    for (const [exo, config] of Object.entries(EXOS_POINTS)) {
+      if (!categories.includes(categorieFiche(config.idFiche))) continue;
+      for (const t of toursDe(exo).slice(-15)) { if (t.total > 0) { ok += t.rentres; total += t.total; } }
+    }
+    return total >= 10 ? ok / total : null;
+  }
+  function tauxJeuxZones(categories) {
+    if (typeof JEUX_ZONES === "undefined") return null;
+    let pts = 0, total = 0;
+    for (const [id, jeu] of Object.entries(JEUX_ZONES)) {
+      if (!categories.includes(categorieFiche(id))) continue;
+      const valeur = {};
+      for (const z of jeu.zones) valeur[z.id] = z.classe === "bon" ? 1 : z.classe === "moyen" ? .5 : 0;
+      const tours = lireStockage(`zones-${id}-tours`, [], typeof PREFIXE_SCORES !== "undefined" ? PREFIXE_SCORES : "golf-scores-v1:");
+      for (const t of (Array.isArray(tours) ? tours : []).slice(-10)) {
+        for (const ph of (t && Array.isArray(t.phases) ? t.phases : [])) {
+          for (const [z, n] of Object.entries(ph.comptes || {})) {
+            if (Number.isFinite(n) && z in valeur) { pts += valeur[z] * n; total += n; }
+          }
+        }
+      }
+    }
+    return total >= 10 ? pts / total : null;
+  }
+  // Statistiques des 10 dernières parties notées : fairways et greens en régulation
+  function tauxParties() {
+    if (typeof partiesTerminees !== "function") return { fw: null, gir: null };
+    let fw = 0, fwN = 0, gir = 0, girN = 0;
+    for (const p of partiesTerminees().slice(-10)) {
+      for (const t of (Array.isArray(p.trous) ? p.trous : [])) {
+        if (!t || !Number.isFinite(t.score)) continue;
+        if (t.par >= 4 && t.fairway) { fwN++; if (t.fairway === "ok") fw++; }
+        if (Number.isFinite(t.putts)) { girN++; if (t.score - t.putts <= t.par - 2) gir++; }
+      }
+    }
+    return { fw: fwN >= 5 ? fw / fwN : null, gir: girN >= 9 ? gir / girN : null };
+  }
+  // Nombre d'actions récompensées sur 30 jours dont la clé passe le filtre
+  function compte30Jours(filtre) {
+    let n = 0;
+    for (let i = 0; i < 30; i++) for (const cle of Object.keys(etat.journal[decaler(cleJour(), -i)] || {})) if (filtre(cle)) n++;
+    return n;
+  }
+  // Note sur 100 : moyenne des sources disponibles (taux 0-1 -> 20 à 95), 50 sans données
+  function note(sources) {
+    const ok = sources.filter((s) => s.v != null);
+    if (!ok.length) return { valeur: 50, detail: "pas encore de données" };
+    const v = ok.reduce((t, s) => t + s.v, 0) / ok.length;
+    return { valeur: Math.round(20 + 75 * v), detail: ok.map((s) => s.nom).join(" + ") };
+  }
+  function statsGolfeur() {
+    const parties = tauxParties();
+    const exosCat = (cats) => compte30Jours((k) => k.startsWith("exo:") && cats.includes(categorieFiche(k.slice(4))));
+    const defisCat = (cats) => compte30Jours((k) => k.startsWith("h:") && cats.includes((etat.habitudes.find((h) => "h:" + h.id === k) || {}).cat));
+    const petitJeu = exosCat(["chipping", "bunker"]) + defisCat(["chipping", "bunker"]);
+    const mental = compte30Jours((k) => k.startsWith("mental:"));
+    return {
+      drive: note([{ nom: "jeux de drive", v: tauxJeuxZones(["drive"]) }, { nom: "fairways en partie", v: parties.fw }]),
+      fers: note([{ nom: "jeux de fers", v: tauxJeuxPoints(["fers", "approches"]) }, { nom: "cibles au practice", v: tauxJeuxZones(["fers", "approches"]) }, { nom: "greens en régulation", v: parties.gir }]),
+      petitJeu: note([{ nom: `${petitJeu} exos/défis chipping-bunker (30 j)`, v: petitJeu ? Math.min(1, .3 + petitJeu * .05) : null }]),
+      putting: note([{ nom: "jeux de putting", v: tauxJeuxPoints(["putting"]) }]),
+      mental: note([{ nom: `${mental} exercices mentaux (30 j)`, v: mental ? Math.min(1, .3 + mental * .05) : null }]),
+    };
+  }
+  const NOMS_STATS = { drive: "🚀 Drive", fers: "🎯 Fers", petitJeu: "🏖️ Petit jeu", putting: "🕳️ Putting", mental: "🧠 Mental" };
+
+  // --- Les trous de mon parcours (pour les publier ou les jouer) ---
+  function groupesDe(type) {
+    const vus = new Set(), groupes = [];
+    for (const [cle, t] of Object.entries(etat.carte)) {
+      if (t !== type || vus.has(cle)) continue;
+      const cases = [], pile = [cle];
+      vus.add(cle);
+      while (pile.length) {
+        const k = pile.pop(); cases.push(k);
+        const [x, y] = k.split(",").map(Number);
+        for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+          const v = (x + dx) + "," + (y + dy);
+          if (etat.carte[v] === type && !vus.has(v)) { vus.add(v); pile.push(v); }
+        }
+      }
+      const pts = cases.map((k) => k.split(",").map(Number));
+      groupes.push({ cx: pts.reduce((t, p) => t + p[0] + .5, 0) / pts.length, cy: pts.reduce((t, p) => t + p[1] + .5, 0) / pts.length });
+    }
+    return groupes;
+  }
+  function mesTrous() {
+    const departs = groupesDe("depart");
+    const pris = new Set();
+    const trous = [], sansDepart = [];
+    for (const g of groupesDeGreens()) {
+      const gx = g.tx, gy = g.ty;
+      // Départ libre le plus proche (à moins de 30 cases)
+      let meilleur = -1, dMin = 30;
+      departs.forEach((d, i) => {
+        const dist = Math.hypot(d.cx - gx, d.cy - gy);
+        if (!pris.has(i) && dist < dMin && dist >= 3) { dMin = dist; meilleur = i; }
+      });
+      if (meilleur < 0) { sansDepart.push(g.numero); continue; }
+      pris.add(meilleur);
+      const d = departs[meilleur];
+      // Obstacles dans un couloir de 1,5 case de part et d'autre de la ligne départ -> green
+      const comptes = { fairway: 0, bunker: 0, lac: 0, arbre: 0, autres: 0 };
+      const x0 = Math.floor(Math.min(d.cx, gx)) - 2, x1 = Math.ceil(Math.max(d.cx, gx)) + 2;
+      const y0 = Math.floor(Math.min(d.cy, gy)) - 2, y1 = Math.ceil(Math.max(d.cy, gy)) + 2;
+      const lx = gx - d.cx, ly = gy - d.cy, l2 = lx * lx + ly * ly;
+      for (let x = x0; x <= x1; x++) for (let y = y0; y <= y1; y++) {
+        const px = x + .5, py = y + .5;
+        const t = borne(((px - d.cx) * lx + (py - d.cy) * ly) / l2, 0, 1);
+        if (Math.hypot(px - d.cx - t * lx, py - d.cy - t * ly) > 1.5) continue;
+        const type = typeDe(x + "," + y);
+        if (type in comptes) comptes[type]++;
+        else if (type !== "green" && type !== "depart") comptes.autres++;
+      }
+      const longueur = Math.hypot(lx, ly);
+      const couloir = comptes.fairway + comptes.bunker + comptes.lac + comptes.arbre + comptes.autres || 1;
+      trous.push({
+        n: g.numero,
+        par: longueur <= 9 ? 3 : longueur <= 15 ? 4 : 5,
+        l: Math.round(longueur * METRES_PAR_CASE),
+        fw: Math.round(100 * comptes.fairway / couloir),
+        b: comptes.bunker, e: comptes.lac, a: comptes.arbre,
+      });
+    }
+    trous.sort((a, b) => a.n - b.n);
+    return { trous: trous.slice(0, 18), sansDepart };
+  }
+  function texteTrou(t) {
+    const obst = [t.e ? `💦 ${t.e}` : "", t.b ? `🏖️ ${t.b}` : "", t.a ? `🌲 ${t.a}` : ""].filter(Boolean).join(" ");
+    return `Trou ${t.n} · Par ${t.par} · ${t.l} m${obst ? " · " + obst : ""}`;
+  }
+
+  // --- Simulation d'un trou : renvoie { coups, recit: [...] } ---
+  function simulerTrou(t, S) {
+    const r = Math.random;
+    const m = .04 * S.mental;
+    let coups = 0, surGreen = false, situation = "fairway", puttLong = false;
+    const recit = [];
+    if (t.par >= 4) {
+      coups++;
+      const pFw = borne(.3 + .5 * S.drive + .15 * t.fw / 100 - .02 * t.a + m, .1, .92);
+      if (r() < pFw) { situation = "fairway"; recit.push("🚀 Drive au milieu du fairway"); }
+      else if (t.e && r() < .15 + .02 * t.e) { coups++; situation = "rough"; recit.push("💦 Drive dans l'eau (+1)"); }
+      else if (t.b && r() < .3) { situation = "bunker"; recit.push("🏖️ Drive dans un bunker de fairway"); }
+      else { situation = "rough"; recit.push(t.a > 2 && r() < .5 ? "🌲 Drive derrière les arbres" : "🌾 Drive dans le rough"); }
+    }
+    if (t.par === 5) {
+      coups++;
+      if (situation === "fairway" && S.drive > .55 && r() < .4) {
+        if (r() < borne(.12 + .35 * S.fers + m, .05, .6)) { surGreen = true; puttLong = true; recit.push("💥 Attaque du green en 2 : réussie !"); }
+        else { situation = "autour"; recit.push("💥 Attaque du green en 2 : ratée, à côté du green"); }
+      } else {
+        situation = r() < .75 + .2 * S.fers ? "fairway" : "rough";
+        recit.push(situation === "fairway" ? "➡️ Lay-up sur le fairway" : "➡️ Lay-up dans le rough");
+      }
+    }
+    if (!surGreen && situation !== "autour") {
+      coups++;
+      let p = .2 + .55 * S.fers + m + (t.par === 3 ? .05 : 0) - .015 * t.b;
+      if (situation === "rough") p -= .15;
+      if (situation === "bunker") p -= .22;
+      if (r() < borne(p, .05, .9)) { surGreen = true; recit.push(t.par === 3 ? "🎯 Départ sur le green" : "🎯 Approche sur le green"); }
+      else if (t.e && r() < .15 + .03 * t.e) { coups++; situation = "autour"; recit.push("💦 Dans l'eau (+1)"); }
+      else if (t.b && r() < .35) { situation = "bunkerGreen"; recit.push("🏖️ Dans le bunker du green"); }
+      else { situation = "autour"; recit.push("😐 Green manqué"); }
+    }
+    if (!surGreen) {
+      coups++;
+      const pUD = borne(.2 + .45 * S.petitJeu + .15 * S.putting + m - (situation === "bunkerGreen" ? .12 : 0), .05, .88);
+      if (r() < pUD) { coups++; recit.push(situation === "bunkerGreen" ? "🏖️ Sortie près du trou, 1 putt" : "⛳ Chip près du trou, 1 putt"); }
+      else if (r() < .08 + .15 * (1 - S.petitJeu)) { coups += 3; recit.push("😣 Chip raté, puis 2 putts"); }
+      else { coups += 2; recit.push(situation === "bunkerGreen" ? "🏖️ Sortie, puis 2 putts" : "⛳ Chip, puis 2 putts"); }
+      return { coups, recit };
+    }
+    const x = r();
+    const p1 = (puttLong ? .06 : .1) + .2 * S.putting + m / 2;
+    const p3 = (puttLong ? .22 : .16) - .13 * S.putting;
+    if (x < p1) { coups += 1; recit.push("🕳️ 1 putt !"); }
+    else if (x < p1 + p3) { coups += 3; recit.push("😬 3 putts"); }
+    else { coups += 2; recit.push("🕳️ 2 putts"); }
+    return { coups, recit };
+  }
+  function nomScore(ecart) {
+    return ecart <= -2 ? "🦅 Eagle" : ecart === -1 ? "🐦 Birdie" : ecart === 0 ? "✅ Par" : ecart === 1 ? "Bogey" : ecart === 2 ? "Double bogey" : `+${ecart}`;
+  }
+  const texteEcart = (e) => (e === 0 ? "par" : e > 0 ? `+${e}` : String(e));
+
+  // --- En ligne : publier, lister, classement ---
+  function messageErreurEnLigne(e) {
+    if (e && e.code === "permission-denied") return "Partage pas encore activé : il faut recoller les règles Firestore (fichier outils/regles-firestore.txt) dans la console Firebase.";
+    if (typeof navigator !== "undefined" && navigator.onLine === false) return "Pas de réseau pour l'instant.";
+    return "Impossible de joindre le serveur pour l'instant. Réessaie plus tard.";
+  }
+  async function enLigne() {
+    if (typeof demarrerPartage !== "function" || !(await demarrerPartage())) throw { code: "hors-ligne" };
+  }
+  async function publierParcours() {
+    const zone = $("#ty-etat-partage");
+    const nom = $("#ty-nom-golf").value.trim().slice(0, 40);
+    const joueur = typeof nomDuJoueur === "function" ? nomDuJoueur() : "";
+    const { trous } = mesTrous();
+    if (!nom) { zone.textContent = "Donne un nom à ton golf."; return; }
+    if (!trous.length) { zone.textContent = "Ton parcours n'a pas encore de trou jouable : il faut un green et un départ 🟩."; return; }
+    if (!joueur) { zone.textContent = "Ton nom de joueur manque (première page du site)."; return; }
+    etat.nomGolf = nom; sauvegarder();
+    zone.textContent = "Envoi…";
+    try {
+      await enLigne();
+      await baseDeDonnees.collection(COLLECTION_PARCOURS_TY).doc(idAppareil).set({
+        uid: idAppareil, joueur: joueur.slice(0, 40), nom, trous, majLe: firebase.firestore.FieldValue.serverTimestamp(),
+      });
+      zone.textContent = `✅ « ${nom} » est en ligne (${trous.length} trou${trous.length > 1 ? "s" : ""}). Les autres joueurs peuvent venir le jouer !`;
+      son("niveau");
+    } catch (e) { zone.textContent = "⚠️ " + messageErreurEnLigne(e); }
+  }
+  // Données reçues d'internet : on ne garde que ce qui est bien formé
+  function normaliserParcoursEnLigne(id, d) {
+    if (!d || typeof d !== "object" || !Array.isArray(d.trous)) return null;
+    const ent = (v, a, b) => (Number.isFinite(v) ? borne(Math.round(v), a, b) : null);
+    const trous = d.trous.slice(0, 18).map((t) => t && ({
+      n: ent(t.n, 1, 99), par: [3, 4, 5].includes(t.par) ? t.par : null, l: ent(t.l, 0, 1000),
+      fw: ent(t.fw, 0, 100), b: ent(t.b, 0, 99), e: ent(t.e, 0, 99), a: ent(t.a, 0, 99),
+    })).filter((t) => t && t.n && t.par && t.l != null && t.fw != null && t.b != null && t.e != null && t.a != null);
+    if (!trous.length) return null;
+    return { id, joueur: String(d.joueur || "?").slice(0, 40), nom: String(d.nom || "Golf").slice(0, 40), trous };
+  }
+  let parcoursEnLigne = [];
+  async function chargerParcoursDesAutres() {
+    const zone = $("#ty-liste-parcours");
+    zone.innerHTML = '<p class="petit">Chargement…</p>';
+    try {
+      await enLigne();
+      const snap = await baseDeDonnees.collection(COLLECTION_PARCOURS_TY).limit(60).get();
+      parcoursEnLigne = snap.docs.map((doc) => normaliserParcoursEnLigne(doc.id, doc.data())).filter(Boolean)
+        .filter((p) => p.id !== idAppareil);
+      rendreListeParcours();
+    } catch (e) { zone.innerHTML = `<p class="petit">⚠️ ${esc(messageErreurEnLigne(e))}</p>`; }
+  }
+  function rendreListeParcours() {
+    const zone = $("#ty-liste-parcours");
+    if (!parcoursEnLigne.length) { zone.innerHTML = '<p class="petit">Personne n\'a encore publié de parcours. Publie le tien en premier !</p>'; return; }
+    const auj = cleJour();
+    zone.innerHTML = parcoursEnLigne.map((p) => {
+      const par = p.trous.reduce((t, x) => t + x.par, 0);
+      const dejaJoue = etat.joues[p.id] === auj;
+      return `<div class="ty-parcours">
+        <div class="ty-parcours-texte"><b>${esc(p.nom)}</b><span class="petit">de ${esc(p.joueur)} · ${p.trous.length} trou${p.trous.length > 1 ? "s" : ""} · par ${par}</span></div>
+        <button type="button" class="bouton" data-classement="${esc(p.id)}">🏆</button>
+        <button type="button" class="bouton principal" data-jouer="${esc(p.id)}" ${dejaJoue ? "disabled" : ""}>${dejaJoue ? "Joué ✓" : "▶ Jouer"}</button>
+      </div>`;
+    }).join("");
+  }
+  async function envoyerScoreEnLigne(parcours, total, par) {
+    const joueur = typeof nomDuJoueur === "function" ? nomDuJoueur() : "";
+    if (!joueur) return "Score non envoyé : ton nom de joueur manque.";
+    try {
+      await enLigne();
+      const ref = baseDeDonnees.collection(COLLECTION_SCORES_TY).doc(`${parcours.id}_${idAppareil}`);
+      const ancien = await ref.get();
+      const a = ancien.exists ? ancien.data() : null;
+      // On garde le meilleur score (par rapport au par) de ce joueur sur ce parcours
+      if (a && Number.isFinite(a.score) && Number.isFinite(a.par) && a.trous === parcours.trous.length && a.score - a.par <= total - par) return "";
+      await ref.set({
+        uid: idAppareil, joueur: joueur.slice(0, 40), parcours: parcours.id, score: total, par,
+        trous: parcours.trous.length, date: cleJour(), majLe: firebase.firestore.FieldValue.serverTimestamp(),
+      });
+      return "";
+    } catch (e) { return "⚠️ " + messageErreurEnLigne(e); }
+  }
+  async function classementHTML(parcours) {
+    try {
+      await enLigne();
+      const snap = await baseDeDonnees.collection(COLLECTION_SCORES_TY).where("parcours", "==", parcours.id).limit(100).get();
+      const lignes = snap.docs.map((d) => d.data()).filter((s) => s && Number.isFinite(s.score) && Number.isFinite(s.par))
+        .map((s) => ({ joueur: String(s.joueur || "?").slice(0, 40), ecart: s.score - s.par, score: s.score, moi: s.uid === idAppareil }))
+        .sort((a, b) => a.ecart - b.ecart).slice(0, 10);
+      if (!lignes.length) return '<p class="petit">Pas encore de score sur ce parcours.</p>';
+      return '<ol class="ty-classement">' + lignes.map((l) =>
+        `<li class="${l.moi ? "moi" : ""}"><span>${esc(l.joueur)}</span><b>${l.score} (${texteEcart(l.ecart)})</b></li>`).join("") + "</ol>";
+    } catch (e) { return `<p class="petit">⚠️ ${esc(messageErreurEnLigne(e))}</p>`; }
+  }
+
+  // --- La partie à l'écran (fenêtre plein écran, trou par trou) ---
+  function fenetrePartie() {
+    let f = $("#ty-partie");
+    if (!f) {
+      f = document.createElement("div");
+      f.id = "ty-partie";
+      f.className = "ty-modale";
+      f.innerHTML = '<div class="ty-modale-boite ty-partie-boite"><div id="ty-partie-contenu"></div><div class="ty-modale-actions"><span class="ty-espace"></span><button type="button" class="bouton principal" id="ty-partie-fermer">Fermer</button></div></div>';
+      document.body.appendChild(f);
+      $("#ty-partie-fermer").addEventListener("click", () => { f.hidden = true; partieEnCours = null; });
+    }
+    f.hidden = false;
+    return $("#ty-partie-contenu");
+  }
+  let partieEnCours = null;
+  async function jouerParcours(parcours, officielle) {
+    const S = {};
+    for (const [k, v] of Object.entries(statsGolfeur())) S[k] = v.valeur / 100;
+    const zone = fenetrePartie();
+    const par = parcours.trous.reduce((t, x) => t + x.par, 0);
+    zone.innerHTML = `<h3>⛳ ${esc(parcours.nom)}</h3>
+      <p class="petit">${officielle ? `Parcours de ${esc(parcours.joueur)} · partie officielle (1 par jour)` : "Entraînement sur ton parcours (pas de classement)"} · par ${par}</p>
+      <ol class="ty-carte-score" id="ty-carte-score"></ol>
+      <div class="ty-total-partie" id="ty-total-partie"></div>
+      <div id="ty-classement-partie"></div>`;
+    if (officielle) { etat.joues[parcours.id] = cleJour(); sauvegarder(); }
+    const jeton = partieEnCours = {};
+    let total = 0, ecart = 0;
+    const resultats = [];
+    for (const t of parcours.trous) {
+      await new Promise((ok) => setTimeout(ok, 900));
+      if (partieEnCours !== jeton) return;   // fenêtre fermée
+      const res = simulerTrou(t, S);
+      total += res.coups; ecart += res.coups - t.par;
+      resultats.push(res.coups - t.par);
+      const li = document.createElement("li");
+      li.className = "ty-trou-joue " + (res.coups < t.par ? "sous" : res.coups === t.par ? "par" : "sur");
+      li.innerHTML = `<div class="ty-trou-tete"><b>Trou ${t.n}</b> <span class="petit">Par ${t.par} · ${t.l} m</span><span class="ty-trou-score">${res.coups} · ${nomScore(res.coups - t.par)}</span></div>
+        <div class="petit">${res.recit.map(esc).join(" → ")}</div>`;
+      $("#ty-carte-score").appendChild(li);
+      li.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      son(res.coups < t.par ? "reverdit" : res.coups === t.par ? "clic" : "decoche");
+      $("#ty-total-partie").textContent = `Total : ${total} (${texteEcart(ecart)})`;
+    }
+    const birdies = resultats.filter((e) => e < 0).length;
+    $("#ty-total-partie").innerHTML = `🏁 Score final : <b>${total}</b> (${texteEcart(ecart)})${birdies ? ` · ${birdies} birdie${birdies > 1 ? "s" : ""} ou mieux` : ""}`;
+    if (ecart < 0) { son("niveau"); confettis(); }
+    etat.resultatsVirtuels.push({ d: cleJour(), nom: parcours.nom.slice(0, 40), score: total, par });
+    etat.resultatsVirtuels = etat.resultatsVirtuels.slice(-30);
+    sauvegarder();
+    if (officielle) {
+      $("#ty-classement-partie").innerHTML = '<p class="petit">Envoi du score…</p>';
+      const erreur = await envoyerScoreEnLigne(parcours, total, par);
+      $("#ty-classement-partie").innerHTML = (erreur ? `<p class="petit">${esc(erreur)}</p>` : "") + "<h4>🏆 Classement</h4>" + await classementHTML(parcours);
+      rendreListeParcours();
+    }
+  }
+
+  // --- Affichage du bloc dans l'onglet ---
+  function rendreGolfeur() {
+    const stats = statsGolfeur();
+    const moyenne = Object.values(stats).reduce((t, s) => t + s.valeur, 0) / 5;
+    $("#ty-niveau-golfeur").textContent = `Niveau ${Math.round(moyenne)}/100`;
+    $("#ty-stats-golfeur").innerHTML = Object.entries(stats).map(([k, s]) => `
+      <div class="ty-stat-golfeur">
+        <div class="ty-stat-ligne"><span>${NOMS_STATS[k]}</span><b>${s.valeur}</b></div>
+        <i class="ty-barre"><i style="width:${s.valeur}%"></i></i>
+        <span class="petit">${esc(s.detail)}</span>
+      </div>`).join("");
+    const { trous, sansDepart } = mesTrous();
+    const par = trous.reduce((t, x) => t + x.par, 0);
+    $("#ty-mes-trous").innerHTML = (trous.length
+      ? `<p class="petit"><b>Mon parcours : ${trous.length} trou${trous.length > 1 ? "s" : ""} jouable${trous.length > 1 ? "s" : ""}, par ${par}</b></p><ul class="ty-liste-trous">${trous.map((t) => `<li>${esc(texteTrou(t))}</li>`).join("")}</ul>`
+      : '<p class="petit">Pas encore de trou jouable : il faut un green ⛳ et, à au moins 3 cases, un départ 🟩 (ou un trou tout prêt de la boutique).</p>')
+      + (sansDepart.length ? `<p class="petit">⚠️ Green${sansDepart.length > 1 ? "s" : ""} n° ${sansDepart.join(", ")} sans départ : pose un « Départ » pour ${sansDepart.length > 1 ? "qu'ils comptent" : "qu'il compte"}.</p>` : "");
+    $("#ty-jouer-mien").disabled = !trous.length;
+    if (etat.nomGolf && !$("#ty-nom-golf").value) $("#ty-nom-golf").value = etat.nomGolf;
+  }
+  function htmlGolfeur() {
+    return `
+      <div class="ty-bloc">
+        <div class="ty-titre"><h2>🏌️ Mon golfeur</h2><span class="petit" id="ty-niveau-golfeur"></span></div>
+        <p class="petit">Ses notes viennent de tes vrais résultats : jeux de putting, jeux du practice, parties notées, exos de petit jeu et entraînement mental. Plus tu t'entraînes, mieux il joue !</p>
+        <div id="ty-stats-golfeur"></div>
+        <div id="ty-mes-trous"></div>
+        <button type="button" class="bouton pleine-largeur" id="ty-jouer-mien">▶ Jouer mon parcours (entraînement)</button>
+      </div>
+      <div class="ty-bloc">
+        <div class="ty-titre"><h2>🌍 Parcours des autres</h2></div>
+        <p class="petit">Publie ton parcours pour que les autres viennent le jouer, et va jouer le leur : ton golfeur fait le score tout seul, trou par trou. Une partie officielle par jour et par parcours, avec un classement.</p>
+        <label class="ty-label">Nom de mon golf <input type="text" class="champ" id="ty-nom-golf" maxlength="40" placeholder="Ex. : Golf des Pins"></label>
+        <button type="button" class="bouton principal pleine-largeur" id="ty-publier">📤 Publier mon parcours</button>
+        <p class="petit" id="ty-etat-partage"></p>
+        <button type="button" class="bouton pleine-largeur" id="ty-charger">🔄 Voir les parcours des autres</button>
+        <div id="ty-liste-parcours"></div>
+      </div>`;
+  }
+  function brancherGolfeur() {
+    $("#ty-publier").addEventListener("click", publierParcours);
+    $("#ty-charger").addEventListener("click", chargerParcoursDesAutres);
+    $("#ty-jouer-mien").addEventListener("click", () => {
+      const { trous } = mesTrous();
+      if (trous.length) jouerParcours({ id: "moi", nom: etat.nomGolf || "Mon parcours", joueur: "toi", trous }, false);
+    });
+    $("#ty-liste-parcours").addEventListener("click", async (ev) => {
+      const j = ev.target.closest("[data-jouer]"), c = ev.target.closest("[data-classement]");
+      if (j && !j.disabled) {
+        const p = parcoursEnLigne.find((x) => x.id === j.dataset.jouer);
+        if (p) jouerParcours(p, true);
+      }
+      if (c) {
+        const p = parcoursEnLigne.find((x) => x.id === c.dataset.classement);
+        if (!p) return;
+        const zone = fenetrePartie();
+        zone.innerHTML = `<h3>🏆 ${esc(p.nom)}</h3><p class="petit">de ${esc(p.joueur)}</p><p class="petit">Chargement…</p>`;
+        zone.innerHTML = `<h3>🏆 ${esc(p.nom)}</h3><p class="petit">de ${esc(p.joueur)} · ${p.trous.length} trous</p>` +
+          `<ul class="ty-liste-trous">${p.trous.map((t) => `<li>${esc(texteTrou(t))}</li>`).join("")}</ul>` + await classementHTML(p);
+      }
+    });
+  }
+
+  /* =======================================================
      9. VUE « 🏗️ TYCOON » ET BADGE DE L'EN-TÊTE
      ======================================================= */
 
@@ -2168,6 +2607,8 @@
         <button type="button" class="bouton ty-tourner" id="ty-tourner" hidden>↻ Tourner le trou</button>
         <div class="ty-boutique" id="ty-boutique"></div>
       </div>
+
+      ${htmlGolfeur()}
 
       <div class="ty-bloc">
         <div class="ty-titre"><h2>Gains d'aujourd'hui</h2><span class="petit" id="ty-total-jour"></span></div>
@@ -2261,6 +2702,7 @@
     });
 
     initGestes();
+    brancherGolfeur();
   }
 
   // Met à jour tout ce qui est affiché (vue + badge)
@@ -2287,6 +2729,7 @@
     rendreGains();
     rendreHabitudes();
     rendreCalendrier();
+    rendreGolfeur();
     besoinRendu = true;
   }
 

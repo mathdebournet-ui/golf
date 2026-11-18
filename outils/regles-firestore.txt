@@ -7,6 +7,8 @@ rules_version = '2';
 //  - Séries (jours d'affilée) et scores de putting : chaque joueur écrit les
 //    siens, mais SEUL l'administrateur (connecté avec Google) peut les lire.
 //  - Sauvegardes : privées, lisibles seulement par leur compte Google.
+//  - Tycoon : parcours publiés et scores des parties simulées, lisibles par tous ;
+//    chacun n'écrit que les siens.
 //  - Les données envoyées sont vérifiées (taille, format) pour éviter les abus.
 // ⚠ Ce fichier est public : avant de coller, remplacer ADRESSE_ADMIN_1 et
 //   ADRESSE_ADMIN_2 par les adresses Gmail de l'administrateur (ne pas les écrire ici).
@@ -75,6 +77,43 @@ service cloud.firestore {
       allow read: if estAdmin();
       allow delete: if estAdmin() || estProprietaire(idAppareil);
       allow create, update: if estProprietaire(idAppareil) && scoresValides();
+    }
+
+    // Tycoon : parcours publiés (tout le monde peut les lire, chacun écrit le sien)
+    function parcoursTycoonValide() {
+      let d = request.resource.data;
+      return d.uid == request.auth.uid
+        && d.keys().hasOnly(['uid', 'joueur', 'nom', 'trous', 'majLe'])
+        && d.joueur is string && d.joueur.size() > 0 && d.joueur.size() <= 40
+        && d.nom is string && d.nom.size() > 0 && d.nom.size() <= 40
+        && d.trous is list && d.trous.size() >= 1 && d.trous.size() <= 18;
+    }
+
+    match /parcoursTycoon/{idAppareil} {
+      allow read: if true;
+      allow delete: if estAdmin() || estProprietaire(idAppareil);
+      allow create, update: if estProprietaire(idAppareil) && parcoursTycoonValide();
+    }
+
+    // Tycoon : meilleurs scores des parties simulées (lisibles par tous, chacun écrit les siens)
+    function scoreTycoonValide() {
+      let d = request.resource.data;
+      return d.uid == request.auth.uid
+        && d.keys().hasOnly(['uid', 'joueur', 'parcours', 'score', 'par', 'trous', 'date', 'majLe'])
+        && d.joueur is string && d.joueur.size() > 0 && d.joueur.size() <= 40
+        && d.parcours is string && d.parcours.size() <= 128
+        && d.score is int && d.score >= 0 && d.score <= 300
+        && d.par is int && d.par >= 0 && d.par <= 120
+        && d.trous is int && d.trous >= 1 && d.trous <= 18
+        && d.date is string && d.date.size() == 10;
+    }
+
+    match /scoresTycoon/{idScore} {
+      allow read: if true;
+      allow delete: if estAdmin() || (request.auth != null && resource.data.uid == request.auth.uid);
+      allow create, update: if request.auth != null
+        && idScore.matches('.+_' + request.auth.uid)
+        && scoreTycoonValide();
     }
 
     // Sauvegarde privée : seulement avec un compte Google (pas en anonyme)

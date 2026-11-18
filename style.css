@@ -746,3 +746,29 @@ button.ty-chip { cursor: pointer; }
 /* Bouton « ↻ Tourner le trou » (tycoon.js) */
 .ty-tourner { width: 100%; min-height: 44px; margin: -4px 0 10px; }
 .ty-tourner[hidden] { display: none !important; }
+/* Mon golfeur + parcours des autres (tycoon.js) */
+.ty-stat-golfeur { margin-bottom: 10px; }
+.ty-stat-ligne { display: flex; justify-content: space-between; font-weight: 700; }
+.ty-stat-golfeur .ty-barre { height: 8px; margin: 3px 0 2px; }
+.ty-stat-golfeur .petit { font-size: .75rem; }
+.ty-liste-trous { margin: 4px 0 10px; padding-left: 18px; font-size: .85rem; }
+.ty-liste-trous li { margin: 2px 0; }
+.ty-parcours { display: flex; align-items: center; gap: 8px; padding: 10px 0; border-bottom: 1px solid var(--bord); }
+.ty-parcours:last-child { border-bottom: none; }
+.ty-parcours-texte { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.ty-parcours .bouton { min-height: 44px; padding: 0 12px; }
+.ty-parcours .bouton:disabled { opacity: .55; }
+.ty-partie-boite { max-height: 88vh; }
+.ty-carte-score { list-style: none; margin: 8px 0; padding: 0; }
+.ty-trou-joue { padding: 8px 10px; border-radius: 10px; margin-bottom: 6px; background: var(--fond); animation: monte-ty .3s ease-out; }
+.ty-trou-joue.sous { background: #e3f7e6; }
+.ty-trou-joue.sur { background: #fdecea; }
+@media (prefers-color-scheme: dark) { .ty-trou-joue.sous { background: #1d3a26; } .ty-trou-joue.sur { background: #3d1d1b; } }
+@keyframes monte-ty { from { opacity: 0; transform: translateY(8px); } }
+.ty-trou-tete { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.ty-trou-score { margin-left: auto; font-weight: 800; }
+.ty-total-partie { font-size: 1.1rem; font-weight: 800; margin: 8px 0; }
+.ty-classement { margin: 6px 0; padding-left: 22px; }
+.ty-classement li { padding: 4px 0; }
+.ty-classement li span { margin-right: 8px; }
+.ty-classement li.moi { color: var(--accent); font-weight: 800; }
