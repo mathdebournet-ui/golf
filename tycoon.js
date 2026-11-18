@@ -51,7 +51,8 @@
     arbre:     { nom: "Arbre",      prix: 20,  niveau: 1, plat: false, haut: true,  couleur: "#3fae4f" },
     lac:       { nom: "Lac",        prix: 40,  niveau: 2, plat: true,  haut: false, couleur: "#7fd0ff" },
     green:     { nom: "Green",      prix: 60,  niveau: 3, plat: true,  haut: true,  couleur: "#62e07c" },
-    practice:  { nom: "Practice",   prix: 150, niveau: 4, plat: false, haut: true,  couleur: "#ffffff" },
+    puttinggreen: { nom: "Putting green", prix: 120, niveau: 3, plat: false, haut: true, couleur: "#62e07c" },
+    practice:  { nom: "Practice",   prix: 200, niveau: 4, plat: false, haut: true,  couleur: "#ffffff" },
     clubhouse: { nom: "Club-house", prix: 300, niveau: 5, plat: false, haut: true,  couleur: "#e05a4a" },
   };
   const ICONES = ["⛳", "🏌️", "🎯", "🕳️", "🚩", "🏖️", "📏", "🚀", "🔁", "🏆", "🟢", "🐦", "🧹", "⏱️", "🌲", "🔥"];
@@ -177,7 +178,7 @@
       for (const [cle, type] of Object.entries(d.carte)) if (ELEMENTS[type]) e.carte[cle] = type;
       // Cases du grand club-house (2 x 2) : "@x,y" renvoie vers la case principale
       for (const [cle, type] of Object.entries(d.carte)) {
-        if (typeof type === "string" && type.startsWith("@") && e.carte[type.slice(1)] === "clubhouse") e.carte[cle] = type;
+        if (typeof type === "string" && type.startsWith("@") && TAILLES[e.carte[type.slice(1)]]) e.carte[cle] = type;
       }
     }
     // Ordre des greens : on garde ceux qui existent, on ajoute ceux qui manquent
@@ -690,26 +691,7 @@
         // Le green se dessine dans le repère de la case (u, v de 0 à 1) : un rond au centre,
         // prolongé jusqu'au bord vers chaque green voisin => des greens collés n'en font qu'un.
         dessinerHerbe(c, sx, sy, x, y);
-        const g = (dx, dy) => greensFusionnes && etat.carte[(x + dx) + "," + (y + dy)] === "green";
-        c.save();
-        c.translate(sx, sy);
-        c.transform(TW / 2, TH / 2, -TW / 2, TH / 2, 0, 0);   // (u, v) -> losange de la case
-        for (const [r, coul] of [[.5, herbe("#3fb85a", "#bdb04a")], [.42, herbe("#66e57f", "#d9d070")]]) {
-          c.fillStyle = coul;
-          c.beginPath(); c.arc(.5, .5, r, 0, Math.PI * 2); c.fill();
-          // e = petit débord sur la case voisine pour qu'aucune ligne ne se voie à la jointure
-          const a = .5 - r, l = 2 * r, e = .03;
-          if (g(1, 0)) c.fillRect(.5, a, .5 + e, l);
-          if (g(-1, 0)) c.fillRect(-e, a, .5 + e, l);
-          if (g(0, 1)) c.fillRect(a, .5, l, .5 + e);
-          if (g(0, -1)) c.fillRect(a, -e, l, .5 + e);
-          // Coin rempli quand les 3 cases autour du coin sont aussi du green
-          if (g(1, 0) && g(0, 1) && g(1, 1)) c.fillRect(.5, .5, .5 + e, .5 + e);
-          if (g(-1, 0) && g(0, 1) && g(-1, 1)) c.fillRect(-e, .5, .5 + e, .5 + e);
-          if (g(1, 0) && g(0, -1) && g(1, -1)) c.fillRect(.5, -e, .5 + e, .5 + e);
-          if (g(-1, 0) && g(0, -1) && g(-1, -1)) c.fillRect(-e, -e, .5 + e, .5 + e);
-        }
-        c.restore();
+        surfaceGreen(c, sx, sy, (dx, dy) => greensFusionnes && etat.carte[(x + dx) + "," + (y + dy)] === "green");
         break;
       }
       case "terrasse":   // dalles de pierre sous le grand club-house
@@ -727,13 +709,44 @@
     }
   }
 
-  /* ---------- Grand club-house sur 2 x 2 cases ----------
-     La case du fond (« ancre ») contient "clubhouse", les 3 autres
-     contiennent "@x,y" (un renvoi vers l'ancre). */
-  function casesClubHouse(x, y) { return [[x, y], [x + 1, y], [x, y + 1], [x + 1, y + 1]]; }
-  function estGrandClubHouse(x, y) {
-    return etat.carte[x + "," + y] === "clubhouse" &&
-      casesClubHouse(x, y).slice(1).every(([a, b]) => etat.carte[a + "," + b] === "@" + x + "," + y);
+  // Surface d'un green dans la case (sx, sy) ; g(dx, dy) = true si la case voisine
+  // fait partie du même green (la surface se prolonge alors jusqu'à elle).
+  function surfaceGreen(c, sx, sy, g) {
+    c.save();
+    c.translate(sx, sy);
+    c.transform(TW / 2, TH / 2, -TW / 2, TH / 2, 0, 0);   // (u, v) -> losange de la case
+    for (const [r, coul] of [[.5, herbe("#3fb85a", "#bdb04a")], [.42, herbe("#66e57f", "#d9d070")]]) {
+      c.fillStyle = coul;
+      c.beginPath(); c.arc(.5, .5, r, 0, Math.PI * 2); c.fill();
+      // e = petit débord sur la case voisine pour qu'aucune ligne ne se voie à la jointure
+      const a = .5 - r, l = 2 * r, e = .03;
+      if (g(1, 0)) c.fillRect(.5, a, .5 + e, l);
+      if (g(-1, 0)) c.fillRect(-e, a, .5 + e, l);
+      if (g(0, 1)) c.fillRect(a, .5, l, .5 + e);
+      if (g(0, -1)) c.fillRect(a, -e, l, .5 + e);
+      // Coin rempli quand les 3 cases autour du coin sont aussi du green
+      if (g(1, 0) && g(0, 1) && g(1, 1)) c.fillRect(.5, .5, .5 + e, .5 + e);
+      if (g(-1, 0) && g(0, 1) && g(-1, 1)) c.fillRect(-e, .5, .5 + e, .5 + e);
+      if (g(1, 0) && g(0, -1) && g(1, -1)) c.fillRect(.5, -e, .5 + e, .5 + e);
+      if (g(-1, 0) && g(0, -1) && g(-1, -1)) c.fillRect(-e, -e, .5 + e, .5 + e);
+    }
+    c.restore();
+  }
+
+  /* ---------- Grands éléments sur plusieurs cases ----------
+     Club-house 2 x 2, putting green 2 x 2, practice 4 x 2 (4 cases dans le sens x).
+     La case du fond (« ancre ») contient le type, les autres contiennent
+     "@x,y" (un renvoi vers l'ancre). TAILLES = [cases en x, cases en y]. */
+  const TAILLES = { clubhouse: [2, 2], puttinggreen: [2, 2], practice: [4, 2] };
+  function casesDe(type, x, y) {
+    const [w, h] = TAILLES[type] || [1, 1];
+    const liste = [];
+    for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) liste.push([x + i, y + j]);
+    return liste;   // la première case est l'ancre
+  }
+  function estGrand(type, x, y) {
+    return !!TAILLES[type] && etat.carte[x + "," + y] === type &&
+      casesDe(type, x, y).slice(1).every(([a, b]) => etat.carte[a + "," + b] === "@" + x + "," + y);
   }
   // Type réel d'une case (une case « renvoi » donne le type de son ancre)
   function typeDe(cle) {
@@ -745,13 +758,158 @@
     const v = etat.carte[cle];
     return v && v.startsWith("@") ? v.slice(1) : cle;
   }
-  // Case ancre quand on touche (x, y) pour poser le club-house (reste dans la grille)
-  function ancrePose(x, y) {
-    for (const [dx, dy] of [[0, 0], [-1, 0], [0, -1], [-1, -1]]) {
-      const a = { x: x + dx, y: y + dy };
-      if (casesClubHouse(a.x, a.y).every(([i, j]) => possedee(i, j))) return a;
+  // Case ancre quand on touche (x, y) pour poser un grand élément : on cherche une
+  // position qui contient la case touchée, sur le terrain, et si possible libre.
+  function ancrePose(type, x, y) {
+    const [w, h] = TAILLES[type] || [1, 1];
+    let repli = null;
+    for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
+      const a = { x: x - i, y: y - j };
+      const cases = casesDe(type, a.x, a.y);
+      if (!cases.every(([p, q]) => possedee(p, q))) continue;
+      if (cases.every(([p, q]) => !etat.carte[p + "," + q])) return a;
+      if (!repli) repli = a;
     }
-    return { x, y };
+    return repli || { x, y };
+  }
+
+  // Sol d'une case (i, j) d'un grand élément
+  function dessinerSolGrand(c, type, sx, sy, i, j, x, y) {
+    const [w, h] = TAILLES[type];
+    const dedans = (dx, dy) => i + dx >= 0 && i + dx < w && j + dy >= 0 && j + dy < h;
+    if (type === "clubhouse") {
+      dessinerSol(c, "terrasse", sx, sy, x, y);
+    } else if (type === "puttinggreen") {
+      dessinerHerbe(c, sx, sy, x, y);
+      surfaceGreen(c, sx, sy, dedans);
+    } else if (type === "practice") {
+      if (i === 0) {
+        // Zone de frappe : gazon ras clair
+        losange(c, sx, sy, 1, herbe("#9fd77f", "#d8cf7a"));
+      } else {
+        // Zone de réception : herbe tondue en bandes
+        losange(c, sx, sy, 1, herbe(i % 2 ? "#79cf5c" : "#86d968", "#cfc25c"));
+        poly(c, [pt(sx, sy, .5, 0), pt(sx, sy, 1, 0), pt(sx, sy, 1, 1), pt(sx, sy, .5, 1)], herbe("#8fdf72", "#d9cd6c"));
+      }
+    }
+  }
+
+  // Parties en hauteur d'un grand élément, dessinées quand on arrive à la case (i, j).
+  // P(u, v) = point écran du coin (u, v) de l'élément (u de 0 à w, v de 0 à h).
+  function dessinerPartieGrand(c, type, P, i, j, dy = 0) {
+    if (type === "clubhouse" && i === 1 && j === 1) { const [X, Y] = P(1, 1); dessinerGrandClubHouse(c, X, Y, dy); }
+    if (type === "puttinggreen" && i === 1 && j === 1) dessinerPuttingGreen(c, P, dy);
+    if (type === "practice") {
+      if (i === 0 && j === 1) dessinerAbriPractice(c, P, dy);
+      if (i === 3 && j === 1) dessinerZonePractice(c, P, dy);
+    }
+  }
+
+  // Élément complet (aperçu sous la souris, boutique)
+  function dessinerGrandComplet(c, type, P) {
+    const [w, h] = TAILLES[type];
+    for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
+      const [sx, sy] = P(i, j);
+      dessinerSolGrand(c, type, sx, sy, i, j, i, j);
+    }
+    for (let s = 0; s <= w + h - 2; s++) {
+      for (let i = 0; i < w; i++) { const j = s - i; if (j >= 0 && j < h) dessinerPartieGrand(c, type, P, i, j, 0); }
+    }
+  }
+
+  // Boîte posée sur le sol entre (u0, v0) et (u1, v1), de hauteur h, qui commence à la hauteur z0
+  function boiteUV(c, P, u0, u1, v0, v1, h, z0, dessus, gauche, droite) {
+    const up = ([x, y], z) => [x, y - z];
+    const B = P(u0, v0), R = P(u1, v0), F = P(u1, v1), L = P(u0, v1);
+    poly(c, [up(L, z0), up(F, z0), up(F, z0 + h), up(L, z0 + h)], gauche);
+    poly(c, [up(F, z0), up(R, z0), up(R, z0 + h), up(F, z0 + h)], droite);
+    if (dessus) poly(c, [up(B, z0 + h), up(R, z0 + h), up(F, z0 + h), up(L, z0 + h)], dessus);
+  }
+  // Petit drapeau (putting green, cibles du practice)
+  function petitDrapeau(c, X, Y, haut, couleur) {
+    ovale(c, X, Y + .5, 2.2, 1.1, "#1d2b22");
+    c.strokeStyle = "#f4f4f4"; c.lineWidth = 1.2;
+    c.beginPath(); c.moveTo(X, Y); c.lineTo(X, Y - haut); c.stroke();
+    poly(c, [[X, Y - haut], [X + 7, Y - haut + 2.5], [X, Y - haut + 5]], couleur);
+  }
+
+  /* ---------- Putting green 2 x 2 : plusieurs trous avec petits drapeaux ---------- */
+  function dessinerPuttingGreen(c, P, dy = 0) {
+    c.save(); c.translate(0, dy);
+    // Balles d'entraînement
+    for (const [u, v] of [[.8, .75], [.92, .88], [1.3, .62], [1.62, 1.18], [1.2, 1.58], [.42, 1.1], [1.08, 1.27], [.7, 1.2]]) {
+      const [x, y] = P(u, v); rond(c, x, y, 1.6, "#ffffff");
+    }
+    // 5 trous, dessinés de l'arrière vers l'avant
+    const trous = [[.55, .6, "#ffd23f"], [1.45, .45, "#ffffff"], [1.0, 1.0, "#ff8c1a"], [.6, 1.45, "#e8433a"], [1.5, 1.4, "#2f6fd6"]];
+    for (const [u, v, coul] of trous.sort((a, b) => (a[0] + a[1]) - (b[0] + b[1]))) {
+      const [x, y] = P(u, v); petitDrapeau(c, x, y, 16, coul);
+    }
+    // Panneau « PUTTING » devant à gauche
+    const [px, py] = P(.12, 1.9);
+    c.strokeStyle = "#6b5a45"; c.lineWidth = 1.2;
+    c.beginPath(); c.moveTo(px, py); c.lineTo(px, py - 10); c.stroke();
+    c.fillStyle = "#1f5a3e"; c.fillRect(px - 13, py - 17, 26, 8);
+    c.fillStyle = "#f2c94c"; c.font = "bold 5.2px system-ui, sans-serif";
+    c.textAlign = "center"; c.textBaseline = "middle";
+    c.fillText("PUTTING", px, py - 12.8);
+    c.restore();
+  }
+
+  /* ---------- Practice 4 x 2 : abri de frappe + zone de réception avec cibles ---------- */
+  function dessinerAbriPractice(c, P, dy = 0) {
+    // Tapis de frappe et paniers de balles, devant l'abri (au sol)
+    for (const [v0, v1] of [[.12, .42], [.58, .88], [1.12, 1.42], [1.58, 1.88]]) {
+      poly(c, [P(.66, v0), P(.92, v0), P(.92, v1), P(.66, v1)], "#2f7d4a");
+      const [bx, by] = P(.72, (v0 + v1) / 2);
+      rond(c, bx, by, 1.5, "#ffffff"); rond(c, bx + 2.5, by - 1, 1.5, "#ffffff"); rond(c, bx + 1, by + 1.5, 1.5, "#ffffff");
+    }
+    c.save(); c.translate(0, dy);
+    // Abri : mur du fond fermé, ouvert côté zone de réception
+    boiteUV(c, P, .08, .6, .04, 1.96, 18, 0, null, "#efe4cb", "#4b3d2c");
+    // Poteaux blancs entre les postes
+    for (const v of [.04, .5, 1, 1.5, 1.96]) {
+      const [x, y] = P(.6, v);
+      c.strokeStyle = "#ffffff"; c.lineWidth = 1.6;
+      c.beginPath(); c.moveTo(x, y); c.lineTo(x, y - 18); c.stroke();
+    }
+    // Toit vert qui dépasse un peu
+    boiteUV(c, P, 0, .72, -.06, 2.06, 4, 18, "#3fb070", "#2f8f58", "#257447");
+    // Enseigne « PRACTICE » sur le bord du toit (inclinée comme lui)
+    c.save();
+    const [ox, oy] = P(.72, 1.78);
+    c.transform(1, -.5, 0, 1, ox, oy - 20);
+    c.fillStyle = "#ffffff"; c.font = "bold 4.6px system-ui, sans-serif";
+    c.textAlign = "left"; c.textBaseline = "middle";
+    c.fillText("PRACTICE", 4, 0);
+    c.restore();
+    c.restore();
+  }
+  function dessinerZonePractice(c, P, dy = 0) {
+    c.save(); c.translate(0, dy);
+    // Balles éparpillées sur la zone de réception
+    for (let k = 0; k < 26; k++) {
+      const u = 1.1 + ((k * 37) % 29) / 29 * 2.8, v = .12 + ((k * 53) % 31) / 31 * 1.76;
+      const [x, y] = P(u, v); rond(c, x, y, 1.3, "#ffffff");
+    }
+    // 3 cibles (petits greens ronds) avec drapeau et distance
+    for (const [u, v, coul, dist] of [[1.9, .6, "#e8433a", "50"], [2.75, 1.35, "#ffd23f", "100"], [3.5, .7, "#ffffff", "150"]]) {
+      const [o] = [P(0, 0)];
+      c.save();
+      c.translate(o[0], o[1]);
+      c.transform(TW / 2, TH / 2, -TW / 2, TH / 2, 0, 0);
+      c.fillStyle = herbe("#3fb85a", "#bdb04a"); c.beginPath(); c.arc(u, v, .34, 0, Math.PI * 2); c.fill();
+      c.fillStyle = herbe("#66e57f", "#d9d070"); c.beginPath(); c.arc(u, v, .28, 0, Math.PI * 2); c.fill();
+      c.restore();
+      const [x, y] = P(u, v);
+      petitDrapeau(c, x, y, 17, coul);
+      // Panneau de distance
+      c.fillStyle = "#ffffff"; c.fillRect(x - 17, y - 9, 11, 6.5);
+      c.fillStyle = "#1f3436"; c.font = "bold 4.6px system-ui, sans-serif";
+      c.textAlign = "center"; c.textBaseline = "middle";
+      c.fillText(dist, x - 11.5, y - 5.6);
+    }
+    c.restore();
   }
 
   // X, Y = centre des 4 cases ; dy = décalage pendant la chute
@@ -1057,11 +1215,17 @@
         // (dépassent d'un demi-pixel pour qu'on ne voie pas de jointure entre deux cases)
         if (!possedee(x, y + 1)) poly(c, [[sx - TW / 2 - .6, sy + TH / 2 - .3], [sx + .6, sy + TH + .3], [sx + .6, sy + TH + EPAIS + .3], [sx - TW / 2 - .6, sy + TH / 2 + EPAIS - .3]], "#9a6a3a");
         if (!possedee(x + 1, y)) poly(c, [[sx - .6, sy + TH + .3], [sx + TW / 2 + .6, sy + TH / 2 - .3], [sx + TW / 2 + .6, sy + TH / 2 + EPAIS - .3], [sx - .6, sy + TH + EPAIS + .3]], "#7d5430");
-        // Cases du grand club-house : terrasse pavée
-        if ((v && v.startsWith("@")) || (v === "clubhouse" && estGrandClubHouse(x, y))) {
-          dessinerSol(c, "terrasse", sx, sy, x, y);
-          if (outil) losange(c, sx, sy, 1, null, "rgba(0,0,0,.08)");
-          continue;
+        // Cases d'un grand élément (club-house, putting green, practice) : sol spécial
+        const ancre = v && v.startsWith("@") ? v.slice(1) : (v && TAILLES[v] ? cle : null);
+        if (ancre) {
+          const tA = etat.carte[ancre];
+          const [ax, ay] = ancre.split(",").map(Number);
+          if (estGrand(tA, ax, ay)) dessinerSolGrand(c, tA, sx, sy, x - ax, y - ay, x, y);
+          else if (v.startsWith("@")) dessinerHerbe(c, sx, sy, x, y);
+          if (estGrand(tA, ax, ay) || v.startsWith("@")) {
+            if (outil) losange(c, sx, sy, 1, null, "rgba(0,0,0,.08)");
+            continue;
+          }
         }
         const type = v;
         if (type && ELEMENTS[type].plat && anim[cle] != null) {
@@ -1085,16 +1249,20 @@
         const cle = x + "," + y;
         const type = etat.carte[cle];
         if (!type) continue;
-        if (type.startsWith("@")) {
-          const [ax, ay] = type.slice(1).split(",").map(Number);
-          if (x === ax + 1 && y === ay + 1 && estGrandClubHouse(ax, ay)) {
-            const ca = ax + "," + ay;
-            const centre = coinCase(ax + 1, ay + 1);
-            dessinerGrandClubHouse(c, centre.sx, centre.sy, anim[ca] != null ? -(1 - easeOutBounce(anim[ca])) * 150 : 0);
+        // Grands éléments : chaque case dessine sa partie (de l'arrière vers l'avant)
+        if (type.startsWith("@") || TAILLES[type]) {
+          const ancre = type.startsWith("@") ? type.slice(1) : cle;
+          const tA = etat.carte[ancre];
+          const [ax, ay] = ancre.split(",").map(Number);
+          if (estGrand(tA, ax, ay)) {
+            const P = (u, v) => { const q = coinCase(ax + u, ay + v); return [q.sx, q.sy]; };
+            const dyA = anim[ancre] != null ? -(1 - easeOutBounce(anim[ancre])) * 150 : 0;
+            dessinerPartieGrand(c, tA, P, x - ax, y - ay, dyA);
+            continue;
           }
-          continue;
+          if (type.startsWith("@")) continue;
+          // sinon : ancien élément d'une seule case, dessiné comme avant
         }
-        if (type === "clubhouse" && estGrandClubHouse(x, y)) continue;
         if (type === "green") {
           const g = drapeaux[cle];
           if (g) {
@@ -1116,18 +1284,14 @@
       const occupe = etat.carte[survol.x + "," + survol.y];
       if (outil === "retirer") {
         losange(c, sx, sy, 1, occupe ? "rgba(224,83,63,.35)" : "rgba(255,255,255,.25)", "#ffffff");
-      } else if (outil === "clubhouse") {
-        const an = ancrePose(survol.x, survol.y);
-        const cases = casesClubHouse(an.x, an.y);
+      } else if (TAILLES[outil]) {
+        const an = ancrePose(outil, survol.x, survol.y);
+        const cases = casesDe(outil, an.x, an.y);
         const libre = cases.every(([a, b]) => possedee(a, b) && !etat.carte[a + "," + b]);
-        const ok = libre && etat.pieces >= ELEMENTS.clubhouse.prix;
+        const ok = libre && etat.pieces >= ELEMENTS[outil].prix;
         c.save();
         c.globalAlpha = .6;
-        if (libre) {
-          for (const [a, b] of cases) { const q = coinCase(a, b); dessinerSol(c, "terrasse", q.sx, q.sy, a, b); }
-          const centre = coinCase(an.x + 1, an.y + 1);
-          dessinerGrandClubHouse(c, centre.sx, centre.sy);
-        }
+        if (libre) dessinerGrandComplet(c, outil, (u, v) => { const q = coinCase(an.x + u, an.y + v); return [q.sx, q.sy]; });
         c.restore();
         for (const [a, b] of cases) {
           const q = coinCase(a, b);
@@ -1168,7 +1332,7 @@
       if (!a.poussiere && (t - a.t0) / a.duree >= a.impact) {
         a.poussiere = true;
         const [x, y] = a.cle.split(",").map(Number);
-        const cases = a.type === "clubhouse" && estGrandClubHouse(x, y) ? casesClubHouse(x, y) : [[x, y]];
+        const cases = estGrand(a.type, x, y) ? casesDe(a.type, x, y) : [[x, y]];
         for (const [px, py] of cases) lancerParticules(px, py, ELEMENTS[a.type].couleur);
         son("pose");
       }
@@ -1352,8 +1516,8 @@
       const rendu = Math.floor(ELEMENTS[present].prix / 2);
       cle = ancreDe(cle);
       const [ax, ay] = cle.split(",").map(Number);
-      // Grand club-house : on libère ses 4 cases
-      const cases = present === "clubhouse" && estGrandClubHouse(ax, ay) ? casesClubHouse(ax, ay) : [[cs.x, cs.y]];
+      // Grand élément : on libère toutes ses cases
+      const cases = estGrand(present, ax, ay) ? casesDe(present, ax, ay) : [[cs.x, cs.y]];
       for (const [a, b] of cases) delete etat.carte[a + "," + b];
       etat.ordreGreens = etat.ordreGreens.filter((k) => etat.carte[k] === "green");
       etat.pieces += rendu;
@@ -1367,12 +1531,13 @@
       return;
     }
     const el = ELEMENTS[outil];
-    // Le club-house prend 4 cases (2 x 2) : toutes doivent être libres
-    const an = outil === "clubhouse" ? ancrePose(cs.x, cs.y) : cs;
-    const cases = outil === "clubhouse" ? casesClubHouse(an.x, an.y) : [[cs.x, cs.y]];
+    // Grands éléments (club-house, putting green, practice) : toutes leurs cases doivent être libres
+    const an = TAILLES[outil] ? ancrePose(outil, cs.x, cs.y) : cs;
+    const cases = TAILLES[outil] ? casesDe(outil, an.x, an.y) : [[cs.x, cs.y]];
     if (cases.some(([a, b]) => !possedee(a, b) || etat.carte[a + "," + b])) {
       son("erreur");
-      toast(outil === "clubhouse" ? "Le club-house a besoin de 4 cases libres (2 × 2)" : "Case occupée — utilise 🧹 Retirer d'abord");
+      const t = TAILLES[outil];
+      toast(t ? `${el.nom} : il faut ${t[0] * t[1]} cases libres (${t[0]} × ${t[1]}) sur ton terrain` : "Case occupée — utilise 🧹 Retirer d'abord");
       return;
     }
     if (etat.pieces < el.prix) {
@@ -1407,10 +1572,13 @@
     const ancien = fjDessin;
     fjDessin = 0;
     greensFusionnes = false;
-    if (type === "clubhouse") {   // grand club-house : 4 cases, dessiné plus petit
-      c.setTransform(dpr * .42, 0, 0, dpr * .42, dpr * 30, 0);
-      for (const [i, j] of casesClubHouse(0, 0)) dessinerSol(c, "terrasse", (i - j) * TW / 2, 105 + (i + j - 2) * TH / 2, i, j);
-      dessinerGrandClubHouse(c, 0, 105);
+    if (TAILLES[type]) {   // grand élément : toutes ses cases, dessinées plus petites
+      const [w, h] = TAILLES[type];
+      const z = Math.min(60 / ((w + h) * TW / 2 + 10), .42);
+      const cx = (w - h) / 2 * TW / 2, cy = (w + h) / 2 * TH / 2;   // centre de l'élément
+      const bas = 60 - 4 * z - (w + h) / 2 * TH / 2 * z;             // on le pose en bas de l'image
+      c.setTransform(dpr * z, 0, 0, dpr * z, dpr * (30 - cx * z), dpr * (bas - cy * z));
+      dessinerGrandComplet(c, type, (u, v) => [(u - v) * TW / 2, (u + v) * TH / 2]);
       fjDessin = ancien;
       greensFusionnes = true;
       return;
@@ -1459,7 +1627,7 @@
     if (!outil) txt = "Choisis un élément, puis touche une case. Glisse pour te déplacer, pince pour zoomer.";
     else if (outil === "retirer") txt = "Touche un élément pour le retirer (la moitié du prix est rendue).";
     else if (outil === "terrain") txt = `Touche un carré en pointillés collé à ton terrain pour l'acheter : ${PARCELLE} × ${PARCELLE} cases pour ${prixParcelle()} pièces (le prix monte un peu à chaque achat).`;
-    else if (outil === "clubhouse") txt = `Touche la carte pour poser le club-house : il prend 4 cases libres (2 × 2) — ${ELEMENTS.clubhouse.prix} pièces.`;
+    else if (TAILLES[outil]) txt = `Touche la carte pour poser : ${ELEMENTS[outil].nom}. Il prend ${TAILLES[outil][0]} × ${TAILLES[outil][1]} cases libres — ${ELEMENTS[outil].prix} pièces.`;
     else txt = `Touche une case vide pour poser : ${ELEMENTS[outil].nom} (${ELEMENTS[outil].prix} pièces). Touche l'élément à nouveau pour arrêter.`;
     $("#ty-consigne").textContent = txt;
     canvas.classList.toggle("outil-actif", !!outil);
